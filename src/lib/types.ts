@@ -137,3 +137,11 @@ export type AIGuardResult<T> = {
   aiReason: 'ok' | 'aiDisabled' | 'budgetOrQuotaExceeded' | 'error';
   aiData: T | null;
 }
+
+export interface DashboardStats {
+    totalLeads: number;
+    activeExportOrders: number;
+    leadsByStatus: Record<LeadStatus, number>;
+    exportOrdersByStage: Record<ExportOrderStage, number>;
+    lastUpdatedAt: Date;
+}

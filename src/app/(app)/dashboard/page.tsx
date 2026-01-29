@@ -4,48 +4,48 @@ import { StatsCards } from './components/stats-cards';
 import { LeadsByStatusChart } from './components/leads-by-status-chart';
 import { OrdersByStageChart } from './components/orders-by-stage-chart';
 import { RecentActivity } from './components/recent-activity';
-import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
-import type { Lead, ExportOrder } from '@/lib/types';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { DashboardStats } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const leadsQuery = useMemoFirebase(() => {
+  const dashboardStatsRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'leads'), where('assignedUserId', '==', user.uid));
-  }, [firestore, user]);
-
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'exportOrders'), where('assignedUserId', '==', user.uid));
+    // Read from the pre-aggregated stats document for this user
+    return doc(firestore, 'dashboardStats', user.uid);
   }, [firestore, user]);
   
-  const { data: leads } = useCollection<Lead>(leadsQuery);
-  const { data: orders } = useCollection<ExportOrder>(ordersQuery);
+  const { data: dashboardData, isLoading } = useDoc<DashboardStats>(dashboardStatsRef);
 
-  const dashboardData = useMemo(() => {
-    const leadsByStatus = (leads || []).reduce((acc, lead) => {
-        acc[lead.status] = (acc[lead.status] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+  if (isLoading) {
+    return (
+       <>
+        <PageHeader
+          title="Dashboard"
+          description="Welcome back! Here's a snapshot of your business."
+        />
+         <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+                <Skeleton className="h-[400px] w-full" />
+                <Skeleton className="h-[400px] w-full" />
+            </div>
+        </div>
+      </>
+    )
+  }
 
-    const exportOrdersByStage = (orders || []).reduce((acc, order) => {
-        acc[order.stage] = (acc[order.stage] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-    
-    const activeExportOrders = (orders || []).filter(o => !['shippedDelivered', 'cancelled', 'lostNoResponse'].includes(o.stage)).length;
-
-    return {
-        totalLeads: leads?.length ?? 0,
-        activeExportOrders,
-        leadsByStatus: Object.entries(leadsByStatus).map(([name, value]) => ({ name, value })),
-        exportOrdersByStage: Object.entries(exportOrdersByStage).map(([name, value]) => ({ name, value })),
-    }
-  }, [leads, orders]);
+  const leadsByStatus = dashboardData?.leadsByStatus ? Object.entries(dashboardData.leadsByStatus).map(([name, value]) => ({ name, value })) : [];
+  const exportOrdersByStage = dashboardData?.exportOrdersByStage ? Object.entries(dashboardData.exportOrdersByStage).map(([name, value]) => ({ name, value })) : [];
 
   return (
     <>
@@ -56,13 +56,13 @@ export default function DashboardPage() {
 
       <div className="space-y-6">
         <StatsCards 
-            totalLeads={dashboardData.totalLeads} 
-            activeExportOrders={dashboardData.activeExportOrders} 
+            totalLeads={dashboardData?.totalLeads ?? 0} 
+            activeExportOrders={dashboardData?.activeExportOrders ?? 0} 
         />
         
         <div className="grid gap-6 md:grid-cols-2">
-            <LeadsByStatusChart data={dashboardData.leadsByStatus} id="leads-by-status-chart" />
-            <OrdersByStageChart data={dashboardData.exportOrdersByStage} id="orders-by-stage-chart" />
+            <LeadsByStatusChart data={leadsByStatus} id="leads-by-status-chart" />
+            <OrdersByStageChart data={exportOrdersByStage} id="orders-by-stage-chart" />
         </div>
         
         <RecentActivity />
