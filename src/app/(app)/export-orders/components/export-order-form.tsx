@@ -8,6 +8,7 @@ import {
   checkExportOrderCompliance,
   type CheckExportOrderComplianceInput,
 } from '@/ai/flows/check-export-order-compliance';
+import type { AISettings, AIGuardResult, CheckExportOrderComplianceOutput } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -36,7 +37,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Wand2, LoaderCircle, Sparkles } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Wand2, LoaderCircle, Sparkles, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -53,7 +64,7 @@ const formSchema = z.object({
   paymentTerms: z.string().optional(),
   containerType: z.string().optional(),
   portOfLoading: z.string().optional(),
-  expectedShipmentDate: z.string().min(1, "Shipment date is required."),
+  expectedShipmentDate: z.string().min(1, 'Shipment date is required.'),
   fssaiLicenseNumber: z.string().optional(),
   icegateStatus: z.string().optional(),
   certificateRequirements: z.string().optional(),
@@ -61,18 +72,23 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function ExportOrderForm() {
+interface ExportOrderFormProps {
+  aiSettings: AISettings;
+}
+
+export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
   const { toast } = useToast();
   const [isChecking, setIsChecking] = useState(false);
-  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<AIGuardResult<CheckExportOrderComplianceOutput> | null>(null);
+  const [showBudgetWarning, setShowBudgetWarning] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       stage: 'leadReceived',
-      companyId: '',
-      contactId: '',
+      companyId: 'comp-01', // Mock
+      contactId: 'cont-01', // Mock
       productType: '',
       destinationCountry: '',
       incoterms: 'FOB',
@@ -89,7 +105,7 @@ export function ExportOrderForm() {
     },
   });
 
-  const handleAiCheck = async () => {
+  const runAiCheck = async () => {
     const values = form.getValues();
     const validation = formSchema.safeParse(values);
 
@@ -98,7 +114,6 @@ export function ExportOrderForm() {
         variant: 'destructive',
         title: 'Please fill out all required fields before running the AI check.',
       });
-      // Trigger validation to show errors
       form.trigger();
       return;
     }
@@ -115,88 +130,129 @@ export function ExportOrderForm() {
         expectedShipmentDate: new Date(values.expectedShipmentDate).toISOString(),
       };
       const result = await checkExportOrderCompliance(input);
-      setAiResult(result.aiValidation);
+      setAiResult(result);
     } catch (error) {
       console.error('AI Compliance Check Error:', error);
+      const reason = error instanceof Error ? error.message : 'An unknown error occurred.';
+      setAiResult({ aiUsed: false, aiReason: 'error', aiData: null });
       toast({
         variant: 'destructive',
         title: 'AI Check Failed',
-        description:
-          error instanceof Error ? error.message : 'An unknown error occurred.',
+        description: reason,
       });
     } finally {
       setIsChecking(false);
     }
   };
-  
+
+  const handleAiCheckClick = () => {
+    if (aiSettings.aiMode === 'safe') {
+      setShowBudgetWarning(true);
+    } else {
+      runAiCheck();
+    }
+  };
+
   function onSubmit(values: FormValues) {
     console.log(values);
-    // In a real app, you would save this to Firestore.
-    // If aiResult is available, you could save it along with the order data.
     toast({
-        title: "Order Submitted (Simulated)",
-        description: "Check the console for the form data.",
-    })
+      title: 'Order Submitted (Simulated)',
+      description: 'Check the console for the form data.',
+    });
   }
 
+  const getAiResultMessage = () => {
+    if (!aiResult) return null;
+    if (aiResult.aiUsed && aiResult.aiData) {
+      return (
+        <div>
+          <h4 className="font-semibold mb-2">AI Suggestions:</h4>
+          <div className="prose prose-sm max-w-none text-foreground bg-primary/10 p-4 rounded-md">
+            <p>{aiResult.aiData.aiValidation}</p>
+          </div>
+        </div>
+      );
+    }
+
+    let message = "AI check was not performed.";
+    if (aiResult.aiReason === 'aiDisabled') {
+        message = "AI is disabled in settings. The check was skipped.";
+    } else if (aiResult.aiReason === 'budgetOrQuotaExceeded') {
+        message = "AI check was skipped due to budget or daily quota limits.";
+    } else if (aiResult.aiReason === 'error') {
+        message = "An error occurred while running the AI check.";
+    }
+
+    return (
+        <div className="flex items-center gap-2 text-muted-foreground p-4 bg-muted/50 rounded-md">
+            <Info className="h-5 w-5" />
+            <span>{message}</span>
+        </div>
+    );
+  };
+
   return (
-    <Card>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardHeader>
-            <CardTitle>Order Details</CardTitle>
-            <CardDescription>
-              Fill in the details of the export order.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Order Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Turmeric to USA" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="productType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product Type</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Turmeric Powder" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="destinationCountry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destination Country</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., United States" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="incoterms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Incoterms</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+    <>
+      <Card>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardHeader>
+              <CardTitle>Order Details</CardTitle>
+              <CardDescription>
+                Fill in the details of the export order.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Order Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Turmeric to USA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="productType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Product Type</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Turmeric Powder" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="destinationCountry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Destination Country</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., United States" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="incoterms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Incoterms</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select Incoterms" />
@@ -204,135 +260,162 @@ export function ExportOrderForm() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="FOB">FOB (Free On Board)</SelectItem>
-                          <SelectItem value="CIF">CIF (Cost, Insurance, and Freight)</SelectItem>
+                          <SelectItem value="CIF">
+                            CIF (Cost, Insurance, and Freight)
+                          </SelectItem>
                           <SelectItem value="EXW">EXW (Ex Works)</SelectItem>
                           <SelectItem value="DAP">DAP (Delivered at Place)</SelectItem>
                         </SelectContent>
                       </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity (kg)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="unitPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Price ($)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="expectedShipmentDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Expected Shipment Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
-                control={form.control}
-                name="hsCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>HS Code (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 0910.11.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="certificateRequirements"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Known Certificate Requirements (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="e.g., Certificate of Origin, Phytosanitary Certificate" {...field} />
-                    </FormControl>
-                     <FormDescription>
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity (kg)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="unitPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price ($)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="expectedShipmentDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Expected Shipment Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="hsCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>HS Code (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 0910.11.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="certificateRequirements"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>
+                        Known Certificate Requirements (Optional)
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="e.g., Certificate of Origin, Phytosanitary Certificate"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
                         Enter a comma-separated list of required certificates.
                       </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {/* AI Section */}
-            <Card className="bg-background/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="text-primary" />
-                  AI Compliance Check
-                </CardTitle>
-                <CardDescription>
-                  Use AI to check your order details against common export regulations and requirements.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isChecking && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <LoaderCircle className="animate-spin" />
-                    <span>Analyzing your order data...</span>
-                  </div>
-                )}
-                {aiResult && (
-                    <div>
-                        <h4 className="font-semibold mb-2">AI Suggestions:</h4>
-                        <div className="prose prose-sm max-w-none text-foreground bg-primary/10 p-4 rounded-md">
-                            <p>{aiResult}</p>
-                        </div>
-                    </div>
-                )}
-              </CardContent>
-              <CardFooter>
-                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAiCheck}
-                  disabled={isChecking}
-                >
-                  {isChecking ? (
-                    <LoaderCircle className="animate-spin" />
-                  ) : (
-                    <Wand2 />
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  Run AI Check
-                </Button>
-              </CardFooter>
-            </Card>
+                />
+              </div>
 
-          </CardContent>
-          <CardFooter>
-            <Button type="submit">Create Order (Simulated)</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+              {/* AI Section */}
+              <Card className="bg-background/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="text-primary" />
+                    AI Compliance Check
+                  </CardTitle>
+                  <CardDescription>
+                    Use AI to check your order details against common export
+                    regulations and requirements.
+                  </CardDescription>
+                   {aiSettings.aiMode === 'unrestricted' && (
+                       <p className="text-xs text-amber-600">AI calls may incur pay-as-you-go charges on Blaze.</p>
+                   )}
+                </CardHeader>
+                <CardContent>
+                  {isChecking && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <LoaderCircle className="animate-spin" />
+                      <span>Analyzing your order data...</span>
+                    </div>
+                  )}
+                  {aiResult && getAiResultMessage()}
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAiCheckClick}
+                    disabled={isChecking || aiSettings.aiMode === 'off'}
+                    title={aiSettings.aiMode === 'off' ? 'AI is disabled in settings.' : 'Run AI Check'}
+                  >
+                    {isChecking ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <Wand2 />
+                    )}
+                    Run AI Check
+                  </Button>
+                </CardFooter>
+              </Card>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit">Create Order (Simulated)</Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+
+      <AlertDialog open={showBudgetWarning} onOpenChange={setShowBudgetWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>AI Budget Confirmation</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are in &quot;Safe Mode&quot;. Using AI may bring you closer to your budget limit and could incur charges on your Blaze plan. Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Bypass AI (Manual)</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowBudgetWarning(false);
+                runAiCheck();
+              }}
+            >
+              Use AI
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

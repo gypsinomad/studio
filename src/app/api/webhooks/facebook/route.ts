@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { validateAndStandardizeLeadData } from '@/ai/flows/validate-and-standardize-lead-data';
 import type { ValidateAndStandardizeLeadDataInput } from '@/ai/flows/validate-and-standardize-lead-data';
 import type { Lead } from '@/lib/types';
+import { adminDb } from '@/firebase/admin';
 
 export async function POST(request: Request) {
   try {
@@ -25,26 +26,48 @@ export async function POST(request: Request) {
     console.log('Mapped input for Genkit flow:', JSON.stringify(leadInput, null, 2));
 
     // Call the Genkit flow to validate and standardize the data
-    const standardizedData = await validateAndStandardizeLeadData(leadInput);
+    const result = await validateAndStandardizeLeadData(leadInput);
 
-    console.log('Received standardized data from Genkit:', JSON.stringify(standardizedData, null, 2));
+    console.log('Received guarded result from Genkit:', JSON.stringify(result, null, 2));
 
-    // In a real application, you would now save the `standardizedData` to your Firestore 'leads' collection.
-    // The object to save would combine the standardized data with other metadata.
-    const newLeadForFirestore: Omit<Lead, 'id' | 'assignedUserId'> = {
-        ...standardizedData,
+    let leadDataToSave: Omit<Lead, 'id' | 'assignedUserId' | 'createdAt'> & { createdAt: any };
+
+    if (result.aiUsed && result.aiData) {
+      leadDataToSave = {
+        ...result.aiData,
         source: leadInput.source,
         incotermsPreference: leadInput.incotermsPreference,
         status: 'new',
-        createdAt: new Date(),
         rawPayload: rawLeadData,
-    };
+        createdAt: new Date(),
+      };
+    } else {
+      // Fallback to saving unstandardized data if AI is not used
+      leadDataToSave = {
+        fullName: leadInput.fullName,
+        companyName: leadInput.companyName,
+        email: leadInput.email,
+        phone: leadInput.phone,
+        whatsappNumber: leadInput.whatsappNumber,
+        source: leadInput.source,
+        productInterest: leadInput.productInterest,
+        destinationCountry: leadInput.destinationCountry,
+        incotermsPreference: leadInput.incotermsPreference,
+        status: 'new',
+        rawPayload: rawLeadData,
+        createdAt: new Date(),
+      };
+    }
     
-    console.log('Simulated saving standardized lead to Firestore:', JSON.stringify(newLeadForFirestore, null, 2));
-    // e.g., await db.collection('leads').add({ ...newLeadForFirestore, assignedUserId: 'some-default-id' });
+    // In a real application, you would assign to a user.
+    const leadWithUser = { ...leadDataToSave, assignedUserId: 'sales-exec-01' };
 
+    console.log('Simulated saving standardized lead to Firestore:', JSON.stringify(leadWithUser, null, 2));
+    // const docRef = await adminDb.collection('leads').add(leadWithUser);
+    // console.log(`Lead saved with ID: ${docRef.id}`);
 
-    return NextResponse.json({ success: true, message: 'Lead processed successfully.' });
+    return NextResponse.json({ success: true, message: 'Lead processed successfully.', aiInfo: { used: result.aiUsed, reason: result.aiReason }});
+
   } catch (error) {
     console.error('Error processing webhook:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

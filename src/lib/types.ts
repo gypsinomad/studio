@@ -114,3 +114,26 @@ export interface NavItem {
   label?: string;
   adminOnly?: boolean;
 }
+
+// AI Settings and Usage
+export type AIMode = 'off' | 'safe' | 'unrestricted';
+
+export interface AISettings {
+  aiMode: AIMode;
+  monthlyAiBudgetInr: number;
+  maxDailyAiCalls: number;
+}
+
+export interface AIUsageStats {
+  monthKey: string; // e.g., "2024-07"
+  totalCallsMonth: number;
+  estimatedSpendThisMonthInr: number;
+  dailyCalls: { [day: string]: number }; // e.g., { "01": 10, "25": 50 }
+  lastUpdatedAt: Date;
+}
+
+export type AIGuardResult<T> = {
+  aiUsed: boolean;
+  aiReason: 'ok' | 'aiDisabled' | 'budgetOrQuotaExceeded' | 'error';
+  aiData: T | null;
+}

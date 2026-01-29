@@ -10,6 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { checkAiBudgetAndProceed } from '@/lib/ai/guards';
+import type { AIGuardResult } from '@/lib/types';
 
 const ValidateAndStandardizeLeadDataInputSchema = z.object({
   fullName: z.string().describe('The full name of the lead.'),
@@ -39,8 +41,19 @@ export type ValidateAndStandardizeLeadDataOutput = z.infer<typeof ValidateAndSta
 
 export async function validateAndStandardizeLeadData(
   input: ValidateAndStandardizeLeadDataInput
-): Promise<ValidateAndStandardizeLeadDataOutput> {
-  return validateAndStandardizeLeadDataFlow(input);
+): Promise<AIGuardResult<ValidateAndStandardizeLeadDataOutput>> {
+  const guard = await checkAiBudgetAndProceed();
+  if (!guard.canProceed) {
+      return { aiUsed: false, aiReason: guard.reason, aiData: null };
+  }
+
+  try {
+      const aiData = await validateAndStandardizeLeadDataFlow(input);
+      return { aiUsed: true, aiReason: 'ok', aiData };
+  } catch (error) {
+      console.error("Genkit Flow Error in validateAndStandardizeLeadData:", error);
+      return { aiUsed: false, aiReason: 'error', aiData: null };
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -67,7 +80,7 @@ const prompt = ai.definePrompt({
   Product Interest: {{{productInterest}}}
   Destination Country: {{{destinationCountry}}}
 
-  Return the standardized data in JSON format.
+  Return the standardized data in a compact JSON object.
   If the WhatsApp number is not provided, do not include the field in the output.
   `,
 });

@@ -10,6 +10,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { checkAiBudgetAndProceed } from '@/lib/ai/guards';
+import type { AIGuardResult } from '@/lib/types';
+
 
 const CheckExportOrderComplianceInputSchema = z.object({
   title: z.string().describe('Title of the export order.'),
@@ -37,8 +40,22 @@ const CheckExportOrderComplianceOutputSchema = z.object({
 });
 export type CheckExportOrderComplianceOutput = z.infer<typeof CheckExportOrderComplianceOutputSchema>;
 
-export async function checkExportOrderCompliance(input: CheckExportOrderComplianceInput): Promise<CheckExportOrderComplianceOutput> {
-  return checkExportOrderComplianceFlow(input);
+export async function checkExportOrderCompliance(
+  input: CheckExportOrderComplianceInput
+): Promise<AIGuardResult<CheckExportOrderComplianceOutput>> {
+  const guard = await checkAiBudgetAndProceed();
+
+  if (!guard.canProceed) {
+    return { aiUsed: false, aiReason: guard.reason, aiData: null };
+  }
+
+  try {
+    const aiData = await checkExportOrderComplianceFlow(input);
+    return { aiUsed: true, aiReason: 'ok', aiData };
+  } catch (error) {
+    console.error("Genkit Flow Error in checkExportOrderCompliance:", error);
+    return { aiUsed: false, aiReason: 'error', aiData: null };
+  }
 }
 
 const compliancePrompt = ai.definePrompt({
@@ -48,6 +65,7 @@ const compliancePrompt = ai.definePrompt({
   prompt: `You are an AI assistant specialized in validating export orders against industry regulations.
   Review the following export order details and provide suggestions for compliance in the aiValidation field.
   Focus on potential issues related to product type, destination country, incoterms, HS code, and certificate requirements.
+  Respond with a compact JSON object.
 
   Export Order Details:
   Title: {{{title}}}
@@ -82,4 +100,3 @@ const checkExportOrderComplianceFlow = ai.defineFlow(
     return output!;
   }
 );
-
