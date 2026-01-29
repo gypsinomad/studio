@@ -11,9 +11,8 @@ import { NAV_ITEMS } from '@/lib/constants';
 import { Sprout } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { useMemo } from 'react';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -21,7 +20,7 @@ export function AppSidebar() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const userProfileRef = useMemo(() => {
+  const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);

@@ -3,8 +3,8 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
 import type { AISettings, AIUsageStats } from '@/lib/types';
 import { AiUsageIndicator } from './ai-usage-indicator';
-import { useDoc, useFirestore, useUser } from '@/firebase';
-import { useEffect, useMemo, useState } from 'react';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { getMonthKey } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
@@ -13,12 +13,12 @@ export function AppHeader() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const settingsDocRef = useMemo(() => {
+  const settingsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'settings', 'ai');
   }, [firestore]);
 
-  const usageDocRef = useMemo(() => {
+  const usageDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'usageStats', getMonthKey());
   }, [firestore]);
@@ -26,7 +26,7 @@ export function AppHeader() {
   const { data: settings, isLoading: settingsLoading } = useDoc<AISettings>(settingsDocRef);
   const { data: usage, isLoading: usageLoading } = useDoc<AIUsageStats>(usageDocRef);
   
-  const userProfileRef = useMemo(() => {
+  const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);

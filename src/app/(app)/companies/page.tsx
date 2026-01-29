@@ -2,17 +2,15 @@
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useCollection } from '@/firebase';
-import { useMemo } from 'react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import { CompaniesTable } from './components/companies-table';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CompaniesPage() {
   const firestore = useFirestore();
 
-  const companiesQuery = useMemo(() => {
+  const companiesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'companies'));
   }, [firestore]);

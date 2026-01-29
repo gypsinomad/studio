@@ -2,8 +2,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useCollection, useUser, useFirestore } from '@/firebase';
-import { useMemo } from 'react';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { LeadsTable } from './components/leads-table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +11,7 @@ export default function LeadsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const leadsQuery = useMemo(() => {
+  const leadsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     // According to the security rules, leads are in a subcollection under the user
     return query(collection(firestore, `users/${user.uid}/leads`));

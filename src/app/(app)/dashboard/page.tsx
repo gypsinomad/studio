@@ -4,7 +4,7 @@ import { StatsCards } from './components/stats-cards';
 import { LeadsByStatusChart } from './components/leads-by-status-chart';
 import { OrdersByStageChart } from './components/orders-by-stage-chart';
 import { RecentActivity } from './components/recent-activity';
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { useMemo } from 'react';
 import { collection, query, where } from 'firebase/firestore';
 import type { Lead, ExportOrder } from '@/lib/types';
@@ -13,12 +13,12 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const leadsQuery = useMemo(() => {
+  const leadsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'leads'), where('assignedUserId', '==', user.uid));
   }, [firestore, user]);
 
-  const ordersQuery = useMemo(() => {
+  const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'exportOrders'), where('assignedUserId', '==', user.uid));
   }, [firestore, user]);
@@ -61,8 +61,8 @@ export default function DashboardPage() {
         />
         
         <div className="grid gap-6 md:grid-cols-2">
-            <LeadsByStatusChart data={dashboardData.leadsByStatus} />
-            <OrdersByStageChart data={dashboardData.exportOrdersByStage} />
+            <LeadsByStatusChart data={dashboardData.leadsByStatus} id="leads-by-status-chart" />
+            <OrdersByStageChart data={dashboardData.exportOrdersByStage} id="orders-by-stage-chart" />
         </div>
         
         <RecentActivity />

@@ -2,17 +2,15 @@
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useCollection } from '@/firebase';
-import { useMemo } from 'react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import { ContactsTable } from './components/contacts-table';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ContactsPage() {
   const firestore = useFirestore();
 
-  const contactsQuery = useMemo(() => {
+  const contactsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'contacts'));
   }, [firestore]);
