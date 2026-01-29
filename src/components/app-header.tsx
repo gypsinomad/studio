@@ -9,13 +9,20 @@ import { unstable_noStore as noStore } from 'next/cache';
 
 async function getAiStatus() {
   noStore();
-  const settingsDoc = await adminDb.doc('settings/ai').get();
-  const usageDoc = await adminDb.doc(`usageStats/${getMonthKey()}`).get();
+  try {
+    const settingsDoc = await adminDb.doc('settings/ai').get();
+    const usageDoc = await adminDb.doc(`usageStats/${getMonthKey()}`).get();
 
-  const settings = settingsDoc.exists ? (settingsDoc.data() as AISettings) : null;
-  const usage = usageDoc.exists ? (usageDoc.data() as AIUsageStats) : null;
-  
-  return { settings, usage };
+    const settings = settingsDoc.exists ? (settingsDoc.data() as AISettings) : null;
+    const usage = usageDoc.exists ? (usageDoc.data() as AIUsageStats) : null;
+    
+    return { settings, usage };
+  } catch (error) {
+    console.error("Error fetching AI status from Firestore:", error);
+    // In a production environment, you'd want to log this to a proper monitoring service.
+    // Returning nulls to allow the UI to render gracefully without this data.
+    return { settings: null, usage: null };
+  }
 }
 
 export async function AppHeader() {
