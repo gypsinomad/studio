@@ -11,18 +11,25 @@ import { NAV_ITEMS } from '@/lib/constants';
 import { Sprout } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { User } from '@/lib/types';
-import { MOCK_USERS } from '@/lib/data';
+import { useDoc, useFirestore, useUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useMemo } from 'react';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
-  
-  // In a real app, this would come from an auth context/hook
-  const user: User | undefined = MOCK_USERS.find(u => u.role === 'admin');
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemo(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc(userProfileRef);
 
   const visibleNavItems = NAV_ITEMS.filter(item => 
-    !item.adminOnly || (item.adminOnly && user?.role === 'admin')
+    !item.adminOnly || (item.adminOnly && userProfile?.role === 'admin')
   );
 
   return (

@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 interface UserNavProps {
   user: User;
@@ -19,10 +21,12 @@ interface UserNavProps {
 
 export function UserNav({ user }: UserNavProps) {
   const router = useRouter();
+  const auth = useAuth();
 
   const handleLogout = () => {
-    // In a real app, you would handle Firebase sign out here
-    router.push('/login');
+    signOut(auth).then(() => {
+      router.push('/login');
+    });
   };
   
   const getInitials = (name: string) => {

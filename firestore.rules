@@ -34,7 +34,7 @@ rules_version = '2';
  *   are readable by any signed-in user but can only be created or modified by admins
  *   to maintain data integrity.
  * - Disallowed Listing: To protect user privacy, listing the entire `/users`
- *   collection is explicitly forbidden.
+ *   collection is explicitly forbidden for non-admins.
  *
  * @section Denormalization for Authorization
  * To create simpler, more performant rules, this ruleset relies heavily on
@@ -186,13 +186,13 @@ service cloud.firestore {
      * @path /users/{userId}
      * @allow (create) A user can create their own profile document.
      * @allow (update) The user who owns the profile or an admin can update it.
-     * @deny (list) Listing all user profiles is disallowed to protect privacy.
+     * @allow (list) Admins can list users. Non-admins cannot.
      * @deny (delete) A regular user cannot delete their own profile.
      * @principle Enforces self-creation and ownership for user profiles, with admin override.
      */
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if false;
+      allow list: if isAdmin();
       allow create: if isCreatingOwnProfile(userId);
       allow update: if (isOwner(userId) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('authUid');
       allow delete: if isAdmin() && isExistingDoc();
@@ -226,6 +226,23 @@ service cloud.firestore {
       allow update: if (isOwner(userId) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assignedUserId');
       allow delete: if (isOwner(userId) || isAdmin()) && isExistingDoc();
     }
+    
+    /**
+     * @description Stores all lead data in a flat collection.
+     * @path /leads/{leadId}
+     * @allow (read, write) The user assigned to the lead or an admin can access it.
+     * @deny (update) A user trying to update a lead they are not assigned to.
+     * @deny (create) A user creating a lead and assigning it to someone else.
+     * @principle Enforces document ownership for writes based on the `assignedUserId` field.
+     */
+    match /leads/{leadId} {
+        allow get: if (isSignedIn() && isAssignedToUser(resource)) || isAdmin();
+        allow list: if isSignedIn(); // Queries must be filtered by assignedUserId
+        allow create: if (isSignedIn() && isCreatingAssignedContent()) || isAdmin();
+        allow update: if (isAssignedToUser(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assignedUserId');
+        allow delete: if (isAssignedToUser(resource) || isAdmin()) && isExistingDoc();
+    }
+
 
     /**
      * @description Stores all export order data.
@@ -237,7 +254,7 @@ service cloud.firestore {
      */
     match /exportOrders/{exportOrderId} {
       allow get: if (isSignedIn() && isAssignedToUser(resource)) || isAdmin();
-      allow list: if isSignedIn() || isAdmin();
+      allow list: if isSignedIn() || isAdmin(); // Queries must be filtered by assignedUserId
       allow create: if (isSignedIn() && isCreatingAssignedContent()) || isAdmin();
       allow update: if (isAssignedToUser(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assignedUserId');
       allow delete: if (isAssignedToUser(resource) || isAdmin()) && isExistingDoc();
@@ -281,7 +298,7 @@ service cloud.firestore {
      */
     match /tasks/{taskId} {
       allow get: if (isSignedIn() && isAssigneeOfTask(resource)) || isAdmin();
-      allow list: if isSignedIn() || isAdmin();
+      allow list: if isSignedIn() || isAdmin(); // Queries must be filtered by assigneeId
       allow create: if (isSignedIn() && isCreatingAssignedTask()) || isAdmin();
       allow update: if (isAssigneeOfTask(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assigneeId');
       allow delete: if (isAssigneeOfTask(resource) || isAdmin()) && isExistingDoc();
@@ -297,7 +314,7 @@ service cloud.firestore {
      */
     match /documents/{documentId} {
       allow get: if (isSignedIn() && isUploaderOfDocument(resource)) || isAdmin();
-      allow list: if isSignedIn() || isAdmin();
+      allow list: if isSignedIn() || isAdmin(); // Queries must be filtered by uploadedBy
       allow create: if (isSignedIn() && isCreatingOwnDocument()) || isAdmin();
       allow update: if (isUploaderOfDocument(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('uploadedBy');
       allow delete: if (isUploaderOfDocument(resource) || isAdmin()) && isExistingDoc();
@@ -315,6 +332,22 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update: if isAdmin() && isExistingDoc();
       allow delete: if isAdmin() && isExistingDoc();
+    }
+    
+    /**
+     * @description AI settings and usage statistics.
+     * @path /settings/ai
+     * @path /usageStats/{month}
+     * @allow (read) Any authenticated user can read the settings.
+     * @deny (write) Client-side writes are forbidden to prevent tampering.
+     */
+    match /settings/ai {
+        allow get: if isSignedIn();
+        allow write: if false;
+    }
+    match /usageStats/{month} {
+        allow get: if isSignedIn();
+        allow write: if false;
     }
   }
 }

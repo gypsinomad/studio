@@ -1,12 +1,51 @@
+'use client';
 import { PageHeader } from '@/components/page-header';
-import { getDashboardData } from '@/lib/data';
 import { StatsCards } from './components/stats-cards';
 import { LeadsByStatusChart } from './components/leads-by-status-chart';
 import { OrdersByStageChart } from './components/orders-by-stage-chart';
 import { RecentActivity } from './components/recent-activity';
+import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useMemo } from 'react';
+import { collection, query, where } from 'firebase/firestore';
+import type { Lead, ExportOrder } from '@/lib/types';
 
-export default async function DashboardPage() {
-  const data = await getDashboardData();
+export default function DashboardPage() {
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const leadsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'leads'), where('assignedUserId', '==', user.uid));
+  }, [firestore, user]);
+
+  const ordersQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'exportOrders'), where('assignedUserId', '==', user.uid));
+  }, [firestore, user]);
+  
+  const { data: leads } = useCollection<Lead>(leadsQuery);
+  const { data: orders } = useCollection<ExportOrder>(ordersQuery);
+
+  const dashboardData = useMemo(() => {
+    const leadsByStatus = (leads || []).reduce((acc, lead) => {
+        acc[lead.status] = (acc[lead.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const exportOrdersByStage = (orders || []).reduce((acc, order) => {
+        acc[order.stage] = (acc[order.stage] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    
+    const activeExportOrders = (orders || []).filter(o => !['shippedDelivered', 'cancelled', 'lostNoResponse'].includes(o.stage)).length;
+
+    return {
+        totalLeads: leads?.length ?? 0,
+        activeExportOrders,
+        leadsByStatus: Object.entries(leadsByStatus).map(([name, value]) => ({ name, value })),
+        exportOrdersByStage: Object.entries(exportOrdersByStage).map(([name, value]) => ({ name, value })),
+    }
+  }, [leads, orders]);
 
   return (
     <>
@@ -17,13 +56,13 @@ export default async function DashboardPage() {
 
       <div className="space-y-6">
         <StatsCards 
-            totalLeads={data.totalLeads} 
-            activeExportOrders={data.activeExportOrders} 
+            totalLeads={dashboardData.totalLeads} 
+            activeExportOrders={dashboardData.activeExportOrders} 
         />
         
         <div className="grid gap-6 md:grid-cols-2">
-            <LeadsByStatusChart data={data.leadsByStatus} />
-            <OrdersByStageChart data={data.exportOrdersByStage} />
+            <LeadsByStatusChart data={dashboardData.leadsByStatus} />
+            <OrdersByStageChart data={dashboardData.exportOrdersByStage} />
         </div>
         
         <RecentActivity />

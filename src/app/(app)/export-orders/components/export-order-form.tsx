@@ -9,6 +9,9 @@ import {
   type CheckExportOrderComplianceInput,
 } from '@/ai/flows/check-export-order-compliance';
 import type { AISettings, AIGuardResult, CheckExportOrderComplianceOutput } from '@/lib/types';
+import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
+
 
 import { Button } from '@/components/ui/button';
 import {
@@ -78,6 +81,9 @@ interface ExportOrderFormProps {
 
 export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [aiResult, setAiResult] = useState<AIGuardResult<CheckExportOrderComplianceOutput> | null>(null);
   const [showBudgetWarning, setShowBudgetWarning] = useState(false);
@@ -153,12 +159,43 @@ export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
     }
   };
 
-  function onSubmit(values: FormValues) {
-    console.log(values);
-    toast({
-      title: 'Order Submitted (Simulated)',
-      description: 'Check the console for the form data.',
-    });
+  async function onSubmit(values: FormValues) {
+    if (!firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'User not authenticated.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    const newOrder = {
+        ...values,
+        assignedUserId: user.uid,
+        createdAt: serverTimestamp(),
+        aiValidation: aiResult?.aiData?.aiValidation || '',
+        certificateRequirements: values.certificateRequirements?.split(',').map(s => s.trim()) || [],
+        expectedShipmentDate: new Date(values.expectedShipmentDate),
+    };
+
+    try {
+        const ordersCollection = collection(firestore, 'exportOrders');
+        await addDocumentNonBlocking(ordersCollection, newOrder);
+        
+        toast({
+            title: 'Order Created',
+            description: `${values.title} has been successfully created.`,
+        });
+        form.reset();
+        setAiResult(null);
+
+    } catch (error) {
+         toast({
+            variant: 'destructive',
+            title: 'Failed to create order',
+            description: 'An unexpected error occurred.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   const getAiResultMessage = () => {
@@ -375,7 +412,7 @@ export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
                     type="button"
                     variant="outline"
                     onClick={handleAiCheckClick}
-                    disabled={isChecking || aiSettings.aiMode === 'off'}
+                    disabled={isChecking || aiSettings.aiMode === 'off' || isSubmitting}
                     title={aiSettings.aiMode === 'off' ? 'AI is disabled in settings.' : 'Run AI Check'}
                   >
                     {isChecking ? (
@@ -389,7 +426,10 @@ export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
               </Card>
             </CardContent>
             <CardFooter>
-              <Button type="submit">Create Order (Simulated)</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <LoaderCircle className="animate-spin" />}
+                Create Order
+              </Button>
             </CardFooter>
           </form>
         </Form>
