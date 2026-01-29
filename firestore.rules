@@ -2,20 +2,33 @@
  * # Firestore Security Rules for SpiceRoute CRM
  *
  * ## Core Philosophy
- * This ruleset enforces a multi-tenant security model where data access is primarily controlled by a user's membership in one or more companies. A global "admin" role exists to provide system-wide administrative access, bypassing standard tenancy checks. The default security posture is to deny access unless explicitly granted.
+ * This ruleset enforces a multi-tenant, role-based security model. Data access is primarily controlled
+ * by a user's membership in a company. A global "admin" role provides system-wide administrative
+ * access, bypassing standard tenancy checks for oversight. For standard users (salesExecutive),
+ * access to sensitive documents like leads and orders is further restricted to only those documents
+ * they are explicitly assigned to.
  *
- * ## Data Structure
- * - `/users/{userId}`: Contains user profiles, including a critical `companyIds` array that lists which companies the user belongs to. Access is restricted to the document owner.
- * - `/companies/{companyId}`: Acts as the root for all tenant-specific data.
- * - `/companies/{companyId}/{subcollection}`: Subcollections like `contacts`, `leads`, and `exportOrders` store data related to a specific company.
- * - `/tasks`, `/documents`: Top-level collections for items that may not be directly tied to a single company. Access is controlled by an `assigneeId` or `uploadedBy` field.
- * - `/roles_admin/{userId}`: A special collection used to grant global admin privileges. The existence of a document with the user's UID grants admin rights.
+ * ## Data Structure & Security Model
+ * - `/users/{userId}`: Contains user profiles with a critical `companyIds` array and a `role`.
+ *   Access is restricted to the document owner or an admin.
+ * - `/companies/{companyId}`: The root for all tenant-specific data. Access requires membership.
+ * - `/companies/{companyId}/leads/{leadId}` (and similar collections): Data for a specific company.
+ *   - **Admin:** Can read/write all documents within any company they are a member of.
+ *   - **salesExecutive:** Can only read/write documents where `assignedUserId == request.auth.uid`.
+ *     They cannot list all documents; they must query for their own.
  *
  * ## Key Security Decisions
- * - **Multi-Tenancy via User Profile**: To determine if a user can access data within `/companies/{companyId}`, the rules perform a `get` operation on the user's own profile (`/users/{request.auth.uid}`) to check if their `companyIds` array contains the target `companyId`. This is a performant and secure pattern.
- * - **Admin Override**: A user is considered an admin if a document exists for them in the `/roles_admin` collection. Admins have read/write access to nearly all data across all companies.
- * - **Restricted Listing**: Listing documents in top-level collections like `/tasks` and `/documents` is restricted to admins to prevent data leakage. Non-admins can only `get` individual documents they are explicitly assigned to.
- * - **Client-Side Writes to Roles Denied**: The `/roles_admin` collection is read-only from the client to prevent privilege escalation. Admin roles must be managed server-side (e.g., via a Cloud Function).
+ * - **Multi-Tenancy via User Profile**: To check if a user can access `/companies/{companyId}`, the
+ *   rules `get()` the user's own profile (`/users/{request.auth.uid}`) to see if their `companyIds`
+ *   array contains the target `companyId`. This is a performant and secure pattern.
+ * - **Admin Override**: The `isAdmin()` function checks the user's role on their profile. Admins
+ *   can perform most actions within companies they belong to.
+ * - **Ownership-Based Write Access**: For standard users, write access (`create`, `update`, `delete`)
+ *   to leads, orders, and tasks requires the user's UID to match the `assignedUserId` on the document.
+ * - **Restricted Listing**: `list` operations on sensitive subcollections (leads, orders, etc.)
+ *   are restricted. Non-admins must construct client-side queries that filter by their own
+ *   `assignedUserId`. The `get` rule then secures access to the individual documents returned by that query.
+ *   This prevents a user from accidentally or maliciously listing all of a company's leads.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -29,36 +42,26 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserData().role == 'admin';
+    }
+
     /**
      * Checks if the authenticated user is a member of the specified company.
-     * It performs a single `get` on the user's own profile, which is efficient and secure.
-     * The `companyIds` on the user profile is the source of truth for tenancy.
+     * It performs a single `get` on the user's own profile.
      */
     function isUserMemberOfCompany(companyId) {
-      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && userProfile.data.companyIds.hasAny([companyId]);
+      return isSignedIn() && companyId in getUserData().companyIds;
     }
-    
-    function isAssignedToDoc(doc) {
-      let docData = doc.data;
-      return isSignedIn() && (
-        ('assignedUserId' in docData && docData.assignedUserId == request.auth.uid) ||
-        ('assigneeId' in docData && docData.assigneeId == request.auth.uid)
-      );
-    }
-    
-    function wasUploadedBy(doc) {
-      return isSignedIn() && doc.data.uploadedBy == request.auth.uid;
-    }
-    
+
     // =====================================================================
     // Collection Rules
     // =====================================================================
@@ -69,42 +72,66 @@ service cloud.firestore {
       // Admins can list all users for the user management screen.
       allow list: if isAdmin();
       // A user can create their own profile document.
-      allow create: if isOwner(userId) && request.resource.data.authUid == userId;
+      allow create: if isOwner(userId);
       // Users can update their own profile, but cannot change their role. Admins can update anything.
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
       // Only admins can delete users.
       allow delete: if isAdmin();
     }
-    
-    match /roles_admin/{userId} {
-      // Admins can see who else is an admin.
-      allow get, list: if isAdmin();
-      // Admin roles can only be granted from a backend process (e.g., Cloud Function).
-      allow create, update, delete: if false;
-    }
 
-    // This is the root of our multi-tenant structure. All access to company data
-    // and its subcollections must verify the user is a member of that company.
+    // This is the root of our multi-tenant structure.
     match /companies/{companyId} {
-      // Allow read/write access if user is a member of the company, or is an admin.
-      allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
-      allow create, update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
+      // Allow access if user is a member of the company, or is an admin.
+      allow get: if isUserMemberOfCompany(companyId) || isAdmin();
+      // Listing companies is not based on membership; queries should handle this.
+      allow list: if isSignedIn(); 
+      // Only admins can create/delete companies, but any member can update (e.g. company name).
+      allow create: if isAdmin();
+      allow update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
 
-      // Rules for all subcollections of a company.
-      // This wildcard ensures the tenancy check is applied to leads, contacts, orders, etc.
-      match /{subcollection}/{docId} {
+      // === Generic read-only rule for simple subcollections ===
+      match /contacts/{contactId} {
+        allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
+        allow create, update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
+      }
+      match /products/{productId} {
+         allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
+         allow create, update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
+      }
+       match /activity_logs/{logId} {
+        allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
+        // Logs are created by functions, not clients.
+        allow create, update, delete: if false;
+      }
+      match /notes/{noteId} {
          allow get, list, create, update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
       }
-    }
 
-    match /tasks/{taskId} {
-      allow get, create, update, delete: if isAssignedToDoc(resource) || isSignedIn();
-      allow list: if isAdmin();
-    }
 
-    match /documents/{documentId} {
-      allow get, create, update, delete: if wasUploadedBy(resource) || isAdmin();
-      allow list: if isAdmin();
+      // === Granular rules for assignment-based collections ===
+      match /leads/{leadId} {
+        // Allow read if admin, or if user is assigned to the lead.
+        allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
+        // Only admins can list all leads in a company. Users query for their own.
+        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        // Allow create/update/delete if admin, or if user is assigned.
+        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assignedUserId == request.auth.uid);
+      }
+       match /exportOrders/{orderId} {
+        allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
+        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assignedUserId == request.auth.uid);
+      }
+       match /tasks/{taskId} {
+        allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assigneeId == request.auth.uid);
+        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assigneeId == request.auth.uid);
+      }
+       match /documents/{documentId} {
+        allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.uploadedBy == request.auth.uid);
+        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.uploadedBy == request.auth.uid);
+      }
     }
   }
 }

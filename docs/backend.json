@@ -6,10 +6,6 @@
       "type": "object",
       "description": "Represents a user in the CRM system.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
         "authUid": {
           "type": "string",
           "description": "The unique identifier from Firebase Authentication."
@@ -25,7 +21,8 @@
         },
         "role": {
           "type": "string",
-          "description": "User's role (e.g., admin, salesExecutive)."
+          "description": "User's role (e.g., admin, salesExecutive).",
+          "enum": ["admin", "salesExecutive"]
         },
         "isActive": {
           "type": "boolean",
@@ -45,7 +42,6 @@
         }
       },
       "required": [
-        "id",
         "authUid",
         "email",
         "displayName",
@@ -59,12 +55,8 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Lead",
       "type": "object",
-      "description": "Represents a lead in the CRM system.",
+      "description": "Represents a potential customer or deal, belonging to a specific company.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Lead entity."
-        },
         "fullName": {
           "type": "string",
           "description": "Lead's full name."
@@ -88,7 +80,7 @@
         },
         "source": {
           "type": "string",
-          "description": "Source of the lead."
+          "description": "Source of the lead (e.g., 'Facebook Lead Ads', 'Website')."
         },
         "productInterest": {
           "type": "string",
@@ -104,11 +96,12 @@
         },
         "status": {
           "type": "string",
-          "description": "Status of the lead (new, contacted, qualified, quoted, converted, lost)."
+          "description": "Status of the lead.",
+          "enum": ["new", "contacted", "qualified", "quoted", "converted", "lost"]
         },
         "assignedUserId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Lead)"
+          "description": "Reference to the User assigned to this lead."
         },
         "createdAt": {
           "type": "string",
@@ -124,25 +117,9 @@
           "type": "string",
           "description": "Timestamp of the next follow-up with the lead.",
           "format": "date-time"
-        },
-        "tags": {
-          "type": "array",
-          "description": "Tags associated with the lead.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "exportOrderId": {
-          "type": "string",
-          "description": "Reference to ExportOrder. (Relationship: ExportOrder 1:N Lead)"
-        },
-        "companyId": {
-          "type": "string",
-          "description": "Reference to Company. (Relationship: Company 1:N Lead)"
         }
       },
       "required": [
-        "id",
         "fullName",
         "companyName",
         "email",
@@ -150,7 +127,6 @@
         "source",
         "productInterest",
         "destinationCountry",
-        "incotermsPreference",
         "status",
         "assignedUserId",
         "createdAt"
@@ -160,27 +136,20 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExportOrder",
       "type": "object",
-      "description": "Represents an export order in the CRM system.",
+      "description": "Represents an export order, belonging to a specific company.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ExportOrder entity."
-        },
         "title": {
           "type": "string",
           "description": "Title of the export order."
         },
         "stage": {
           "type": "string",
-          "description": "Stage of the export order (leadReceived, quotationSent, orderConfirmed, exportDocumentation, shipmentReady, shippedDelivered, cancelled, lostNoResponse)."
-        },
-        "companyId": {
-          "type": "string",
-          "description": "Reference to Company. (Relationship: Company 1:N ExportOrder)"
+          "description": "Stage of the export order.",
+           "enum": ["leadReceived", "quotationSent", "orderConfirmed", "exportDocumentation", "shipmentReady", "shippedDelivered", "cancelled", "lostNoResponse"]
         },
         "contactId": {
           "type": "string",
-          "description": "Reference to Contact. (Relationship: Contact 1:N ExportOrder)"
+          "description": "Reference to the primary Contact for this order."
         },
         "productType": {
           "type": "string",
@@ -240,7 +209,7 @@
         },
         "assignedUserId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N ExportOrder)"
+          "description": "Reference to the User assigned to this order."
         },
         "createdAt": {
           "type": "string",
@@ -253,10 +222,8 @@
         }
       },
       "required": [
-        "id",
         "title",
         "stage",
-        "companyId",
         "contactId",
         "productType",
         "destinationCountry",
@@ -276,12 +243,8 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Company",
       "type": "object",
-      "description": "Represents a company in the CRM system.",
+      "description": "Represents a company tenant in the CRM system. This is the root for most other data.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Company entity."
-        },
         "name": {
           "type": "string",
           "description": "Name of the company."
@@ -303,27 +266,24 @@
           "type": "string",
           "description": "Website of the company.",
           "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the company was created.",
+          "format": "date-time"
         }
       },
       "required": [
-        "id",
         "name",
-        "address",
-        "phone",
-        "email",
-        "website"
+        "createdAt"
       ]
     },
     "Contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact",
       "type": "object",
-      "description": "Represents a contact in the CRM system.",
+      "description": "Represents a contact person, belonging to a specific company.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Contact entity."
-        },
         "firstName": {
           "type": "string",
           "description": "First name of the contact."
@@ -341,22 +301,22 @@
           "type": "string",
           "description": "Phone number of the contact."
         },
-        "companyId": {
-          "type": "string",
-          "description": "Reference to Company. (Relationship: Company 1:N Contact)"
-        },
         "jobTitle": {
           "type": "string",
           "description": "Job title of the contact."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the contact was created.",
+          "format": "date-time"
         }
       },
       "required": [
-        "id",
         "firstName",
         "lastName",
         "email",
         "phone",
-        "companyId"
+        "createdAt"
       ]
     },
     "Task": {
@@ -365,10 +325,6 @@
       "type": "object",
       "description": "Represents a task in the CRM system.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Task entity."
-        },
         "title": {
           "type": "string",
           "description": "Title of the task."
@@ -379,7 +335,8 @@
         },
         "status": {
           "type": "string",
-          "description": "Status of the task (open, inProgress, done)."
+          "description": "Status of the task.",
+          "enum": ["open", "inProgress", "done"]
         },
         "dueDate": {
           "type": "string",
@@ -388,15 +345,15 @@
         },
         "relatedLeadId": {
           "type": "string",
-          "description": "Reference to Lead. (Relationship: Lead 1:N Task)"
+          "description": "Reference to a Lead within the same company."
         },
         "relatedOrderId": {
           "type": "string",
-          "description": "Reference to ExportOrder. (Relationship: ExportOrder 1:N Task)"
+          "description": "Reference to an ExportOrder within the same company."
         },
         "assigneeId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Task)"
+          "description": "Reference to the User assigned to this task."
         },
         "createdAt": {
           "type": "string",
@@ -405,9 +362,7 @@
         }
       },
       "required": [
-        "id",
         "title",
-        "description",
         "status",
         "dueDate",
         "assigneeId",
@@ -420,34 +375,32 @@
       "type": "object",
       "description": "Represents a document in the CRM system.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Document entity."
-        },
         "name": {
           "type": "string",
           "description": "Name of the document."
         },
         "type": {
           "type": "string",
-          "description": "Type of document (invoice, packingList, billOfLading, COO, certificate, other)."
+          "description": "Type of document.",
+          "enum": ["invoice", "packingList", "billOfLading", "COO", "certificate", "other"]
         },
-        "orderId": {
+        "relatedLeadId": {
           "type": "string",
-          "description": "Reference to ExportOrder. (Relationship: ExportOrder 1:N Document)"
+          "description": "Reference to a Lead within the same company."
         },
-        "leadId": {
+        "relatedOrderId": {
           "type": "string",
-          "description": "Reference to Lead. (Relationship: Lead 1:N Document)"
+          "description": "Reference to an ExportOrder within the same company."
         },
         "fileUrl": {
           "type": "string",
-          "description": "URL of the document file.",
+          "description": "URL of the document file in Cloud Storage.",
           "format": "uri"
         },
         "status": {
           "type": "string",
-          "description": "Status of the document (pending, uploaded, verified)."
+          "description": "Status of the document.",
+          "enum": ["pending", "uploaded", "verified"]
         },
         "expiryDate": {
           "type": "string",
@@ -456,7 +409,7 @@
         },
         "uploadedBy": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Document) - The user who uploaded the document."
+          "description": "User who uploaded the document."
         },
         "uploadedAt": {
           "type": "string",
@@ -465,7 +418,6 @@
         }
       },
       "required": [
-        "id",
         "name",
         "type",
         "fileUrl",
@@ -478,12 +430,8 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a product offered by the company.",
+      "description": "Represents a product offered by a company.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
-        },
         "name": {
           "type": "string",
           "description": "Name of the product."
@@ -507,7 +455,6 @@
         }
       },
       "required": [
-        "id",
         "name",
         "hsCode",
         "basePrice"
@@ -517,12 +464,8 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Note",
       "type": "object",
-      "description": "Represents a note related to another entity.",
+      "description": "Represents a note related to another entity within a company.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Note entity."
-        },
         "content": {
           "type": "string",
           "description": "The content of the note."
@@ -546,12 +489,42 @@
         }
       },
       "required": [
-        "id",
         "content",
         "relatedEntityType",
         "relatedEntityId",
         "createdBy",
         "createdAt"
+      ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "A log of an activity that occurred within a company.",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "description": "Lucide icon name for the activity."
+        },
+        "title": {
+          "type": "string",
+          "description": "A short title for the activity."
+        },
+        "description": {
+          "type": "string",
+          "description": "A longer description of the activity."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "When the activity occurred.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "icon",
+        "title",
+        "description",
+        "timestamp"
       ]
     }
   },
@@ -566,185 +539,74 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. Uses path-based ownership for security. The `userId` MUST MATCH `authUid`.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user."
-            }
-          ]
+          "schema": { "$ref": "#/entities/User" },
+          "description": "Stores user profiles. The document ID (`userId`) MUST MATCH the Firebase Authentication UID (`authUid`)."
         }
       },
       {
         "path": "/companies/{companyId}",
         "definition": {
-          "entityName": "Company",
-          "schema": {
-            "$ref": "#/backend/entities/Company"
-          },
-          "description": "Stores company information. This is the root for all tenant data.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "Unique identifier for the company."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Company" },
+          "description": "Root collection for all company data, enabling multi-tenancy."
         }
       },
       {
         "path": "/companies/{companyId}/contacts/{contactId}",
         "definition": {
-          "entityName": "Contact",
-          "schema": {
-            "$ref": "#/backend/entities/Contact"
-          },
-          "description": "Stores contacts associated with a company.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The ID of the company the contact belongs to."
-            },
-            {
-              "name": "contactId",
-              "description": "Unique identifier for the contact."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Contact" },
+          "description": "Stores contacts associated with a company."
         }
       },
       {
         "path": "/companies/{companyId}/leads/{leadId}",
         "definition": {
-          "entityName": "Lead",
-          "schema": {
-            "$ref": "#/backend/entities/Lead"
-          },
-          "description": "Stores leads associated with a company. Includes denormalized `companyId` for authorization independence.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The ID of the company the lead is associated with."
-            },
-            {
-              "name": "leadId",
-              "description": "Unique identifier for the lead."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Lead" },
+          "description": "Stores leads associated with a company."
         }
       },
       {
         "path": "/companies/{companyId}/exportOrders/{exportOrderId}",
         "definition": {
-          "entityName": "ExportOrder",
-          "schema": {
-            "$ref": "#/backend/entities/ExportOrder"
-          },
-          "description": "Stores export orders associated with a company. Includes denormalized `companyId` for authorization independence.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The ID of the company the export order is associated with."
-            },
-            {
-              "name": "exportOrderId",
-              "description": "Unique identifier for the export order."
-            }
-          ]
+          "schema": { "$ref": "#/entities/ExportOrder" },
+          "description": "Stores export orders associated with a company."
         }
       },
       {
         "path": "/companies/{companyId}/products/{productId}",
         "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores products offered by a specific company.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The ID of the company that owns this product."
-            },
-            {
-              "name": "productId",
-              "description": "Unique identifier for the product."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Product" },
+          "description": "Stores products offered by a specific company."
         }
       },
       {
         "path": "/companies/{companyId}/notes/{noteId}",
         "definition": {
-          "entityName": "Note",
-          "schema": {
-            "$ref": "#/backend/entities/Note"
-          },
-          "description": "Stores notes associated with various entities within a company.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The ID of the company this note belongs to."
-            },
-            {
-              "name": "noteId",
-              "description": "Unique identifier for the note."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Note" },
+          "description": "Stores notes associated with various entities within a company."
         }
       },
       {
-        "path": "/tasks/{taskId}",
+        "path": "/companies/{companyId}/documents/{documentId}",
         "definition": {
-          "entityName": "Task",
-          "schema": {
-            "$ref": "#/backend/entities/Task"
-          },
-          "description": "Stores tasks. These are top-level and secured by assigneeId.",
-          "params": [
-            {
-              "name": "taskId",
-              "description": "Unique identifier for the task."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Document" },
+          "description": "Stores documents associated with a company."
         }
       },
       {
-        "path": "/documents/{documentId}",
+        "path": "/companies/{companyId}/tasks/{taskId}",
         "definition": {
-          "entityName": "Document",
-          "schema": {
-            "$ref": "#/backend/entities/Document"
-          },
-          "description": "Stores documents. These are top-level and secured by uploadedBy.",
-          "params": [
-            {
-              "name": "documentId",
-              "description": "Unique identifier for the document."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Task" },
+          "description": "Stores tasks associated with a company."
         }
       },
-      {
-        "path": "/roles_admin/{userId}",
+       {
+        "path": "/companies/{companyId}/activity_logs/{logId}",
         "definition": {
-          "entityName": "role",
-          "schema": {
-            "type": "object",
-            "properties": { "isAdmin": { "type": "boolean" } }
-          },
-          "description": "Stores admin roles. Existence of a document grants admin privileges.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the admin user."
-            }
-          ]
+          "schema": { "$ref": "#/entities/ActivityLog" },
+          "description": "Stores a timeline of activities for a company."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to enforce multi-tenancy. Most data is nested under a `/companies/{companyId}` collection. This ensures that all data is tied to a specific company tenant. A user's access to a company's data is determined by checking if the company's ID is present in the `companyIds` array on that user's profile document (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. Global data or user-specific data (like Tasks or user-uploaded Documents) can remain in top-level collections, secured by owner/assignee fields."
+    "reasoning": "The Firestore structure is designed for multi-tenancy. All primary business data is nested within a `/companies/{companyId}` collection. A user's access to a company's data is determined by checking if the `companyId` is in the `companyIds` array on their user profile (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. User profiles are kept in a top-level collection for authentication purposes."
   }
 }

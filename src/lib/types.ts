@@ -16,7 +16,7 @@ export interface User {
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
 
 export interface Lead {
-  id: string;
+  id?: string;
   fullName: string;
   companyName: string;
   email: string;
@@ -31,18 +31,14 @@ export interface Lead {
   createdAt: any; // Date or Firestore Timestamp
   lastContactAt?: any;
   nextFollowUpAt?: any;
-  tags?: string[];
-  exportOrderId?: string;
-  rawPayload?: any;
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';
 
 export interface ExportOrder {
-  id: string;
+  id?: string;
   title: string;
   stage: ExportOrderStage;
-  companyId: string;
   contactId: string;
   productType: string;
   destinationCountry: string;
@@ -63,7 +59,7 @@ export interface ExportOrder {
 }
 
 export interface Company {
-  id: string;
+  id?: string;
   name: string;
   industry?: string;
   website?: string;
@@ -72,12 +68,11 @@ export interface Company {
 }
 
 export interface Contact {
-  id: string;
+  id?: string;
   firstName: string;
   lastName: string;
   email: string;
   phone?: string;
-  companyId: string;
   jobTitle?: string;
   createdAt: any; // Date or Firestore Timestamp
 }
@@ -85,7 +80,7 @@ export interface Contact {
 export type TaskStatus = 'open' | 'inProgress' | 'done';
 
 export interface Task {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
   status: TaskStatus;
@@ -100,7 +95,7 @@ export type DocumentType = 'invoice' | 'packingList' | 'billOfLading' | 'COO' | 
 export type DocumentStatus = 'pending' | 'uploaded' | 'verified';
 
 export interface Document {
-  id: string;
+  id?: string;
   name: string;
   type: DocumentType;
   orderId?: string;
@@ -113,7 +108,7 @@ export interface Document {
 }
 
 export interface Product {
-    id: string;
+    id?: string;
     name: string;
     description?: string;
     hsCode: string;
@@ -122,12 +117,20 @@ export interface Product {
 }
 
 export interface Note {
-    id: string;
+    id?: string;
     content: string;
     relatedEntityType: 'Lead' | 'Contact' | 'ExportOrder';
     relatedEntityId: string;
     createdBy: string;
     createdAt: any;
+}
+
+export interface ActivityLog {
+  id?: string;
+  icon: string;
+  title: string;
+  description: string;
+  timestamp: any;
 }
 
 

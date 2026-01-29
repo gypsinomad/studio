@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -7,10 +8,13 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { CompaniesTable } from './components/companies-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentCompany } from '@/hooks/use-current-company';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { NewCompanyForm } from './components/new-company-form';
 
 export default function CompaniesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const [isNewCompanyOpen, setIsNewCompanyOpen] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
       if (!firestore || !user) return null;
@@ -22,8 +26,9 @@ export default function CompaniesPage() {
   // This query will fetch all company documents where the company ID
   // is in the user's `companyIds` array.
   const companiesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || !userProfile.companyIds || userProfile.companyIds.length === 0) return null;
-    return query(collection(firestore, 'companies'), where('id', 'in', userProfile.companyIds));
+    if (!firestore || !userProfile?.companyIds || userProfile.companyIds.length === 0) return null;
+    // Firestore 'in' queries are limited to 30 items. For more, you'd need to fetch individually.
+    return query(collection(firestore, 'companies'), where('__name__', 'in', userProfile.companyIds));
   }, [firestore, userProfile]);
 
   const { data: companies, isLoading } = useCollection(companiesQuery);
@@ -34,7 +39,7 @@ export default function CompaniesPage() {
         title="Companies"
         description="Manage your database of client and partner companies."
       >
-        <Button>
+        <Button onClick={() => setIsNewCompanyOpen(true)}>
           <PlusCircle />
           New Company
         </Button>
@@ -49,6 +54,18 @@ export default function CompaniesPage() {
       )}
 
       {!isLoading && companies && <CompaniesTable data={companies} />}
+
+      <Dialog open={isNewCompanyOpen} onOpenChange={setIsNewCompanyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a New Company</DialogTitle>
+            <DialogDescription>
+              This will create a new company tenant in your CRM.
+            </DialogDescription>
+          </DialogHeader>
+          <NewCompanyForm onSuccess={() => setIsNewCompanyOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

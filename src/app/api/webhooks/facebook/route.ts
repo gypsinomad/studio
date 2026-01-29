@@ -3,14 +3,44 @@ import { validateAndStandardizeLeadData } from '@/ai/flows/validate-and-standard
 import type { ValidateAndStandardizeLeadDataInput } from '@/ai/flows/validate-and-standardize-lead-data';
 import type { Lead } from '@/lib/types';
 import { adminDb } from '@/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
+
+async function getDefaultLeadAssignment(): Promise<{ companyId: string; userId: string } | null> {
+  if (!adminDb) return null;
+  // Find an admin user to assign the lead to their first company.
+  const adminUsersSnapshot = await adminDb.collection('users').where('role', '==', 'admin').limit(1).get();
+  if (adminUsersSnapshot.empty) {
+    console.warn('Webhook: No admin user found to assign new lead.');
+    return null;
+  }
+  const adminUser = adminUsersSnapshot.docs[0].data();
+  const adminUserId = adminUsersSnapshot.docs[0].id;
+  const defaultCompanyId = adminUser.companyIds?.[0];
+
+  if (!defaultCompanyId) {
+    console.warn(`Webhook: Admin user ${adminUserId} has no companies assigned.`);
+    return null;
+  }
+
+  return { companyId: defaultCompanyId, userId: adminUserId };
+}
 
 export async function POST(request: Request) {
   try {
+    if (!adminDb) {
+      console.error('Firebase Admin is not available. Cannot process webhook.');
+      return NextResponse.json({ success: false, error: 'Database connection not available.' }, { status: 500 });
+    }
+
     const rawLeadData = await request.json();
+    console.log('Received raw lead data:', JSON.stringify(rawLeadData, null, 2));
 
-    console.log('Received raw lead data from Facebook:', JSON.stringify(rawLeadData, null, 2));
+    const assignment = await getDefaultLeadAssignment();
+    if (!assignment) {
+      console.error('Webhook: Could not determine default assignment for new lead.');
+      return NextResponse.json({ success: false, error: 'CRM is not configured to accept new leads.' }, { status: 500 });
+    }
 
-    // This is a sample mapping. The actual field names from Facebook may differ.
     const leadInput: ValidateAndStandardizeLeadDataInput = {
       fullName: rawLeadData.full_name || 'N/A',
       companyName: rawLeadData.company_name || 'N/A',
@@ -23,24 +53,13 @@ export async function POST(request: Request) {
       incotermsPreference: rawLeadData.incoterms_preference || 'N/A',
     };
 
-    console.log('Mapped input for Genkit flow:', JSON.stringify(leadInput, null, 2));
-
-    // Call the Genkit flow to validate and standardize the data
     const result = await validateAndStandardizeLeadData(leadInput);
+    console.log('AI standardization result:', JSON.stringify(result, null, 2));
 
-    console.log('Received guarded result from Genkit:', JSON.stringify(result, null, 2));
-
-    let leadDataToSave: Omit<Lead, 'id' | 'assignedUserId' | 'createdAt'> & { createdAt: any };
+    let leadDataToSave;
 
     if (result.aiUsed && result.aiData) {
-      leadDataToSave = {
-        ...result.aiData,
-        source: leadInput.source,
-        incotermsPreference: leadInput.incotermsPreference,
-        status: 'new',
-        rawPayload: rawLeadData,
-        createdAt: new Date(),
-      };
+      leadDataToSave = { ...result.aiData };
     } else {
       // Fallback to saving unstandardized data if AI is not used
       leadDataToSave = {
@@ -49,32 +68,38 @@ export async function POST(request: Request) {
         email: leadInput.email,
         phone: leadInput.phone,
         whatsappNumber: leadInput.whatsappNumber,
-        source: leadInput.source,
-        productInterest: leadInput.productInterest,
         destinationCountry: leadInput.destinationCountry,
-        incotermsPreference: leadInput.incotermsPreference,
-        status: 'new',
-        rawPayload: rawLeadData,
-        createdAt: new Date(),
+        productInterest: leadInput.productInterest,
       };
     }
     
-    // In a real application, you would assign to a user.
-    const leadWithUser = { ...leadDataToSave, assignedUserId: 'sales-exec-01' };
+    const finalLeadPayload: Omit<Lead, 'id'> = {
+      ...leadDataToSave,
+      source: leadInput.source,
+      incotermsPreference: leadInput.incotermsPreference,
+      status: 'new',
+      assignedUserId: assignment.userId, // Assign to default admin
+      createdAt: FieldValue.serverTimestamp(),
+    };
 
-    if (!adminDb) {
-      console.error('Firebase Admin is not available. Cannot save lead to Firestore.');
-      return NextResponse.json({ success: false, error: 'Database connection not available.' }, { status: 500 });
-    }
+    const leadRef = await adminDb.collection('companies').doc(assignment.companyId).collection('leads').add(finalLeadPayload);
+    console.log(`Lead saved with ID: ${leadRef.id} in Company: ${assignment.companyId}`);
+    
+    // Create an activity log entry
+    const activityLog = {
+        icon: 'Sprout',
+        title: `New Lead: ${finalLeadPayload.fullName}`,
+        description: `From ${finalLeadPayload.source}, assigned to ${assignment.userId}.`,
+        timestamp: FieldValue.serverTimestamp()
+    };
+    await adminDb.collection('companies').doc(assignment.companyId).collection('activity_logs').add(activityLog);
 
-    const docRef = await adminDb.collection('leads').add(leadWithUser);
-    console.log(`Lead saved with ID: ${docRef.id}`);
 
-    return NextResponse.json({ success: true, message: 'Lead processed successfully.', leadId: docRef.id, aiInfo: { used: result.aiUsed, reason: result.aiReason }});
+    return NextResponse.json({ success: true, message: 'Lead processed successfully.', leadId: leadRef.id });
 
   } catch (error) {
-    console.error('Error processing webhook:', error instanceof Error ? error.message : error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error('Error processing webhook:', errorMessage);
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
@@ -86,7 +111,6 @@ export async function GET(request: Request) {
     const token = searchParams.get('hub.verify_token')
     const challenge = searchParams.get('hub.challenge')
   
-    // Your verification token. This should be stored securely as an environment variable.
     const VERIFY_TOKEN = process.env.FACEBOOK_VERIFY_TOKEN || "your-secret-verify-token";
   
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
