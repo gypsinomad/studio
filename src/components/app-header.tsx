@@ -13,19 +13,6 @@ export function AppHeader() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'settings', 'ai');
-  }, [firestore]);
-
-  const usageDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'usageStats', getMonthKey());
-  }, [firestore]);
-
-  const { data: settings, isLoading: settingsLoading } = useDoc<AISettings>(settingsDocRef);
-  const { data: usage, isLoading: usageLoading } = useDoc<AIUsageStats>(usageDocRef);
-  
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -33,6 +20,22 @@ export function AppHeader() {
 
   const { data: userProfile } = useDoc(userProfileRef);
 
+  // Only admins should fetch AI settings and usage stats.
+  const isAdmin = userProfile?.role === 'admin';
+
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore || !isAdmin) return null;
+    return doc(firestore, 'settings', 'ai');
+  }, [firestore, isAdmin]);
+
+  const usageDocRef = useMemoFirebase(() => {
+    if (!firestore || !isAdmin) return null;
+    return doc(firestore, 'usageStats', getMonthKey());
+  }, [firestore, isAdmin]);
+
+  const { data: settings } = useDoc<AISettings>(settingsDocRef);
+  const { data: usage } = useDoc<AIUsageStats>(usageDocRef);
+  
   const mergedUser = useMemo(() => {
     if (!user || !userProfile) return null;
     return { ...user, ...userProfile };
@@ -65,7 +68,7 @@ export function AppHeader() {
         SpiceRoute CRM
       </h1>
       <div className="ml-auto flex items-center gap-4">
-        <AiUsageIndicator settings={settings} usage={usage} />
+        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} />}
         <UserNav user={mergedUser} />
       </div>
     </header>
