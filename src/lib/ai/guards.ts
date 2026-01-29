@@ -76,7 +76,7 @@ export async function checkAiBudgetAndProceed() {
         }
     });
   } catch (e) {
-      console.error("Error updating AI usage stats:", e);
+      console.error("Error updating AI usage stats:", e instanceof Error ? e.message : e);
       // Decide if you want to proceed even if stats update fails. For now, we will.
   }
 

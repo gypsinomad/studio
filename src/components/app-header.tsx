@@ -16,29 +16,44 @@ async function getAiStatus(): Promise<AiStatusResult> {
   noStore();
 
   if (!adminDb) {
-    console.warn("Firebase Admin is not available. AI status will not be fetched.");
+    console.warn(
+      "Firebase Admin is not available. AI status will not be fetched."
+    );
     return { settings: null, usage: null };
   }
 
   try {
-    const settingsDoc = await adminDb.doc("settings/ai").get();
+    // Extra guard so NOT_FOUND or weird Firestore errors never crash SSR
+    const settingsDoc = await adminDb.doc("settings/ai").get().catch(err => {
+      console.warn("Failed to read settings/ai:", err instanceof Error ? err.message : err);
+      return null;
+    });
+
     const usageDoc = await adminDb
       .doc(`usageStats/${getMonthKey()}`)
-      .get();
+      .get()
+      .catch(err => {
+        console.warn("Failed to read usageStats doc:", err instanceof Error ? err.message : err);
+        return null;
+      });
 
-    const settings = settingsDoc.exists
-      ? (settingsDoc.data() as AISettings)
-      : null;
-    const usage = usageDoc.exists
-      ? (usageDoc.data() as AIUsageStats)
-      : null;
+    const settings =
+      settingsDoc && settingsDoc.exists
+        ? (settingsDoc.data() as AISettings)
+        : null;
+
+    const usage =
+      usageDoc && usageDoc.exists
+        ? (usageDoc.data() as AIUsageStats)
+        : null;
 
     return { settings, usage };
   } catch (error) {
-    console.warn("Could not fetch AI status from Firestore. This is expected in a local environment without credentials. Using default values.", error);
+    console.warn("Error fetching AI status from Firestore:", error instanceof Error ? error.message : error);
     return { settings: null, usage: null };
   }
 }
+
 
 
 export async function AppHeader() {

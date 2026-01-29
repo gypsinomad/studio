@@ -51,7 +51,7 @@ export async function validateAndStandardizeLeadData(
       const aiData = await validateAndStandardizeLeadDataFlow(input);
       return { aiUsed: true, aiReason: 'ok', aiData };
   } catch (error) {
-      console.error("Genkit Flow Error in validateAndStandardizeLeadData:", error);
+      console.error("Genkit Flow Error in validateAndStandardizeLeadData:", error instanceof Error ? error.message : error);
       return { aiUsed: false, aiReason: 'error', aiData: null };
   }
 }

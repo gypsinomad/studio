@@ -53,7 +53,7 @@ export async function checkExportOrderCompliance(
     const aiData = await checkExportOrderComplianceFlow(input);
     return { aiUsed: true, aiReason: 'ok', aiData };
   } catch (error) {
-    console.error("Genkit Flow Error in checkExportOrderCompliance:", error);
+    console.error("Genkit Flow Error in checkExportOrderCompliance:", error instanceof Error ? error.message : error);
     return { aiUsed: false, aiReason: 'error', aiData: null };
   }
 }
