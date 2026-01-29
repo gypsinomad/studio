@@ -32,6 +32,7 @@ const ValidateAndStandardizeLeadDataOutputSchema = z.object({
   phone: z.string().describe('The standardized phone number of the lead (E.164 format).'),
   whatsappNumber: z.string().optional().describe('The standardized WhatsApp number of the lead, if available (E.164 format).'),
   destinationCountry: z.string().describe('The standardized destination country name (e.g., using ISO 3166-1 alpha-2 code).'),
+  productInterest: z.string().describe('The inferred or standardized product interest.'),
 });
 
 export type ValidateAndStandardizeLeadDataOutput = z.infer<typeof ValidateAndStandardizeLeadDataOutputSchema>;
@@ -46,15 +47,15 @@ const prompt = ai.definePrompt({
   name: 'validateAndStandardizeLeadDataPrompt',
   input: {schema: ValidateAndStandardizeLeadDataInputSchema},
   output: {schema: ValidateAndStandardizeLeadDataOutputSchema},
-  prompt: `You are an expert data standardization tool. You will receive lead data from Facebook Lead Ads and will standardize it.
+  prompt: `You are an expert data standardization tool for a spice export CRM. You will receive lead data from Facebook Lead Ads and will standardize it.
 
   Specifically, you will:
-  - Ensure the full name is properly formatted.
-  - Ensure the company name is properly formatted.
+  - Ensure the full name and company name are properly formatted (e.g., proper capitalization, trim whitespace).
   - Verify the email address is valid.
   - Standardize the phone number to E.164 format.
   - Standardize the WhatsApp number to E.164 format, if provided.
-  - Standardize the destination country name using ISO 3166-1 alpha-2 code.
+  - Standardize the destination country name to its full name (e.g., 'USA' becomes 'United States').
+  - Infer and standardize the product interest based on the input. If it's a generic term, make it more specific if possible (e.g., 'Pepper' becomes 'Black Pepper').
 
   Here is the lead data:
 
@@ -63,11 +64,11 @@ const prompt = ai.definePrompt({
   Email: {{{email}}}
   Phone: {{{phone}}}
   WhatsApp Number: {{{whatsappNumber}}}
+  Product Interest: {{{productInterest}}}
   Destination Country: {{{destinationCountry}}}
 
   Return the standardized data in JSON format.
-  Make sure the country name uses the ISO 3166-1 alpha-2 code.
-  If the WhatsApp number is not provided, return null for that field.
+  If the WhatsApp number is not provided, do not include the field in the output.
   `,
 });
 

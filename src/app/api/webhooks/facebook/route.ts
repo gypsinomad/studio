@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { validateAndStandardizeLeadData } from '@/ai/flows/validate-and-standardize-lead-data';
 import type { ValidateAndStandardizeLeadDataInput } from '@/ai/flows/validate-and-standardize-lead-data';
+import type { Lead } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
@@ -29,9 +30,18 @@ export async function POST(request: Request) {
     console.log('Received standardized data from Genkit:', JSON.stringify(standardizedData, null, 2));
 
     // In a real application, you would now save the `standardizedData` to your Firestore 'leads' collection.
-    // e.g., await db.collection('leads').add({ ...standardizedData, createdAt: new Date() });
+    // The object to save would combine the standardized data with other metadata.
+    const newLeadForFirestore: Omit<Lead, 'id' | 'assignedUserId'> = {
+        ...standardizedData,
+        source: leadInput.source,
+        incotermsPreference: leadInput.incotermsPreference,
+        status: 'new',
+        createdAt: new Date(),
+        rawPayload: rawLeadData,
+    };
     
-    console.log('Simulated saving standardized lead to Firestore.');
+    console.log('Simulated saving standardized lead to Firestore:', JSON.stringify(newLeadForFirestore, null, 2));
+    // e.g., await db.collection('leads').add({ ...newLeadForFirestore, assignedUserId: 'some-default-id' });
 
 
     return NextResponse.json({ success: true, message: 'Lead processed successfully.' });

@@ -30,6 +30,7 @@ export interface Lead {
   nextFollowUpAt?: Date;
   tags?: string[];
   exportOrderId?: string;
+  rawPayload?: any;
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';
