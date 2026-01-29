@@ -22,7 +22,7 @@ async function getAiSettings(): Promise<AISettings> {
       return settingsDoc.data() as AISettings;
     }
   } catch (error) {
-    console.error("Error fetching AI settings from Firestore:", error);
+    console.warn("Could not fetch AI settings from Firestore. This is expected in a local environment without credentials. Using default settings.", error);
     // Fallback to default settings on error.
   }
   

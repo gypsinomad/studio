@@ -7,7 +7,12 @@ import { adminDb } from '@/firebase/admin';
 import { getMonthKey } from '@/lib/utils';
 import { unstable_noStore as noStore } from 'next/cache';
 
-async function getAiStatus() {
+type AiStatusResult = {
+  settings: AISettings | null;
+  usage: AIUsageStats | null;
+};
+
+async function getAiStatus(): Promise<AiStatusResult> {
   noStore();
 
   if (!adminDb) {
@@ -16,20 +21,25 @@ async function getAiStatus() {
   }
 
   try {
-    const settingsDoc = await adminDb.doc('settings/ai').get();
-    const usageDoc = await adminDb.doc(`usageStats/${getMonthKey()}`).get();
+    const settingsDoc = await adminDb.doc("settings/ai").get();
+    const usageDoc = await adminDb
+      .doc(`usageStats/${getMonthKey()}`)
+      .get();
 
-    const settings = settingsDoc.exists ? (settingsDoc.data() as AISettings) : null;
-    const usage = usageDoc.exists ? (usageDoc.data() as AIUsageStats) : null;
-    
+    const settings = settingsDoc.exists
+      ? (settingsDoc.data() as AISettings)
+      : null;
+    const usage = usageDoc.exists
+      ? (usageDoc.data() as AIUsageStats)
+      : null;
+
     return { settings, usage };
   } catch (error) {
-    console.error("Error fetching AI status from Firestore:", error);
-    // In a production environment, you'd want to log this to a proper monitoring service.
-    // Returning nulls to allow the UI to render gracefully without this data.
+    console.warn("Could not fetch AI status from Firestore. This is expected in a local environment without credentials. Using default values.", error);
     return { settings: null, usage: null };
   }
 }
+
 
 export async function AppHeader() {
   // In a real app, this would come from an auth context/hook

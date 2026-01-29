@@ -12,7 +12,7 @@ try {
   }
   adminDb = admin.firestore();
 } catch (error) {
-  console.error("Firebase Admin SDK initialization failed. This can happen in a local environment without Application Default Credentials. Server-side Firebase features will be disabled.", error instanceof Error ? error.message : error);
+  console.warn("Firebase Admin SDK initialization failed. This can happen in a local environment without Application Default Credentials. Server-side Firebase features will be disabled.", error instanceof Error ? error.message : error);
 }
 
 export { adminDb };
