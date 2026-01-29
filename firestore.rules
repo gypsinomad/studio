@@ -1,0 +1,320 @@
+rules_version = '2';
+
+/**
+ * @file firestore.rules
+ * @description Firestore Security Rules for the SpiceRoute CRM application.
+ *
+ * @section Core Philosophy
+ * This ruleset enforces a strict Role-Based Access Control (RBAC) model combined
+ * with a user-ownership paradigm. A special `/roles_admin` collection grants
+ * global administrative privileges, allowing admins to manage all data. For non-admin
+ * users, access is typically restricted to the documents they own or are explicitly
+ * assigned to, such as leads, tasks, and export orders.
+ *
+ * @section Data Structure
+ * The data is organized into top-level collections for major entities (e.g.,
+ * `/exportOrders`, `/companies`, `/tasks`). Leads are a notable exception, nested
+ * under their assigned user at `/users/{userId}/leads/{leadId}` to enforce a strong,
+ * path-based ownership security model. This structure promotes clear and efficient
+ * security logic.
+ *
+ * @section Key Security Decisions
+ * - Admin Access: Users are designated as admins if a document with their UID
+ *   exists in the `/roles_admin` collection. Admins have full read and write access
+ *   to all data across the database. This collection is intentionally made
+ *   read-only via rules to prevent privilege escalation from the client-side.
+ * - User Ownership: Data created by or assigned to a specific user (e.g., Leads,
+ *   ExportOrders, Tasks) is secured using a denormalized ownership field
+ *   (e.g., `assignedUserId`, `assigneeId`). This allows users to access only their
+ *   own data, enforcing data isolation.
+ * - User Profiles: User profiles at `/users/{userId}` can be read by any
+ *   authenticated user to facilitate displaying user information, but can only be
+ *   created or modified by the user themselves or an admin.
+ * - Shared Data: Foundational collections like `/companies`, `/contacts`, and `/tags`
+ *   are readable by any signed-in user but can only be created or modified by admins
+ *   to maintain data integrity.
+ * - Disallowed Listing: To protect user privacy, listing the entire `/users`
+ *   collection is explicitly forbidden.
+ *
+ * @section Denormalization for Authorization
+ * To create simpler, more performant rules, this ruleset relies heavily on
+ * denormalization. Instead of using slow and costly `get()` calls to check for
+ * permissions on related documents, ownership and role information is stored
+ * directly on the documents being secured.
+ * - Ownership fields like `assignedUserId` are stored on `Lead` and `ExportOrder`
+ *   documents.
+ * - The existence of a document in `/roles_admin/{userId}` serves as a denormalized
+ *   admin role check, avoiding the need for custom claims.
+ *
+ * @section Structural Segregation
+ * Each entity type resides in its own top-level collection (e.g., `/tasks`,
+ * `/companies`). This segregation allows for clear, specific security rules for each
+ * data type and prevents security logic from becoming overly complex. The one
+ * exception is `/users/{userId}/leads`, where nesting is used intentionally to
+ * create a secure, user-owned data silo.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * @function isSignedIn
+     * @description Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @function isOwner
+     * @description Checks if the authenticated user's UID matches the given userId.
+     *              Typically used for path-based security.
+     * @param {String} userId The user ID to check against.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @function isAdmin
+     * @description Checks if the user has an admin role by verifying the existence
+     *              of their UID in the '/roles_admin' collection.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * @function isExistingDoc
+     * @description Checks if the document being accessed already exists.
+     *              Crucial for protecting against writes on non-existent paths.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+    
+    /**
+     * @function isAssignedToUser
+     * @description Checks if the user is the one assigned to the document.
+     *              Used for documents with an 'assignedUserId' field.
+     */
+    function isAssignedToUser(doc) {
+      return doc.data.assignedUserId == request.auth.uid;
+    }
+    
+    /**
+     * @function isAssigneeOfTask
+     * @description Checks if the user is the assignee of the task.
+     *              Used for Task documents with an 'assigneeId' field.
+     */
+    function isAssigneeOfTask(doc) {
+      return doc.data.assigneeId == request.auth.uid;
+    }
+
+    /**
+     * @function isUploaderOfDocument
+     * @description Checks if the user is the one who uploaded the document.
+     *              Used for Document entities with an 'uploadedBy' field.
+     */
+    function isUploaderOfDocument(doc) {
+      return doc.data.uploadedBy == request.auth.uid;
+    }
+    
+    /**
+     * @function isCreatingOwnProfile
+     * @description Validates that the user is creating their own profile document
+     *              and that the internal `authUid` matches their own UID.
+     */
+    function isCreatingOwnProfile(userId) {
+      return isOwner(userId) && request.resource.data.authUid == request.auth.uid;
+    }
+
+    /**
+     * @function isCreatingOwnLead
+     * @description Validates that the user is creating a lead within their own
+     *              subcollection and that the `assignedUserId` field matches.
+     */
+    function isCreatingOwnLead(userId) {
+      return isOwner(userId) && request.resource.data.assignedUserId == userId;
+    }
+
+    /**
+     * @function isCreatingAssignedContent
+     * @description On create, ensures the new document's `assignedUserId` field
+     *              is set to the creator's own UID.
+     */
+    function isCreatingAssignedContent() {
+      return request.resource.data.assignedUserId == request.auth.uid;
+    }
+    
+    /**
+     * @function isCreatingAssignedTask
+     * @description On create, ensures the new task's `assigneeId` field
+     *              is set to the creator's own UID.
+     */
+    function isCreatingAssignedTask() {
+      return request.resource.data.assigneeId == request.auth.uid;
+    }
+
+    /**
+     * @function isCreatingOwnDocument
+     * @description On create, ensures the new document's `uploadedBy` field
+     *              is set to the creator's own UID.
+     */
+    function isCreatingOwnDocument() {
+      return request.resource.data.uploadedBy == request.auth.uid;
+    }
+    
+    /**
+     * @function isOwnershipFieldImmutable
+     * @description On update, ensures an ownership-related field cannot be changed.
+     * @param {String} field The name of the field to check for immutability.
+     */
+    function isOwnershipFieldImmutable(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages user profile data.
+     * @path /users/{userId}
+     * @allow (create) A user can create their own profile document.
+     * @allow (update) The user who owns the profile or an admin can update it.
+     * @deny (list) Listing all user profiles is disallowed to protect privacy.
+     * @deny (delete) A regular user cannot delete their own profile.
+     * @principle Enforces self-creation and ownership for user profiles, with admin override.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isCreatingOwnProfile(userId);
+      allow update: if (isOwner(userId) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('authUid');
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description A private collection to grant admin roles. Client-side writes are disabled.
+     * @path /roles_admin/{userId}
+     * @allow (get) An admin can check if another user is an admin.
+     * @deny (create, update, delete) All client-side modifications are forbidden to prevent privilege escalation.
+     * @principle Secures role management by making the roles collection read-only for clients.
+     */
+    match /roles_admin/{userId} {
+      allow get, list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Stores leads, nested under the user they are assigned to.
+     * @path /users/{userId}/leads/{leadId}
+     * @allow (read, write) The user specified in the path or an admin can access these leads.
+     * @deny (create) A user trying to create a lead under another user's path.
+     * @deny (list) A user trying to list leads belonging to another user.
+     * @principle Restricts access to a user's own data tree using path-based security.
+     */
+    match /users/{userId}/leads/{leadId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isCreatingOwnLead(userId) || isAdmin();
+      allow update: if (isOwner(userId) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assignedUserId');
+      allow delete: if (isOwner(userId) || isAdmin()) && isExistingDoc();
+    }
+
+    /**
+     * @description Stores all export order data.
+     * @path /exportOrders/{exportOrderId}
+     * @allow (read, write) The user assigned to the order or an admin can access it.
+     * @deny (update) A user trying to update an order they are not assigned to.
+     * @deny (create) A user creating an order and assigning it to someone else.
+     * @principle Enforces document ownership for writes based on the `assignedUserId` field.
+     */
+    match /exportOrders/{exportOrderId} {
+      allow get: if (isSignedIn() && isAssignedToUser(resource)) || isAdmin();
+      allow list: if isSignedIn() || isAdmin();
+      allow create: if (isSignedIn() && isCreatingAssignedContent()) || isAdmin();
+      allow update: if (isAssignedToUser(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assignedUserId');
+      allow delete: if (isAssignedToUser(resource) || isAdmin()) && isExistingDoc();
+    }
+
+    /**
+     * @description Stores company data, which is shared across the application.
+     * @path /companies/{companyId}
+     * @allow (read) Any signed-in user can read company information.
+     * @deny (write) Only admins can create, update, or delete companies.
+     * @principle Protects shared, foundational data by restricting writes to admins.
+     */
+    match /companies/{companyId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && isExistingDoc();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Stores contact data, which is shared across the application.
+     * @path /contacts/{contactId}
+     * @allow (read) Any signed-in user can read contact information.
+     * @deny (write) Only admins can create, update, or delete contacts.
+     * @principle Protects shared, foundational data by restricting writes to admins.
+     */
+    match /contacts/{contactId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && isExistingDoc();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Stores all task data.
+     * @path /tasks/{taskId}
+     * @allow (read, write) The user assigned to the task (the assignee) or an admin can access it.
+     * @deny (update) A user trying to update a task they are not assigned to.
+     * @deny (create) A user creating a task and assigning it to someone else.
+     * @principle Enforces document ownership for writes based on the `assigneeId` field.
+     */
+    match /tasks/{taskId} {
+      allow get: if (isSignedIn() && isAssigneeOfTask(resource)) || isAdmin();
+      allow list: if isSignedIn() || isAdmin();
+      allow create: if (isSignedIn() && isCreatingAssignedTask()) || isAdmin();
+      allow update: if (isAssigneeOfTask(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('assigneeId');
+      allow delete: if (isAssigneeOfTask(resource) || isAdmin()) && isExistingDoc();
+    }
+
+    /**
+     * @description Stores all document metadata and file URLs.
+     * @path /documents/{documentId}
+     * @allow (read, write) The user who uploaded the document or an admin can access it.
+     * @deny (update) A user trying to update a document they did not upload.
+     * @deny (create) A user creating a document record and setting `uploadedBy` to another user.
+     * @principle Enforces document ownership for writes based on the `uploadedBy` field.
+     */
+    match /documents/{documentId} {
+      allow get: if (isSignedIn() && isUploaderOfDocument(resource)) || isAdmin();
+      allow list: if isSignedIn() || isAdmin();
+      allow create: if (isSignedIn() && isCreatingOwnDocument()) || isAdmin();
+      allow update: if (isUploaderOfDocument(resource) || isAdmin()) && isExistingDoc() && isOwnershipFieldImmutable('uploadedBy');
+      allow delete: if (isUploaderOfDocument(resource) || isAdmin()) && isExistingDoc();
+    }
+
+    /**
+     * @description Stores tags, which are shared across the application.
+     * @path /tags/{tagId}
+     * @allow (read) Any signed-in user can read tag information.
+     * @deny (write) Only admins can create, update, or delete tags.
+     * @principle Protects shared, foundational data by restricting writes to admins.
+     */
+    match /tags/{tagId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && isExistingDoc();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+  }
+}

@@ -1,0 +1,638 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the SpiceRoute CRM application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "authUid": {
+          "type": "string",
+          "description": "The Firebase Authentication UID associated with the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role within the system (e.g., admin, salesExecutive)."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the user account is active."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "authUid",
+        "email",
+        "displayName",
+        "role",
+        "isActive",
+        "createdAt"
+      ]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a lead in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lead entity."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the lead."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The company name associated with the lead."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the lead.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the lead."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "The WhatsApp number of the lead."
+        },
+        "source": {
+          "type": "string",
+          "description": "The source of the lead."
+        },
+        "productInterest": {
+          "type": "string",
+          "description": "The product the lead is interested in."
+        },
+        "destinationCountry": {
+          "type": "string",
+          "description": "The destination country of interest for the lead."
+        },
+        "incotermsPreference": {
+          "type": "string",
+          "description": "The preferred Incoterms for the lead."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the lead (e.g., new, contacted, qualified)."
+        },
+        "assignedUserId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Lead) The user ID assigned to the lead."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the lead was created.",
+          "format": "date-time"
+        },
+        "lastContactAt": {
+          "type": "string",
+          "description": "The timestamp of the last contact with the lead.",
+          "format": "date-time"
+        },
+        "nextFollowUpAt": {
+          "type": "string",
+          "description": "The timestamp for the next follow-up with the lead.",
+          "format": "date-time"
+        },
+        "tagIds": {
+          "type": "array",
+          "description": "References to Tag. (Relationship: Tag N:N Lead) List of tag IDs associated with the lead.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exportOrderId": {
+          "type": "string",
+          "description": "Reference to ExportOrder. (Relationship: ExportOrder 1:N Lead) The export order ID associated with the lead."
+        }
+      },
+      "required": [
+        "id",
+        "fullName",
+        "companyName",
+        "email",
+        "phone",
+        "source",
+        "productInterest",
+        "destinationCountry",
+        "status",
+        "assignedUserId",
+        "createdAt"
+      ]
+    },
+    "ExportOrder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExportOrder",
+      "type": "object",
+      "description": "Represents an export order in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the export order entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the export order."
+        },
+        "stage": {
+          "type": "string",
+          "description": "The current stage of the export order (e.g., leadReceived, quotationSent)."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N ExportOrder) The ID of the company associated with the export order."
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Reference to Contact. (Relationship: Contact 1:N ExportOrder) The ID of the contact associated with the export order."
+        },
+        "productType": {
+          "type": "string",
+          "description": "The type of product being exported."
+        },
+        "destinationCountry": {
+          "type": "string",
+          "description": "The destination country for the export order."
+        },
+        "incoterms": {
+          "type": "string",
+          "description": "The Incoterms for the export order."
+        },
+        "hsCode": {
+          "type": "string",
+          "description": "The HS code for the product being exported."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the product being exported."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "The unit price of the product being exported."
+        },
+        "paymentTerms": {
+          "type": "string",
+          "description": "The payment terms for the export order."
+        },
+        "containerType": {
+          "type": "string",
+          "description": "The type of container used for the export order."
+        },
+        "portOfLoading": {
+          "type": "string",
+          "description": "The port of loading for the export order."
+        },
+        "expectedShipmentDate": {
+          "type": "string",
+          "description": "The expected shipment date for the export order.",
+          "format": "date-time"
+        },
+        "fssaiLicenseNumber": {
+          "type": "string",
+          "description": "The FSSAI license number for the export order."
+        },
+        "icegateStatus": {
+          "type": "string",
+          "description": "The ICEGATE status for the export order."
+        },
+        "certificateRequirements": {
+          "type": "array",
+          "description": "List of certificate requirements for the export order.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assignedUserId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ExportOrder) The ID of the user assigned to the export order."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the export order was created.",
+          "format": "date-time"
+        },
+        "aiValidation": {
+          "type": "string",
+          "description": "AI-powered validation suggestions for the export order data."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "stage",
+        "companyId",
+        "contactId",
+        "productType",
+        "destinationCountry",
+        "incoterms",
+        "hsCode",
+        "quantity",
+        "unitPrice",
+        "paymentTerms",
+        "containerType",
+        "portOfLoading",
+        "expectedShipmentDate",
+        "assignedUserId",
+        "createdAt"
+      ]
+    },
+    "Company": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Company",
+      "type": "object",
+      "description": "Represents a company in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the company entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the company."
+        },
+        "address": {
+          "type": "string",
+          "description": "The address of the company."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the company."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the company.",
+          "format": "email"
+        },
+        "website": {
+          "type": "string",
+          "description": "The website URL of the company.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Contact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact",
+      "type": "object",
+      "description": "Represents a contact person in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contact entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the contact."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the contact."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the contact.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the contact."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Contact) The ID of the company the contact is associated with."
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "The job title of the contact."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "phone",
+        "companyId"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the task."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the task (e.g., open, inProgress, done)."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The due date of the task.",
+          "format": "date-time"
+        },
+        "relatedLeadId": {
+          "type": "string",
+          "description": "Reference to Lead. (Relationship: Lead 1:N Task) The ID of the lead the task is related to."
+        },
+        "relatedOrderId": {
+          "type": "string",
+          "description": "Reference to ExportOrder. (Relationship: ExportOrder 1:N Task) The ID of the export order the task is related to."
+        },
+        "assigneeId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Task) The ID of the user assigned to the task."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the task was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "status",
+        "dueDate",
+        "assigneeId",
+        "createdAt"
+      ]
+    },
+    "Document": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Document",
+      "type": "object",
+      "description": "Represents a document in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the document entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the document."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of document (e.g., invoice, packingList)."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to ExportOrder. (Relationship: ExportOrder 1:N Document) The ID of the export order the document is associated with."
+        },
+        "leadId": {
+          "type": "string",
+          "description": "Reference to Lead. (Relationship: Lead 1:N Document) The ID of the lead the document is associated with."
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "The URL of the document file.",
+          "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the document (e.g., pending, uploaded, verified)."
+        },
+        "expiryDate": {
+          "type": "string",
+          "description": "The expiry date of the document.",
+          "format": "date-time"
+        },
+        "uploadedBy": {
+          "type": "string",
+          "description": "The ID of the user who uploaded the document."
+        },
+        "uploadedAt": {
+          "type": "string",
+          "description": "The timestamp when the document was uploaded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "fileUrl",
+        "status"
+      ]
+    },
+    "Tag": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Tag",
+      "type": "object",
+      "description": "Represents a tag that can be associated with leads.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the tag entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the tag."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Documents are created via Firebase Authentication and extended with additional profile data. The 'userId' parameter corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection used for admin role assignment.  If a document exists for a given user ID, that user has admin privileges. Existence over Content.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the admin user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/leads/{leadId}",
+        "definition": {
+          "entityName": "Lead",
+          "schema": {
+            "$ref": "#/backend/entities/Lead"
+          },
+          "description": "Stores lead data associated with a specific user. The 'assignedUserId' field in each lead document must match the 'userId' parameter. This enables secure listing and filtering of leads based on user ownership. This design adheres to authorization independence principles.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user to whom the lead is assigned (assignedUserId)."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique ID of the lead."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/exportOrders/{exportOrderId}",
+        "definition": {
+          "entityName": "ExportOrder",
+          "schema": {
+            "$ref": "#/backend/entities/ExportOrder"
+          },
+          "description": "Stores export order data. The 'assignedUserId' field in each export order document indicates the assigned user. Includes an aiValidation field for AI-powered validation results.",
+          "params": [
+            {
+              "name": "exportOrderId",
+              "description": "The unique ID of the export order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/companies/{companyId}",
+        "definition": {
+          "entityName": "Company",
+          "schema": {
+            "$ref": "#/backend/entities/Company"
+          },
+          "description": "Stores company data.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique ID of the company."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/contacts/{contactId}",
+        "definition": {
+          "entityName": "Contact",
+          "schema": {
+            "$ref": "#/backend/entities/Contact"
+          },
+          "description": "Stores contact data.",
+          "params": [
+            {
+              "name": "contactId",
+              "description": "The unique ID of the contact."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores task data.",
+          "params": [
+            {
+              "name": "taskId",
+              "description": "The unique ID of the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/documents/{documentId}",
+        "definition": {
+          "entityName": "Document",
+          "schema": {
+            "$ref": "#/backend/entities/Document"
+          },
+          "description": "Stores document data.",
+          "params": [
+            {
+              "name": "documentId",
+              "description": "The unique ID of the document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tags/{tagId}",
+        "definition": {
+          "entityName": "Tag",
+          "schema": {
+            "$ref": "#/backend/entities/Tag"
+          },
+          "description": "Stores tag data.",
+          "params": [
+            {
+              "name": "tagId",
+              "description": "The unique ID of the tag."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure security, scalability, and debuggability, adhering to the core principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It avoids hierarchical authorization dependencies (`get()`) by denormalizing authorization data, making security rules simpler and more robust.\n\n**Authorization Independence (Denormalization):**\n\n*   For entities owned by users (Leads, ExportOrders, Tasks, Documents), the `assignedUserId` field is used to directly associate the entity with a user, avoiding the need to traverse the hierarchy to determine ownership.\n*   The structure prioritizes paths that directly reflect ownership. For instance, leads are stored under `/users/{userId}/leads/{leadId}`. This denormalizes the ownership relation, which is crucial for maintaining authorization independence.\n*   The denormalization of assignedUserId enables direct filtering and listing of Leads and ExportOrders based on the `assignedUserId` using security rules, satisfying QAPs.\n\n**Structural Segregation (Homogeneous Security Posture):**\n\n*   The database separates different data types into distinct collections (users, leads, exportOrders, companies, contacts, tasks, documents, tags). This segregation ensures that each collection can have its own specific security rules tailored to the data it contains.\n*   This segregation helps in maintaining a homogeneous security posture, making it easier to reason about the security implications of each data access operation.\n\n**Access Modeling:**\n\n*   **Private Data:** User-owned data (Leads, ExportOrders, Tasks, Documents) is stored under the `/users/{userId}` path, following the Path-Based ownership pattern. This design inherently restricts access to a resource to the user identified by `{userId}`.\n*   **Collaborative Data:** While the current data model doesn't explicitly include collaborative data structures requiring shared access, the `assignedUserId` field is used to define ownership and facilitate access control for SalesExecutives. If future collaboration features are added (e.g., shared ExportOrders), a membership map (`members: {uid1: \"role\", uid2: \"role\"}`) can be denormalized into collaborative entities to avoid `get()` calls in the security rules.\n*   **Global Roles (DBAC):** The `/roles_admin/{uid}` collection is used to grant admin privileges based on document existence. This approach avoids relying on custom claims and keeps the authorization logic within the database.\n\n**QAPs (Rules are not Filters):**\n\n*   The data structure supports secure list operations by leveraging the `assignedUserId` field. Security rules can efficiently filter data based on the authenticated user's ID, allowing them to only access resources where `assignedUserId == request.auth.uid`.\n*   Admin access can be granted by checking for the existence of a document in the `/roles_admin/{uid}` collection. This allows administrators to bypass the standard filtering and access all resources.\n\n**Invariants:**\n\n*   The structure facilitates the integrity of ownership through the `assignedUserId` field. It also provides timestamp fields (`createdAt`, `lastContactAt`, `nextFollowUpAt`, `uploadedAt`, `dueDate`) to track when resources were created, modified, or are due.\n*   The AI validation data for ExportOrders is stored directly within the ExportOrder documents, guaranteeing that the validation data is tightly coupled with the ExportOrder itself. This ensures that denormalized data remains consistent.\n\nThis design ensures a scalable and secure Firebase application where authorization logic is clear, independent, and easily manageable."
+  }
+}
