@@ -62,14 +62,18 @@ export async function POST(request: Request) {
     // In a real application, you would assign to a user.
     const leadWithUser = { ...leadDataToSave, assignedUserId: 'sales-exec-01' };
 
-    console.log('Simulated saving standardized lead to Firestore:', JSON.stringify(leadWithUser, null, 2));
-    // const docRef = await adminDb.collection('leads').add(leadWithUser);
-    // console.log(`Lead saved with ID: ${docRef.id}`);
+    if (!adminDb) {
+      console.error('Firebase Admin is not available. Cannot save lead to Firestore.');
+      return NextResponse.json({ success: false, error: 'Database connection not available.' }, { status: 500 });
+    }
 
-    return NextResponse.json({ success: true, message: 'Lead processed successfully.', aiInfo: { used: result.aiUsed, reason: result.aiReason }});
+    const docRef = await adminDb.collection('leads').add(leadWithUser);
+    console.log(`Lead saved with ID: ${docRef.id}`);
+
+    return NextResponse.json({ success: true, message: 'Lead processed successfully.', leadId: docRef.id, aiInfo: { used: result.aiUsed, reason: result.aiReason }});
 
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('Error processing webhook:', error instanceof Error ? error.message : error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
