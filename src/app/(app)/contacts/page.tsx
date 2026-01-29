@@ -6,16 +6,20 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { ContactsTable } from './components/contacts-table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrentCompany } from '@/hooks/use-current-company';
 
 export default function ContactsPage() {
   const firestore = useFirestore();
+  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const contactsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'contacts'));
-  }, [firestore]);
+    if (!firestore || !companyId) return null;
+    return query(collection(firestore, 'companies', companyId, 'contacts'));
+  }, [firestore, companyId]);
 
-  const { data: contacts, isLoading } = useCollection(contactsQuery);
+  const { data: contacts, isLoading: areContactsLoading } = useCollection(contactsQuery);
+
+  const isLoading = isCompanyLoading || areContactsLoading;
 
   return (
     <>

@@ -38,7 +38,7 @@
         },
         "companyIds": {
           "type": "array",
-          "description": "References to Companies. (Relationship: User N:N Company)",
+          "description": "References to Companies the user belongs to. (Relationship: User N:N Company)",
           "items": {
             "type": "string"
           }
@@ -51,7 +51,8 @@
         "displayName",
         "role",
         "isActive",
-        "createdAt"
+        "createdAt",
+        "companyIds"
       ]
     },
     "Lead": {
@@ -302,13 +303,6 @@
           "type": "string",
           "description": "Website of the company.",
           "format": "uri"
-        },
-        "contactIds": {
-          "type": "array",
-          "description": "References to Contacts. (Relationship: Company 1:N Contact)",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -475,14 +469,96 @@
         "name",
         "type",
         "fileUrl",
-        "status"
+        "status",
+        "uploadedBy",
+        "uploadedAt"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product offered by the company.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the product."
+        },
+        "hsCode": {
+          "type": "string",
+          "description": "Harmonized System code for the product."
+        },
+        "basePrice": {
+          "type": "number",
+          "description": "Base price per unit."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL for the product image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "hsCode",
+        "basePrice"
+      ]
+    },
+    "Note": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Note",
+      "type": "object",
+      "description": "Represents a note related to another entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Note entity."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the note."
+        },
+        "relatedEntityType": {
+          "type": "string",
+          "description": "The type of entity this note is related to (e.g., 'Lead', 'Contact')."
+        },
+        "relatedEntityId": {
+          "type": "string",
+          "description": "The ID of the entity this note is related to."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "User ID of the note's creator."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the note was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "content",
+        "relatedEntityType",
+        "relatedEntityId",
+        "createdBy",
+        "createdAt"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
@@ -510,7 +586,7 @@
           "schema": {
             "$ref": "#/backend/entities/Company"
           },
-          "description": "Stores company information.",
+          "description": "Stores company information. This is the root for all tenant data.",
           "params": [
             {
               "name": "companyId",
@@ -580,13 +656,53 @@
         }
       },
       {
+        "path": "/companies/{companyId}/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores products offered by a specific company.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The ID of the company that owns this product."
+            },
+            {
+              "name": "productId",
+              "description": "Unique identifier for the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/companies/{companyId}/notes/{noteId}",
+        "definition": {
+          "entityName": "Note",
+          "schema": {
+            "$ref": "#/backend/entities/Note"
+          },
+          "description": "Stores notes associated with various entities within a company.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The ID of the company this note belongs to."
+            },
+            {
+              "name": "noteId",
+              "description": "Unique identifier for the note."
+            }
+          ]
+        }
+      },
+      {
         "path": "/tasks/{taskId}",
         "definition": {
           "entityName": "Task",
           "schema": {
             "$ref": "#/backend/entities/Task"
           },
-          "description": "Stores tasks.  Does NOT include denormalized companyId. Admin access is required to list all tasks.",
+          "description": "Stores tasks. These are top-level and secured by assigneeId.",
           "params": [
             {
               "name": "taskId",
@@ -602,7 +718,7 @@
           "schema": {
             "$ref": "#/backend/entities/Document"
           },
-          "description": "Stores documents. Does NOT include denormalized companyId. Admin access is required to list all documents.",
+          "description": "Stores documents. These are top-level and secured by uploadedBy.",
           "params": [
             {
               "name": "documentId",
@@ -616,7 +732,8 @@
         "definition": {
           "entityName": "role",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "type": "object",
+            "properties": { "isAdmin": { "type": "boolean" } }
           },
           "description": "Stores admin roles. Existence of a document grants admin privileges.",
           "params": [
@@ -628,6 +745,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to prioritize authorization independence, clarity, and security. It leverages denormalization and structural segregation to ensure efficient and secure data access.\n\n**Authorization Independence:** Each document contains all the necessary authorization information, eliminating the need for `get()` calls in security rules.  This is achieved primarily through denormalizing company IDs on user and user assignments on other documents. For example, Leads include the `companyId`, enabling rules to directly verify company membership.\n\n**Structural Segregation:**  Data with different access requirements are stored in separate collections. For instance, user profiles are stored in `/users/{userId}`, enforcing path-based ownership.\n\n**Access Modeling:**\n*   **Path-Based Ownership:** User profiles (`/users/{userId}`) are secured using path-based ownership.\n*   **Membership Map (not applicable here):** While not explicitly used, the structure anticipates future collaborative features.  If shared documents were added, a `members` map would be included within those documents.\n*   **Global Roles:**  Admin roles are managed by the presence of documents in the `/roles_admin/{userId}` collection.  \n\n**QAPs (Rules Are Not Filters):** The structure enables secure `list` operations. Sales Executives can list only leads assigned to them, and admins can list all leads. This is enforced through security rules without filtering on the client-side.\n\n**Invariants:** Ownership and timestamps are enforced in the rules.\n\n**Denormalization Strategy**\nTo eliminate `get()` calls and achieve authorization independence, the following denormalization strategies are applied:\n\n*   **Company Access:** `companyId` is added to entities like leads and export orders that relate to companies. This allows security rules to directly check if a user has access to the company's data without needing to retrieve the company document. The `User` document includes an array of `companyIds` to define the companies a user belongs to.\n*   **User Assignments:** Entities like `Lead`, and `ExportOrder` include an `assignedUserId` field which allows security rules to enforce that sales executives can only see their own assignments."
+    "reasoning": "The Firestore structure is designed to enforce multi-tenancy. Most data is nested under a `/companies/{companyId}` collection. This ensures that all data is tied to a specific company tenant. A user's access to a company's data is determined by checking if the company's ID is present in the `companyIds` array on that user's profile document (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. Global data or user-specific data (like Tasks or user-uploaded Documents) can remain in top-level collections, secured by owner/assignee fields."
   }
 }

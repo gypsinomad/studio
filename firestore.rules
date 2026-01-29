@@ -16,15 +16,6 @@
  * - **Admin Override**: A user is considered an admin if a document exists for them in the `/roles_admin` collection. Admins have read/write access to nearly all data across all companies.
  * - **Restricted Listing**: Listing documents in top-level collections like `/tasks` and `/documents` is restricted to admins to prevent data leakage. Non-admins can only `get` individual documents they are explicitly assigned to.
  * - **Client-Side Writes to Roles Denied**: The `/roles_admin` collection is read-only from the client to prevent privilege escalation. Admin roles must be managed server-side (e.g., via a Cloud Function).
- *
- * ## Denormalization for Authorization
- * To create simpler and more performant rules, authorization data is denormalized directly onto the documents being secured:
- * - **Company ID (`companyId`)**: Entities like `leads` and `exportOrders` have a `companyId` field. This allows rules to verify a user's company membership without needing to read a separate parent document.
- * - **User Assignment (`assignedUserId`, `assigneeId`, `uploadedBy`)**: Documents in collections like `leads`, `tasks`, and `documents` contain a direct reference to the responsible user's UID. This enables fast ownership checks for update and delete operations.
- * - **Company Membership (`companyIds`)**: The `User` document contains an array of `companyIds`, which is the central source of truth for a user's access rights across the CRM.
- *
- * ## Structural Segregation
- * Data is segregated by access patterns. User-private data is in `/users`. Tenant-specific data is nested under `/companies`. Global authorization data is in `/roles_admin`. This clear separation simplifies rule logic and improves security.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -34,50 +25,28 @@ service cloud.firestore {
     // Helper Functions
     // =====================================================================
 
-    /**
-     * Returns true if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Returns true if the user has a document in the /roles_admin collection,
-     * granting them system-wide administrative privileges.
-     */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /**
-     * Returns true if the requesting user's UID matches the provided userId.
-     * This is the primary check for document ownership.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * Returns true if the document being accessed already exists.
-     * Used to protect against updates or deletes of non-existent documents.
-     */
-    function docExists() {
-      return resource != null;
-    }
-
-    /**
      * Checks if the authenticated user is a member of the specified company.
-     * It does this by reading the user's own profile document.
+     * It performs a single `get` on the user's own profile, which is efficient and secure.
+     * The `companyIds` on the user profile is the source of truth for tenancy.
      */
     function isUserMemberOfCompany(companyId) {
-      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return isSignedIn() && companyId in userProfile.companyIds;
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && userProfile.data.companyIds.hasAny([companyId]);
     }
-
-    /**
-     * Checks if the authenticated user is assigned to the given document.
-     * Looks for either 'assignedUserId' or 'assigneeId' fields.
-     */
+    
     function isAssignedToDoc(doc) {
       let docData = doc.data;
       return isSignedIn() && (
@@ -86,128 +55,56 @@ service cloud.firestore {
       );
     }
     
-    /**
-     * Checks if the document was uploaded by the authenticated user.
-     */
     function wasUploadedBy(doc) {
       return isSignedIn() && doc.data.uploadedBy == request.auth.uid;
     }
-
+    
     // =====================================================================
     // Collection Rules
     // =====================================================================
 
-    /**
-     * @description Users can create, read, and update their own profile document. No other user can access it.
-     * @path /users/{userId}
-     * @allow (create, get, update) for a user with auth.uid matching the `{userId}` in the path.
-     * @deny (get, list, update, delete) for any user whose auth.uid does not match `{userId}`.
-     * @principle Restricts access to a user's own data tree.
-     */
     match /users/{userId} {
-      allow get, update, delete: if isOwner(userId);
-      allow list: if isOwner(userId);
+      // Users can read and update their own profile. Admins can read any profile.
+      allow get: if isOwner(userId) || isAdmin();
+      // Admins can list all users for the user management screen.
+      allow list: if isAdmin();
+      // A user can create their own profile document.
       allow create: if isOwner(userId) && request.resource.data.authUid == userId;
+      // Users can update their own profile, but cannot change their role. Admins can update anything.
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+      // Only admins can delete users.
+      allow delete: if isAdmin();
     }
-
-    /**
-     * @description Admin users only. This collection is used to grant global admin privileges.
-     * @path /roles_admin/{userId}
-     * @allow (get, list) for an existing admin user.
-     * @deny (create, update, delete) for all client-side requests to prevent privilege escalation.
-     * @principle Secures authorization data by making it read-only from the client.
-     */
+    
     match /roles_admin/{userId} {
+      // Admins can see who else is an admin.
       allow get, list: if isAdmin();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      // Admin roles can only be granted from a backend process (e.g., Cloud Function).
+      allow create, update, delete: if false;
     }
 
-    /**
-     * @description A company's data can be read by its members. Only admins can create or modify company details.
-     * @path /companies/{companyId}
-     * @allow (get) for a user whose profile contains `{companyId}` in their `companyIds` array.
-     * @deny (create, update) for any non-admin user.
-     * @principle Enforces multi-tenancy at the root of the company data structure.
-     */
+    // This is the root of our multi-tenant structure. All access to company data
+    // and its subcollections must verify the user is a member of that company.
     match /companies/{companyId} {
+      // Allow read/write access if user is a member of the company, or is an admin.
       allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
-      allow create: if isAdmin() && request.resource.data.id == companyId;
-      allow update: if isAdmin() && docExists();
-      allow delete: if isAdmin() && docExists();
+      allow create, update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
 
-      /**
-       * @description Contacts can be managed by any user who is a member of the parent company.
-       * @path /companies/{companyId}/contacts/{contactId}
-       * @allow (create, update) for a user who is a member of `{companyId}`.
-       * @deny (create, update) for a user who is not a member of `{companyId}`.
-       * @principle Inherits tenancy rules from the parent company collection.
-       */
-      match /contacts/{contactId} {
-        allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
-        allow create: if (isUserMemberOfCompany(companyId) || isAdmin()) && request.resource.data.companyId == companyId;
-        allow update: if (isUserMemberOfCompany(companyId) || isAdmin()) && docExists() && request.resource.data.companyId == resource.data.companyId;
-        allow delete: if (isUserMemberOfCompany(companyId) || isAdmin()) && docExists();
-      }
-
-      /**
-       * @description Leads can be read by any member of the company, but only modified by the assigned user or an admin.
-       * @path /companies/{companyId}/leads/{leadId}
-       * @allow (get) for any member of `{companyId}`. (update) for the user in `assignedUserId`.
-       * @deny (update) for a company member who is not the assignee.
-       * @principle Combines tenancy rules with document-level ownership for writes.
-       */
-      match /leads/{leadId} {
-        allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
-        allow create: if (isUserMemberOfCompany(companyId) || isAdmin()) && request.resource.data.companyId == companyId;
-        allow update: if docExists() && (isAssignedToDoc(resource) || isAdmin()) && request.resource.data.companyId == resource.data.companyId;
-        allow delete: if docExists() && (isAssignedToDoc(resource) || isAdmin());
-      }
-
-      /**
-       * @description Export orders can be read by any company member, but only modified by the assigned user or an admin.
-       * @path /companies/{companyId}/exportOrders/{exportOrderId}
-       * @allow (get) for any member of `{companyId}`. (update) for the user in `assignedUserId`.
-       * @deny (update) for a company member who is not the assignee.
-       * @principle Combines tenancy rules with document-level ownership for writes.
-       */
-      match /exportOrders/{exportOrderId} {
-        allow get, list: if isUserMemberOfCompany(companyId) || isAdmin();
-        allow create: if (isUserMemberOfCompany(companyId) || isAdmin()) && request.resource.data.companyId == companyId;
-        allow update: if docExists() && (isAssignedToDoc(resource) || isAdmin()) && request.resource.data.companyId == resource.data.companyId;
-        allow delete: if docExists() && (isAssignedToDoc(resource) || isAdmin());
+      // Rules for all subcollections of a company.
+      // This wildcard ensures the tenancy check is applied to leads, contacts, orders, etc.
+      match /{subcollection}/{docId} {
+         allow get, list, create, update, delete: if isUserMemberOfCompany(companyId) || isAdmin();
       }
     }
 
-    /**
-     * @description Tasks can be read/modified only by the assignee or an admin. Listing all tasks is an admin-only operation.
-     * @path /tasks/{taskId}
-     * @allow (get, update) for the user listed in the task's `assigneeId` field.
-     * @deny (list) for any non-admin user to prevent leaking task data.
-     * @principle Enforces strict document ownership and prevents broad queries by non-privileged users.
-     */
     match /tasks/{taskId} {
-      allow get: if isAssignedToDoc(resource) || isAdmin();
+      allow get, create, update, delete: if isAssignedToDoc(resource) || isSignedIn();
       allow list: if isAdmin();
-      allow create: if isSignedIn();
-      allow update: if docExists() && (isAssignedToDoc(resource) || isAdmin());
-      allow delete: if docExists() && (isAssignedToDoc(resource) || isAdmin());
     }
 
-    /**
-     * @description Documents can be read/modified only by the user who uploaded them or an admin. Listing is admin-only.
-     * @path /documents/{documentId}
-     * @allow (get, update) for the user listed in the document's `uploadedBy` field.
-     * @deny (list) for any non-admin user to prevent leaking file metadata.
-     * @principle Enforces creator ownership and prevents broad queries by non-privileged users.
-     */
     match /documents/{documentId} {
-      allow get: if wasUploadedBy(resource) || isAdmin();
+      allow get, create, update, delete: if wasUploadedBy(resource) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.uploadedBy == request.auth.uid;
-      allow update: if docExists() && (wasUploadedBy(resource) || isAdmin()) && request.resource.data.uploadedBy == resource.data.uploadedBy;
-      allow delete: if docExists() && (wasUploadedBy(resource) || isAdmin());
     }
   }
 }

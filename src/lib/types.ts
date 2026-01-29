@@ -10,6 +10,7 @@ export interface User {
   isActive: boolean;
   createdAt: any; // Date or Firestore Timestamp
   avatarUrl?: string;
+  companyIds: string[];
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
@@ -110,6 +111,25 @@ export interface Document {
   uploadedBy: string;
   uploadedAt: any; // Date or Firestore Timestamp
 }
+
+export interface Product {
+    id: string;
+    name: string;
+    description?: string;
+    hsCode: string;
+    basePrice: number;
+    imageUrl?: string;
+}
+
+export interface Note {
+    id: string;
+    content: string;
+    relatedEntityType: 'Lead' | 'Contact' | 'ExportOrder';
+    relatedEntityId: string;
+    createdBy: string;
+    createdAt: any;
+}
+
 
 export interface NavItem {
   title: string;

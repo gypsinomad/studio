@@ -2,22 +2,25 @@
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
 import { LeadsTable } from './components/leads-table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrentCompany } from '@/hooks/use-current-company';
 
 export default function LeadsPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const leadsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // Query the root 'leads' collection where the lead is assigned to the current user.
-    return query(collection(firestore, 'leads'), where('assignedUserId', '==', user.uid));
-  }, [firestore, user]);
+    if (!firestore || !companyId) return null;
+    // Query the nested 'leads' subcollection within the current company.
+    return query(collection(firestore, 'companies', companyId, 'leads'));
+  }, [firestore, companyId]);
 
-  const { data: leads, isLoading } = useCollection(leadsQuery);
+  const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+
+  const isLoading = isCompanyLoading || areLeadsLoading;
 
   return (
     <>
