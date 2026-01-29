@@ -46,7 +46,7 @@ export function OrdersByStageChart({ data }: OrdersByStageChartProps) {
         <CardDescription>Active and completed orders in the pipeline.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="max-h-[300px] w-full">
+        <ChartContainer config={chartConfig} id="orders-by-stage" className="max-h-[300px] w-full">
           <BarChart accessibilityLayer data={chartData}>
             <CartesianGrid vertical={false} />
             <XAxis

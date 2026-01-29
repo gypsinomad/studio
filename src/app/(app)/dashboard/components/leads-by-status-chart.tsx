@@ -63,6 +63,7 @@ export function LeadsByStatusChart({ data }: LeadsByStatusChartProps) {
       <CardContent>
         <ChartContainer
           config={chartConfig}
+          id="leads-by-status"
           className="mx-auto aspect-square max-h-[300px]"
         >
           <PieChart>
