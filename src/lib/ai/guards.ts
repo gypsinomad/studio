@@ -15,6 +15,10 @@ const COST_PER_AI_CALL_INR = 0.05; // Simplified approximation
  * @returns {Promise<{canProceed: boolean, reason: 'ok' | 'aiDisabled' | 'budgetOrQuotaExceeded'}>}
  */
 export async function checkAiBudgetAndProceed() {
+  if (!adminDb) {
+    throw new Error("Firebase Admin SDK is not initialized. Cannot perform AI budget check.");
+  }
+
   const settingsDoc = await adminDb.doc(AI_SETTINGS_DOC_PATH).get();
   const usageDoc = await adminDb.doc(AI_USAGE_DOC_PATH).get();
 

@@ -6,6 +6,16 @@ import { unstable_noStore as noStore } from 'next/cache';
 
 async function getAiSettings(): Promise<AISettings> {
   noStore();
+  
+  if (!adminDb) {
+    console.warn("Firebase Admin is not available. Using default AI settings.");
+    return {
+      aiMode: 'safe',
+      monthlyAiBudgetInr: 200,
+      maxDailyAiCalls: 200,
+    };
+  }
+
   try {
     const settingsDoc = await adminDb.doc('settings/ai').get();
     if (settingsDoc.exists) {

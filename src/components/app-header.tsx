@@ -9,6 +9,12 @@ import { unstable_noStore as noStore } from 'next/cache';
 
 async function getAiStatus() {
   noStore();
+
+  if (!adminDb) {
+    console.warn("Firebase Admin is not available. AI status will not be fetched.");
+    return { settings: null, usage: null };
+  }
+
   try {
     const settingsDoc = await adminDb.doc('settings/ai').get();
     const usageDoc = await adminDb.doc(`usageStats/${getMonthKey()}`).get();
