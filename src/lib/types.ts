@@ -1,12 +1,14 @@
+
 export type UserRole = 'admin' | 'salesExecutive';
 
 export interface User {
+  id?: string; // id is the doc id, which is the same as authUid
   authUid: string;
   email: string;
   displayName: string;
   role: UserRole;
   isActive: boolean;
-  createdAt: Date;
+  createdAt: any; // Date or Firestore Timestamp
   avatarUrl?: string;
 }
 
@@ -25,9 +27,9 @@ export interface Lead {
   incotermsPreference: string;
   status: LeadStatus;
   assignedUserId: string;
-  createdAt: Date;
-  lastContactAt?: Date;
-  nextFollowUpAt?: Date;
+  createdAt: any; // Date or Firestore Timestamp
+  lastContactAt?: any;
+  nextFollowUpAt?: any;
   tags?: string[];
   exportOrderId?: string;
   rawPayload?: any;
@@ -50,12 +52,12 @@ export interface ExportOrder {
   paymentTerms: string;
   containerType: string;
   portOfLoading: string;
-  expectedShipmentDate: Date;
+  expectedShipmentDate: any; // Date or Firestore Timestamp
   fssaiLicenseNumber?: string;
   icegateStatus?: string;
   certificateRequirements?: string[];
   assignedUserId: string;
-  createdAt: Date;
+  createdAt: any; // Date or Firestore Timestamp
   aiValidation?: string;
 }
 
@@ -65,16 +67,18 @@ export interface Company {
   industry?: string;
   website?: string;
   address?: string;
-  createdAt: Date;
+  createdAt: any; // Date or Firestore Timestamp
 }
 
 export interface Contact {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
   companyId: string;
-  createdAt: Date;
+  jobTitle?: string;
+  createdAt: any; // Date or Firestore Timestamp
 }
 
 export type TaskStatus = 'open' | 'inProgress' | 'done';
@@ -84,11 +88,11 @@ export interface Task {
   title: string;
   description?: string;
   status: TaskStatus;
-  dueDate: Date;
+  dueDate: any; // Date or Firestore Timestamp
   relatedLeadId?: string;
   relatedOrderId?: string;
   assigneeId: string;
-  createdAt: Date;
+  createdAt: any; // Date or Firestore Timestamp
 }
 
 export type DocumentType = 'invoice' | 'packingList' | 'billOfLading' | 'COO' | 'certificate' | 'other';
@@ -100,11 +104,11 @@ export interface Document {
   type: DocumentType;
   orderId?: string;
   leadId?: string;
-  fileUrl: string; // Placeholder
+  fileUrl: string; 
   status: DocumentStatus;
-  expiryDate?: Date;
+  expiryDate?: any; // Date or Firestore Timestamp
   uploadedBy: string;
-  uploadedAt: Date;
+  uploadedAt: any; // Date or Firestore Timestamp
 }
 
 export interface NavItem {
@@ -129,7 +133,7 @@ export interface AIUsageStats {
   totalCallsMonth: number;
   estimatedSpendThisMonthInr: number;
   dailyCalls: { [day: string]: number }; // e.g., { "01": 10, "25": 50 }
-  lastUpdatedAt: Date;
+  lastUpdatedAt: any; // Date or Firestore Timestamp
 }
 
 export type AIGuardResult<T> = {
@@ -143,5 +147,5 @@ export interface DashboardStats {
     activeExportOrders: number;
     leadsByStatus: Record<LeadStatus, number>;
     exportOrdersByStage: Record<ExportOrderStage, number>;
-    lastUpdatedAt: Date;
+    lastUpdatedAt: any; // Date or Firestore Timestamp
 }

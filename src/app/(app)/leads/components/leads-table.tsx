@@ -31,6 +31,13 @@ export function LeadsTable({ data }: LeadsTableProps) {
     return <p className="text-muted-foreground">You have no leads assigned to you.</p>;
   }
 
+  const toDate = (timestamp: any): Date => {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    return new Date(timestamp);
+  }
+
   return (
     <div className="border rounded-lg">
       <Table>
@@ -54,7 +61,7 @@ export function LeadsTable({ data }: LeadsTableProps) {
                     {lead.status}
                 </Badge>
               </TableCell>
-              <TableCell>{format(new Date(lead.createdAt), 'PP')}</TableCell>
+              <TableCell>{format(toDate(lead.createdAt), 'PP')}</TableCell>
             </TableRow>
           ))}
         </TableBody>

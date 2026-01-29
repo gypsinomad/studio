@@ -19,6 +19,13 @@ export function ContactsTable({ data }: ContactsTableProps) {
   if (data.length === 0) {
     return <p className="text-muted-foreground">No contacts found.</p>;
   }
+
+  const toDate = (timestamp: any): Date => {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    return new Date(timestamp);
+  }
     
   return (
     <div className="border rounded-lg">
@@ -28,16 +35,18 @@ export function ContactsTable({ data }: ContactsTableProps) {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead>Job Title</TableHead>
             <TableHead>Created At</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((contact) => (
             <TableRow key={contact.id}>
-              <TableCell className="font-medium">{contact.name}</TableCell>
+              <TableCell className="font-medium">{`${contact.firstName} ${contact.lastName}`}</TableCell>
               <TableCell>{contact.email}</TableCell>
               <TableCell>{contact.phone || 'N/A'}</TableCell>
-              <TableCell>{format(new Date(contact.createdAt), 'PP')}</TableCell>
+              <TableCell>{contact.jobTitle || 'N/A'}</TableCell>
+              <TableCell>{format(toDate(contact.createdAt), 'PP')}</TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { LeadsTable } from './components/leads-table';
+import { LeadsTable } from '../components/leads-table';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LeadsPage() {

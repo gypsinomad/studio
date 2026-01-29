@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import type { Company } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -19,6 +18,13 @@ interface CompaniesTableProps {
 export function CompaniesTable({ data }: CompaniesTableProps) {
   if (data.length === 0) {
     return <p className="text-muted-foreground">No companies found.</p>;
+  }
+
+  const toDate = (timestamp: any): Date => {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    return new Date(timestamp);
   }
 
   return (
@@ -42,7 +48,7 @@ export function CompaniesTable({ data }: CompaniesTableProps) {
                 </a>
               </TableCell>
               <TableCell>{company.address}</TableCell>
-              <TableCell>{format(new Date(company.createdAt), 'PP')}</TableCell>
+              <TableCell>{format(toDate(company.createdAt), 'PP')}</TableCell>
             </TableRow>
           ))}
         </TableBody>
