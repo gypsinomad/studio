@@ -29,12 +29,15 @@ export function UserNav({ user }: UserNavProps) {
     });
   };
   
-  const getInitials = (name: string) => {
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
+  const getInitials = (name?: string | null) => {
+    if (!name?.trim()) {
+      return '??'; // Return a fallback if name is null, undefined, or whitespace
     }
-    return name.substring(0, 2);
+    const names = name.trim().split(' ').filter(Boolean);
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return (names[0] || '').substring(0, 2).toUpperCase();
   }
 
   return (

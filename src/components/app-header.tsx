@@ -8,9 +8,13 @@ import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { getMonthKey } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
+import { Button } from './ui/button';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 export function AppHeader() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
@@ -18,9 +22,8 @@ export function AppHeader() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile } = useDoc(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  // Only admins should fetch AI settings and usage stats.
   const isAdmin = userProfile?.role === 'admin';
 
   const settingsDocRef = useMemoFirebase(() => {
@@ -42,7 +45,7 @@ export function AppHeader() {
   }, [user, userProfile]);
 
 
-  if (isUserLoading || !mergedUser) {
+  if (isUserLoading || isProfileLoading) {
     return (
        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
             <div className="md:hidden">
@@ -52,12 +55,32 @@ export function AppHeader() {
                 SpiceRoute CRM
             </h1>
             <div className="ml-auto flex items-center gap-4">
-                <Skeleton className="h-8 w-24" />
+                {isAdmin && <Skeleton className="h-8 w-24" />}
                 <Skeleton className="h-10 w-10 rounded-full" />
             </div>
         </header>
     )
   }
+
+  if (!mergedUser) {
+    // This can happen if the user is authenticated but the profile doc doesn't exist yet or failed to load.
+    // Or if the user is not authenticated. The AuthGuard should prevent this for this layout, but as a fallback:
+    return (
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+             <div className="md:hidden">
+                 <SidebarTrigger />
+             </div>
+             <h1 className="hidden text-xl font-semibold font-headline md:block">
+                 SpiceRoute CRM
+             </h1>
+             <div className="ml-auto flex items-center gap-4">
+                 <p className="text-sm text-destructive">Could not load user profile.</p>
+                 <Button variant="outline" onClick={() => signOut(auth)}>Logout</Button>
+             </div>
+         </header>
+    )
+  }
+
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
