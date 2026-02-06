@@ -16,13 +16,37 @@ service cloud.firestore {
              request.auth.token.email.toLowerCase() == 'akhilvenugopal@gmail.com';
     }
 
-    // --- Default rule: Allow full access for any authenticated user ---
-    // This is the baseline for the internal team tool.
-    match /{document=**} {
+    // --- Core Data Collections ---
+    // Any authenticated user can perform all operations.
+    match /companies/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    match /contacts/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    match /leads/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    match /exportOrders/{orderId} {
+      allow read, write: if isSignedIn();
+       match /lineItems/{lineItemId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+    match /tasks/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    match /documents/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    match /products/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    match /notes/{docId} {
       allow read, write: if isSignedIn();
     }
     
-    // --- Overrides for specific collections that need tighter security ---
+    // --- User & Settings Collections ---
 
     // Users can only edit their own profile, and cannot change their role. Admins can manage all users.
     match /users/{userId} {
