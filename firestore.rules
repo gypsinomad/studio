@@ -1,18 +1,6 @@
-/**
- * # Firestore Security Rules for SpiceRoute CRM (Single-Tenant)
- *
- * ## Core Philosophy
- * This ruleset enforces a simple, role-based security model for a single internal team.
- * All authenticated users can create, edit, and delete business data. A comprehensive
- * audit trail is kept in the `activityLogs` collection.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // =====================================================================
-    // Helper Functions
-    // =====================================================================
 
     function isSignedIn() {
       return request.auth != null;
@@ -28,10 +16,7 @@ service cloud.firestore {
              request.auth.token.email.toLowerCase() == 'akhilvenugopal@gmail.com';
     }
 
-    // =====================================================================
-    // Global & Settings Collections
-    // =====================================================================
-
+    // --- System & User Collections ---
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -41,8 +26,7 @@ service cloud.firestore {
     }
 
     match /dashboardStats/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
+      allow get, create: if isOwner(userId) || isAdmin();
       allow update, delete: if false;
     }
     
@@ -56,56 +40,53 @@ service cloud.firestore {
         allow write: if false;
     }
 
+    // --- Log & Event Collections ---
     match /whatsappEvents/{eventId=**} {
       allow read, write: if false; // Server-side debugging only
     }
     
-    // Audit Trail - append-only for all users
     match /activityLogs/{logId=**} {
-      allow read, create: if isSignedIn();
-      allow update, delete: if false;
+      allow get, list, create: if isSignedIn();
+      allow update, delete: if false; // Append-only
     }
     
-    // UI Activity Feed - backend writes, client reads
     match /activity_logs/{logId=**} {
-      allow read: if isSignedIn();
-      allow write: if false;
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // Backend writes only
     }
 
-    // =====================================================================
-    // Top-Level Business Data Collections - All users can CRUD
-    // =====================================================================
-
-    match /companies/{companyId=**} {
-      allow read, write: if isSignedIn();
+    // --- Core Business Data Collections ---
+    // Explicitly grant all CRUD permissions to any authenticated user.
+    match /companies/{docId=**} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
-    match /contacts/{contactId=**} {
-       allow read, write: if isSignedIn();
+    match /contacts/{docId=**} {
+       allow get, list, create, update, delete: if isSignedIn();
     }
     
-    match /products/{productId=**} {
-       allow read, write: if isSignedIn();
+    match /products/{docId=**} {
+       allow get, list, create, update, delete: if isSignedIn();
     }
     
-    match /notes/{noteId=**} {
-       allow read, write: if isSignedIn();
+    match /notes/{docId=**} {
+       allow get, list, create, update, delete: if isSignedIn();
     }
     
-    match /leads/{leadId=**} {
-      allow read, write: if isSignedIn();
+    match /leads/{docId=**} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
     
-    match /exportOrders/{orderId=**} {
-      allow read, write: if isSignedIn();
+    match /exportOrders/{docId=**} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
     
-    match /tasks/{taskId=**} {
-      allow read, write: if isSignedIn();
+    match /tasks/{docId=**} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
     
-    match /documents/{documentId=**} {
-      allow read, write: if isSignedIn();
+    match /documents/{docId=**} {
+      allow get, list, create, update, delete: if isSignedIn();
     }
   }
 }
