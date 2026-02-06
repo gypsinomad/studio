@@ -98,17 +98,15 @@ export default function LoginPage() {
     setIsSubmitting(false);
   }
 
-  const handleLogin = async (event: React.FormEvent) => {
+  const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, email, password);
-    // The useEffect hook will handle success/failure based on onAuthStateChanged
+    initiateEmailSignIn(auth, email, password, handleAuthError);
   };
 
   const handleGoogleLogin = () => {
     setIsSubmitting(true);
-    initiateGoogleSignIn(auth);
-    // The useEffect hook will handle success/failure
+    initiateGoogleSignIn(auth, handleAuthError);
   }
 
 

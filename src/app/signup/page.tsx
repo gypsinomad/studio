@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sprout, LoaderCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useFirestore, initiateEmailSignUp, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useUser, useFirestore, initiateEmailSignUp } from '@/firebase';
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
@@ -78,12 +78,38 @@ export default function SignUpPage() {
     }
   };
 
-  const handleSignUp = async (event: React.FormEvent) => {
+  const handleAuthError = (error: any) => {
+    let description = 'An unexpected error occurred.';
+    if (error instanceof FirebaseError) {
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                description = 'This email address is already in use by another account.';
+                break;
+            case 'auth/weak-password':
+                description = 'The password is too weak. It must be at least 6 characters long.';
+                break;
+            case 'auth/invalid-email':
+                description = 'The email address is not valid.';
+                break;
+            default:
+                description = error.message;
+                break;
+        }
+    }
+    toast({
+        variant: 'destructive',
+        title: 'Sign up failed',
+        description,
+    });
+    setIsSubmitting(false);
+  }
+
+  const handleSignUp = (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
     
     // We don't await this. The useEffect will catch the new user state.
-    initiateEmailSignUp(auth, email, password);
+    initiateEmailSignUp(auth, email, password, handleAuthError);
   };
   
   if (isUserLoading || user) {
