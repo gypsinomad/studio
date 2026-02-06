@@ -57,7 +57,7 @@ export function UserNav({ user }: UserNavProps) {
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
-             <p className="text-xs leading-none text-muted-foreground capitalize pt-1">
+             <p className="text-xs leading-none text-muted-foreground capitalize pt-1 font-semibold">
               Role: {user.role}
             </p>
           </div>

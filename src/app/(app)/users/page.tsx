@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import type { User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RoleGuard } from '@/components/auth/role-guard';
 
 function UsersTable({ data }: { data: User[] }) {
    if (data.length === 0) {
@@ -72,7 +73,7 @@ function UsersTable({ data }: { data: User[] }) {
 }
 
 
-export default function UsersPage() {
+function UsersPageContent() {
   const firestore = useFirestore();
 
   const usersQuery = useMemoFirebase(() => {
@@ -105,4 +106,12 @@ export default function UsersPage() {
       {!isLoading && users && <UsersTable data={users} />}
     </>
   );
+}
+
+export default function UsersPage() {
+    return (
+        <RoleGuard allowedRoles={['admin']}>
+            <UsersPageContent />
+        </RoleGuard>
+    )
 }

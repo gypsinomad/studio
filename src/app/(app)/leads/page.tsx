@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { collection, query, where } from 'firebase/firestore';
 import { LeadsTable } from './components/leads-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentCompany } from '@/hooks/use-current-company';
@@ -20,14 +21,8 @@ export default function LeadsPage() {
   const [sourceFilter, setSourceFilter] = useState<string | null>(null);
 
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, userProfile, canCreateLead, isLoading: isUserLoading } = useCurrentUser();
   const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const leadsQuery = useMemoFirebase(() => {
     if (!firestore || !companyId || !userProfile || !user) return null;
@@ -48,7 +43,7 @@ export default function LeadsPage() {
 
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
-  const isLoading = isCompanyLoading || isProfileLoading || areLeadsLoading;
+  const isLoading = isCompanyLoading || isUserLoading || areLeadsLoading;
 
   const handleRowClick = (lead: Lead) => setSelectedLead(lead);
   const handleSheetClose = () => setSelectedLead(null);
@@ -75,7 +70,7 @@ export default function LeadsPage() {
                 onClick={() => toggleFilter('facebookLeadAds')}>
                 Facebook
             </Button>
-             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId}>
+             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId || !canCreateLead}>
                 <PlusCircle className="mr-2" />
                 New Lead
             </Button>

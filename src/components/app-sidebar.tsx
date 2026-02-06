@@ -11,24 +11,15 @@ import { NAV_ITEMS } from '@/lib/constants';
 import { Sprout } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
-  const { user } = useUser();
-  const firestore = useFirestore();
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  const { data: userProfile } = useDoc(userProfileRef);
+  const { isAdmin } = useCurrentUser();
 
   const visibleNavItems = NAV_ITEMS.filter(item => 
-    !item.adminOnly || (item.adminOnly && userProfile?.role === 'admin')
+    !item.adminOnly || (item.adminOnly && isAdmin)
   );
 
   return (

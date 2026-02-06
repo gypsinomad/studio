@@ -1,6 +1,7 @@
 
 
-export type UserRole = 'admin' | 'salesExecutive';
+
+export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
   id?: string; // id is the doc id, which is the same as authUid

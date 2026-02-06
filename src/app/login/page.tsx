@@ -18,9 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-
 
 // A helper component for the Google sign-in button
 const GoogleSignInButton = ({ onClick, disabled }: { onClick: () => void, disabled: boolean }) => (
@@ -34,54 +31,18 @@ const GoogleSignInButton = ({ onClick, disabled }: { onClick: () => void, disabl
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const [email, setEmail] = useState('akhilvenugopal@gmail.com');
   const [password, setPassword] = useState('password');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // This effect handles profile creation for new users (e.g., first Google sign-in)
-  // and redirects existing users to the dashboard.
+  // Redirect if user is already logged in
   useEffect(() => {
-    if (user && firestore) {
-      setIsSubmitting(true);
-      const userRef = doc(firestore, 'users', user.uid);
-      
-      const handleDbError = (error: any) => {
-          console.error("Firestore operation failed after login:", error);
-          toast({
-              variant: 'destructive',
-              title: 'Account Incomplete',
-              description: 'Could not create or retrieve your user profile. Please try again.',
-          });
-          setIsSubmitting(false);
-          // Optional: sign the user out again if the profile is mandatory.
-          // signOut(auth);
-      }
-
-      getDoc(userRef).then(docSnap => {
-        if (!docSnap.exists()) {
-          // This is a new user (likely from Google Sign-In), create a profile for them.
-          const newUserProfile = {
-            authUid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || 'New User',
-            role: user.email === 'akhilvenugopal@gmail.com' ? 'admin' : 'salesExecutive',
-            isActive: true,
-            createdAt: serverTimestamp(),
-            companyIds: [],
-          };
-          setDoc(userRef, newUserProfile)
-            .then(() => router.replace('/dashboard'))
-            .catch(handleDbError);
-        } else {
-          // Existing user, just go to dashboard
-          router.replace('/dashboard');
-        }
-      }).catch(handleDbError);
+    if (!isUserLoading && user) {
+        router.replace('/dashboard');
     }
-  }, [user, firestore, router, toast]);
+  }, [user, isUserLoading, router]);
 
 
   const handleAuthError = (error: any) => {

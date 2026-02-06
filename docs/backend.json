@@ -21,8 +21,8 @@
         },
         "role": {
           "type": "string",
-          "description": "User's role (e.g., admin, salesExecutive).",
-          "enum": ["admin", "salesExecutive"]
+          "description": "User's role (e.g., admin, salesExecutive, viewer).",
+          "enum": ["admin", "salesExecutive", "viewer"]
         },
         "isActive": {
           "type": "boolean",

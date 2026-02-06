@@ -12,18 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sprout, LoaderCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useFirestore, initiateEmailSignUp } from '@/firebase';
+import { useAuth, useUser, initiateEmailSignUp } from '@/firebase';
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
-import { User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { updateProfile, createUserWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 
 export default function SignUpPage() {
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const [email, setEmail] = useState('');
@@ -31,52 +29,13 @@ export default function SignUpPage() {
   const [displayName, setDisplayName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // This effect listens for a newly created user from onAuthStateChanged
-  // and then creates their profile document in Firestore.
-  useEffect(() => {
-    if (user && isSubmitting) { // only run for users being created
-      createUserProfile(user);
-    }
-  }, [user, isSubmitting]);
-
-  // Redirect if user is already logged in
+  // Redirect if user is already logged in and not in the process of signing up
   useEffect(() => {
     if (!isUserLoading && user && !isSubmitting) {
       router.replace('/dashboard');
     }
   }, [user, isUserLoading, router, isSubmitting]);
 
-  const createUserProfile = async (firebaseUser: FirebaseAuthUser) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', firebaseUser.uid);
-    
-    const newUserProfile = {
-      authUid: firebaseUser.uid,
-      email: firebaseUser.email || '',
-      displayName: displayName || firebaseUser.displayName || 'New User',
-      role: firebaseUser.email === 'akhilvenugopal@gmail.com' ? 'admin' : 'salesExecutive',
-      isActive: true,
-      createdAt: serverTimestamp(),
-      companyIds: [], // New users start with no companies
-    };
-
-    try {
-        await setDoc(userRef, newUserProfile);
-        toast({
-            title: "Account Created!",
-            description: "Welcome to SpiceRoute CRM. Redirecting you to the dashboard...",
-        });
-        router.replace('/dashboard');
-    } catch(e) {
-        console.error("Error creating user profile: ", e);
-        toast({
-            variant: "destructive",
-            title: "Sign up failed",
-            description: "Could not create your user profile."
-        });
-        setIsSubmitting(false);
-    }
-  };
 
   const handleAuthError = (error: any) => {
     let description = 'An unexpected error occurred.';
@@ -104,16 +63,28 @@ export default function SignUpPage() {
     setIsSubmitting(false);
   }
 
-  const handleSignUp = (event: React.FormEvent) => {
+  const handleSignUp = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!auth) return;
     setIsSubmitting(true);
     
-    // We don't await this. The useEffect will catch the new user state.
-    initiateEmailSignUp(auth, email, password, handleAuthError);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName });
+        // The useCurrentUser hook will automatically create the Firestore document.
+        // Once profile is updated, onAuthStateChanged will trigger with the new info.
+        toast({
+            title: "Account Created!",
+            description: "Welcome to SpiceRoute CRM. Redirecting you...",
+        });
+        router.replace('/dashboard');
+
+    } catch (error) {
+        handleAuthError(error);
+    }
   };
   
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && !isSubmitting)) {
       return (
          <div className="flex min-h-screen items-center justify-center">
             <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
@@ -173,7 +144,7 @@ export default function SignUpPage() {
               />
             </div>
             <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting} id="email-signup-button">
-              {isSubmitting && <LoaderCircle className="animate-spin" />}
+              {isSubmitting && <LoaderCircle className="animate-spin mr-2" />}
               Create Account
             </Button>
             <p className="text-center text-sm text-muted-foreground">
