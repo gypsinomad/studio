@@ -65,7 +65,7 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
 export default function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const firestore = useFirestore();
-  const { user, userProfile, isLoading: isUserLoading } = useCurrentUser();
+  const { user, userProfile, isAdmin, isSales, isLoading: isUserLoading } = useCurrentUser();
   const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const documentsQuery = useMemoFirebase(() => {
@@ -73,18 +73,21 @@ export default function DocumentsPage() {
     
     const docsCollection = collection(firestore, 'companies', companyId, 'documents');
     
-    if (userProfile.role === 'admin') {
+    // Admins can see all documents in the company
+    if (isAdmin) {
       return query(docsCollection);
     }
+    // Other roles see only the documents they uploaded
     return query(
       docsCollection,
       where('uploadedBy', '==', user.uid)
     );
-  }, [firestore, user, userProfile, companyId]);
+  }, [firestore, user, userProfile, companyId, isAdmin]);
 
   const { data: documents, isLoading: areDocumentsLoading } = useCollection(documentsQuery);
 
   const isLoading = isCompanyLoading || isUserLoading || areDocumentsLoading;
+  const canUpload = (isAdmin || isSales) && !!companyId;
 
   return (
     <>
@@ -92,7 +95,7 @@ export default function DocumentsPage() {
         title="Documents"
         description="Manage all documents related to your leads and orders."
       >
-        <Button onClick={() => setIsUploadOpen(true)} disabled={!companyId}>
+        <Button onClick={() => setIsUploadOpen(true)} disabled={!canUpload}>
           <Upload className="mr-2" />
           Upload Document
         </Button>
