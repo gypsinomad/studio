@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, query } from 'firebase/firestore';
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 
@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 import type { Task, TaskStatus, Lead, ExportOrder } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
+import { logActivity } from '@/lib/logger';
 
 const TASK_STATUSES: TaskStatus[] = ['open', 'inProgress', 'done'];
 
@@ -89,8 +90,9 @@ export function NewTaskForm({ onSuccess }: NewTaskFormProps) {
         createdAt: serverTimestamp(),
       };
       
-      const tasksCollection = collection(firestore, 'tasks');
-      await addDoc(tasksCollection, newTaskPayload);
+      const docRef = doc(collection(firestore, 'tasks'));
+      await setDoc(docRef, newTaskPayload);
+      await logActivity(firestore, user, 'create', 'tasks', docRef.id, null, newTaskPayload);
 
       toast({
         title: 'Task Created',

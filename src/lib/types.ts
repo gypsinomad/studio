@@ -201,3 +201,15 @@ export interface WhatsappEvent {
     contactId?: string;
     error?: string;
 }
+
+export interface AuditLog {
+  id?: string;
+  timestamp: any; // Firestore Timestamp
+  userId: string;
+  userEmail: string;
+  collectionName: string;
+  docId: string;
+  action: 'create' | 'update' | 'delete';
+  before?: { [key: string]: any };
+  after?: { [key:string]: any };
+}

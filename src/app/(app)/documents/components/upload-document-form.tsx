@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useStorage, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, query } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
-import type { DocumentType, Lead, ExportOrder } from '@/lib/types';
+import type { Document, DocumentType, Lead, ExportOrder } from '@/lib/types';
+import { logActivity } from '@/lib/logger';
 
 const DOCUMENT_TYPES: DocumentType[] = ["proformaInvoice", "contract", "packingList", "billOfLading", "coo", "fssai", "apeda", "phytoCertificate", "shippingBill", "other"];
 
@@ -76,19 +77,21 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
       const fileUrl = await getDownloadURL(uploadResult.ref);
 
       // 2. Create document metadata in Firestore
-      const docPayload = {
+      const docPayload: Omit<Document, 'id'> = {
         name: values.name,
         type: values.type,
         fileUrl: fileUrl,
         status: 'uploaded' as const,
         uploadedBy: user.uid,
         uploadedAt: serverTimestamp(),
-        relatedLeadId: values.relatedLeadId || null,
-        relatedOrderId: values.relatedOrderId || null,
+        relatedLeadId: values.relatedLeadId || undefined,
+        relatedOrderId: values.relatedOrderId || undefined,
       };
       
-      const docsCollection = collection(firestore, 'documents');
-      await addDoc(docsCollection, docPayload);
+      const docRef = doc(collection(firestore, 'documents'));
+      await setDoc(docRef, docPayload);
+      await logActivity(firestore, user, 'create', 'documents', docRef.id, null, docPayload);
+
 
       toast({
         title: 'Document Uploaded',

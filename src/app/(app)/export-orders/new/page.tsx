@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ExportOrder, LineItem } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Textarea } from '@/components/ui/textarea';
+import { logActivity } from '@/lib/logger';
 
 const lineItemSchema = z.object({
   productName: z.string().min(1, 'Product name is required'),
@@ -101,23 +102,24 @@ export default function NewExportOrderPage() {
     setIsSubmitting(true);
 
     try {
-        const batch = writeBatch(firestore);
-
         const orderRef = doc(collection(firestore, 'exportOrders'));
-        const newOrder: Omit<ExportOrder, 'id'> = {
+        const newOrderPayload: Omit<ExportOrder, 'id'> = {
             ...values,
             totalValue: totalValue,
             assignedUserId: user.uid,
             stage: 'enquiry',
             createdAt: serverTimestamp(),
         };
-        batch.set(orderRef, newOrder);
+        
+        await setDoc(orderRef, newOrderPayload);
+        await logActivity(firestore, user, 'create', 'exportOrders', orderRef.id, null, newOrderPayload);
 
+        // Batch write for line items is fine as they are sub-collection and less critical to log individually.
+        const batch = writeBatch(firestore);
         values.lineItems.forEach(item => {
             const lineItemRef = doc(collection(firestore, `exportOrders/${orderRef.id}/lineItems`));
             batch.set(lineItemRef, item as Omit<LineItem, 'id'>);
         });
-
         await batch.commit();
         
         toast({ title: 'Success', description: 'New export order and all line items created.' });

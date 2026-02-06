@@ -3,17 +3,25 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { ContactsTable } from './components/contacts-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { NewContactForm } from './components/new-contact-form';
+import { logActivity } from '@/lib/logger';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ContactsPage() {
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
   const { isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
 
   const contactsQuery = useMemoFirebase(() => {
@@ -24,6 +32,32 @@ export default function ContactsPage() {
   const { data: contacts, isLoading: areContactsLoading } = useCollection(contactsQuery);
 
   const isLoading = areContactsLoading || isUserLoading;
+
+  const handleDeleteRequest = (contactId: string) => {
+    setSelectedContactId(contactId);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedContactId || !firestore || !user) return;
+
+    const docRef = doc(firestore, 'contacts', selectedContactId);
+    try {
+      const beforeSnap = await getDoc(docRef);
+      if (beforeSnap.exists()) {
+        await logActivity(firestore, user, 'delete', 'contacts', selectedContactId, beforeSnap.data(), null);
+        await deleteDoc(docRef);
+        toast({ title: 'Success', description: 'Contact deleted.' });
+      }
+    } catch (error) {
+      console.error("Failed to delete contact: ", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete contact.' });
+    }
+    
+    setIsDeleteAlertOpen(false);
+    setSelectedContactId(null);
+  };
+
 
   return (
     <>
@@ -45,7 +79,7 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {!isLoading && contacts && <ContactsTable data={contacts} />}
+      {!isLoading && contacts && <ContactsTable data={contacts} onDelete={handleDeleteRequest} />}
 
       <Dialog open={isNewContactOpen} onOpenChange={setIsNewContactOpen}>
         <DialogContent>
@@ -58,6 +92,21 @@ export default function ContactsPage() {
             <NewContactForm onSuccess={() => setIsNewContactOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the contact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

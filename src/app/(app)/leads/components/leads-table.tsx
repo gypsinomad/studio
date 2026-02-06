@@ -8,15 +8,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Lead, LeadSource, LeadStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, Users } from 'lucide-react';
+import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, MoreHorizontal } from 'lucide-react';
 
 interface LeadsTableProps {
   data: Lead[];
   onRowClick: (lead: Lead) => void;
+  onDelete: (leadId: string) => void;
 }
 
 const statusColors: Record<LeadStatus, string> = {
@@ -51,7 +59,7 @@ const sourceLabels: { [key in LeadSource | string]: string } = {
 };
 
 
-export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
+export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
   if (data.length === 0) {
     return <p className="text-muted-foreground">No leads match the current filter.</p>;
   }
@@ -74,6 +82,7 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
             <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
             <TableHead>Created At</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,6 +103,25 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
                 </div>
               </TableCell>
               <TableCell>{format(toDate(lead.createdAt), 'PP')}</TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={() => onDelete(lead.id!)}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

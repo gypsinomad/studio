@@ -565,6 +565,22 @@
         "timestamp"
       ]
     },
+    "AuditLog": {
+      "title": "AuditLog",
+      "type": "object",
+      "description": "An audit trail entry for a CUD operation.",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string", "format": "email" },
+        "collectionName": { "type": "string" },
+        "docId": { "type": "string" },
+        "action": { "type": "string", "enum": ["create", "update", "delete"] },
+        "before": { "type": "object" },
+        "after": { "type": "object" }
+      },
+      "required": ["timestamp", "userId", "userEmail", "collectionName", "docId", "action"]
+    },
     "DashboardStats": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DashboardStats",
@@ -725,6 +741,13 @@
         "definition": {
           "schema": { "$ref": "#/entities/Task" },
           "description": "Stores all tasks for the team."
+        }
+      },
+      {
+        "path": "/activityLogs/{logId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/AuditLog" },
+          "description": "Stores an audit trail of all create, update, and delete operations."
         }
       },
        {

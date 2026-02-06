@@ -6,7 +6,6 @@
  * Data access is primarily controlled by authentication state and a global admin role.
  * - **Admin Identification**: A user is an admin if their email matches a specific value.
  * - **Team Access**: All authenticated users are considered part of the team and can read/write operational data.
- * - **Destructive Actions**: Deleting primary records is restricted to the admin role to prevent accidental data loss.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -65,19 +64,22 @@ service cloud.firestore {
       // For server-side debugging only. No client access.
       allow read, write: if false;
     }
+    
+    match /activityLogs/{logId} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if false; // Logs are immutable
+    }
 
     // =====================================================================
     // Top-Level Business Data Collections (Single-Tenant)
     // =====================================================================
 
     match /companies/{companyId} {
-      allow read, list, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write, create, update, delete: if isSignedIn();
     }
 
     match /contacts/{contactId} {
-      allow read, list, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write, create, update, delete: if isSignedIn();
     }
     
     match /products/{productId} {
@@ -92,18 +94,15 @@ service cloud.firestore {
     }
     
     match /notes/{noteId} {
-       allow read, list, create, update: if isSignedIn();
-       allow delete: if isAdmin();
+       allow read, list, create, update, delete: if isSignedIn();
     }
     
     match /leads/{leadId} {
-      allow read, list, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write, create, update, delete: if isSignedIn();
     }
     
      match /exportOrders/{orderId} {
-      allow read, list, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write, create, update, delete: if isSignedIn();
 
       match /lineItems/{lineItemId} {
          allow read, list, create, update, delete: if isSignedIn();
@@ -111,13 +110,11 @@ service cloud.firestore {
     }
     
      match /tasks/{taskId} {
-      allow read, list, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write, create, update, delete: if isSignedIn();
     }
     
      match /documents/{documentId} {
-      allow read, list, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write, create, update, delete: if isSignedIn();
     }
   }
 }

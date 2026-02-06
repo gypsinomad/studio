@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   Building,
+  History,
 } from 'lucide-react';
 
 export const NAV_ITEMS: NavItem[] = [
@@ -46,6 +47,11 @@ export const NAV_ITEMS: NavItem[] = [
     title: 'Documents',
     href: '/documents',
     icon: FileText,
+  },
+   {
+    title: 'Activity Log',
+    href: '/activity-log',
+    icon: History,
   },
   {
     title: 'Reports',

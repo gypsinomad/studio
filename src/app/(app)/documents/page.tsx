@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { Upload, MoreHorizontal } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -15,12 +15,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Document as DocumentType } from '@/lib/types';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { UploadDocumentForm } from './components/upload-document-form';
+import { logActivity } from '@/lib/logger';
+import { useToast } from '@/hooks/use-toast';
 
-function DocumentsTable({ data }: { data: DocumentType[] }) {
+function DocumentsTable({ data, onDelete }: { data: DocumentType[], onDelete: (docId: string) => void }) {
    if (data.length === 0) {
     return <p className="text-muted-foreground">You have not uploaded any documents.</p>;
   }
@@ -41,17 +50,37 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
             <TableHead>Type</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Uploaded At</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((doc) => (
-            <TableRow key={doc.id}>
+          {data.map((docItem) => (
+            <TableRow key={docItem.id}>
               <TableCell className="font-medium hover:underline">
-                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">{doc.name}</a>
+                <a href={docItem.fileUrl} target="_blank" rel="noopener noreferrer">{docItem.name}</a>
               </TableCell>
-              <TableCell className="capitalize">{doc.type.replace(/([A-Z])/g, ' $1').trim()}</TableCell>
-              <TableCell className="capitalize">{doc.status}</TableCell>
-              <TableCell>{format(toDate(doc.uploadedAt), 'PPp')}</TableCell>
+              <TableCell className="capitalize">{docItem.type.replace(/([A-Z])/g, ' $1').trim()}</TableCell>
+              <TableCell className="capitalize">{docItem.status}</TableCell>
+              <TableCell>{format(toDate(docItem.uploadedAt), 'PPp')}</TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={() => onDelete(docItem.id!)}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -63,29 +92,47 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
 
 export default function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+
   const firestore = useFirestore();
-  const { user, userProfile, isAdmin, isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
+  const { user } = useUser();
+  const { toast } = useToast();
+  const { isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
 
   const documentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !userProfile) return null;
-    
-    const docsCollection = collection(firestore, 'documents');
-    
-    // Admins can see all documents
-    if (isAdmin) {
-      return query(docsCollection, orderBy('uploadedAt', 'desc'));
-    }
-    // Other roles see only the documents they uploaded
-    return query(
-      docsCollection,
-      where('uploadedBy', '==', user.uid),
-      orderBy('uploadedAt', 'desc')
-    );
-  }, [firestore, user, userProfile, isAdmin]);
+    if (!firestore) return null;
+    return query(collection(firestore, 'documents'), orderBy('uploadedAt', 'desc'));
+  }, [firestore]);
 
-  const { data: documents, isLoading: areDocumentsLoading } = useCollection(documentsQuery);
+  const { data: documents, isLoading: areDocumentsLoading } = useCollection<DocumentType>(documentsQuery);
 
   const isLoading = isUserLoading || areDocumentsLoading;
+
+  const handleDeleteRequest = (docId: string) => {
+    setSelectedDocId(docId);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedDocId || !firestore || !user) return;
+
+    const docRef = doc(firestore, 'documents', selectedDocId);
+    try {
+      const beforeSnap = await getDoc(docRef);
+      if (beforeSnap.exists()) {
+        await logActivity(firestore, user, 'delete', 'documents', selectedDocId, beforeSnap.data(), null);
+        await deleteDoc(docRef);
+        toast({ title: 'Success', description: 'Document deleted.' });
+      }
+    } catch (error) {
+      console.error("Failed to delete document: ", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete document.' });
+    }
+    
+    setIsDeleteAlertOpen(false);
+    setSelectedDocId(null);
+  };
 
   return (
     <>
@@ -107,7 +154,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {!isLoading && documents && <DocumentsTable data={documents} />}
+      {!isLoading && documents && <DocumentsTable data={documents} onDelete={handleDeleteRequest} />}
 
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
         <DialogContent>
@@ -120,6 +167,21 @@ export default function DocumentsPage() {
           <UploadDocumentForm onSuccess={() => setIsUploadOpen(false)} />
         </DialogContent>
       </Dialog>
+
+       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the document.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

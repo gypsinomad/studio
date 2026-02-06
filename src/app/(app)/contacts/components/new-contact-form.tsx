@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, query } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 import type { Contact, Company } from '@/lib/types';
+import { logActivity } from '@/lib/logger';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
@@ -81,8 +82,9 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
         createdAt: serverTimestamp(),
       };
       
-      const contactsCollection = collection(firestore, 'contacts');
-      await addDoc(contactsCollection, newContactPayload);
+      const docRef = doc(collection(firestore, 'contacts'));
+      await setDoc(docRef, newContactPayload);
+      await logActivity(firestore, user, 'create', 'contacts', docRef.id, null, values);
 
       toast({
         title: 'Contact Created',

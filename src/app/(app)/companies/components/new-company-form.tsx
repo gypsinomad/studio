@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 import type { Company } from '@/lib/types';
+import { logActivity } from '@/lib/logger';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Company name must be at least 2 characters.'),
@@ -62,8 +63,9 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
         createdAt: serverTimestamp(),
       };
       
-      const companiesCollection = collection(firestore, 'companies');
-      await addDoc(companiesCollection, newCompanyPayload);
+      const docRef = doc(collection(firestore, 'companies'));
+      await setDoc(docRef, newCompanyPayload);
+      await logActivity(firestore, user, 'create', 'companies', docRef.id, null, values);
 
       toast({
         title: 'Customer Created',
