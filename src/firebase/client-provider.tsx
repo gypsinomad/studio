@@ -20,7 +20,6 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
       storage={firebaseServices.storage}
-      performance={firebaseServices.performance}
     >
       {children}
     </FirebaseProvider>
