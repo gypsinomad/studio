@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { LeadStatus } from '@/lib/types';
+import type { LeadSource, LeadStatus } from '@/lib/types';
 
 interface LeadDetailsProps {
     lead: Lead;
@@ -21,7 +21,7 @@ const statusColors: Record<LeadStatus, string> = {
     lost: 'bg-gray-100 text-gray-800'
 };
 
-const getChannelName = (source: string) => {
+const getChannelName = (source: LeadSource | string) => {
     switch (source) {
         case 'whatsapp':
         case 'metaWhatsapp':
@@ -30,10 +30,14 @@ const getChannelName = (source: string) => {
             return 'Facebook Lead Ad';
         case 'instagramDm':
             return 'Instagram';
-        case 'Manual':
+        case 'manual':
             return 'Manual Entry';
-        case 'Website':
+        case 'website':
             return 'Website Form';
+        case 'tradeShow':
+            return 'Trade Show';
+        case 'referral':
+            return 'Referral';
         default:
             return 'Other';
     }

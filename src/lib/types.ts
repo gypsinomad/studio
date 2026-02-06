@@ -15,7 +15,7 @@ export interface User {
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
-export type LeadSource = 'Manual' | 'Website' | 'whatsapp' | 'metaWhatsapp' | 'facebookLeadAds' | 'instagramDm';
+export type LeadSource = 'manual' | 'website' | 'whatsapp' | 'metaWhatsapp' | 'facebookLeadAds' | 'instagramDm' | 'tradeShow' | 'referral';
 export type LeadChannel = 'whatsapp' | 'facebook' | 'instagram' | 'other';
 
 

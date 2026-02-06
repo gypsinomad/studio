@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       email: rawLeadData.email || 'N/A',
       phone: rawLeadData.phone_number || 'N/A',
       whatsappNumber: rawLeadData.whatsapp_number || undefined,
-      source: 'Facebook Lead Ads',
+      source: 'facebookLeadAds',
       productInterest: rawLeadData.product_interest || 'N/A',
       destinationCountry: rawLeadData.destination_country || 'N/A',
       incotermsPreference: rawLeadData.incoterms_preference || 'N/A',

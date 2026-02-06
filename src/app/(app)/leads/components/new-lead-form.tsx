@@ -68,7 +68,7 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
       const newLeadPayload: Omit<Lead, 'id'> = {
         ...values,
         status: 'new',
-        source: 'Manual',
+        source: 'manual',
         assignedUserId: user.uid,
         createdAt: serverTimestamp(),
         incotermsPreference: 'CIF', // Default value

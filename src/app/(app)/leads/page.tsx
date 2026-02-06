@@ -75,7 +75,7 @@ export default function LeadsPage() {
                 onClick={() => toggleFilter('facebookLeadAds')}>
                 Facebook
             </Button>
-             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId || isLoading}>
+             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId}>
                 <PlusCircle className="mr-2" />
                 New Lead
             </Button>

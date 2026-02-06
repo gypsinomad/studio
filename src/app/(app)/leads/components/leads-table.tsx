@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Lead, LeadSource, LeadStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Laptop, User, MessageSquare, Facebook, Instagram } from 'lucide-react';
+import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, Users } from 'lucide-react';
 
 interface LeadsTableProps {
   data: Lead[];
@@ -29,21 +29,25 @@ const statusColors: Record<LeadStatus, string> = {
 }
 
 const sourceIcons: { [key in LeadSource | string]: React.ReactElement } = {
-  Manual: <User className="h-5 w-5 text-gray-500" />,
-  Website: <Laptop className="h-5 w-5 text-gray-500" />,
+  manual: <User className="h-5 w-5 text-gray-500" />,
+  website: <Laptop className="h-5 w-5 text-gray-500" />,
   whatsapp: <MessageSquare className="h-5 w-5 text-green-500" />,
   metaWhatsapp: <MessageSquare className="h-5 w-5 text-green-500" />,
   facebookLeadAds: <Facebook className="h-5 w-5 text-blue-600" />,
   instagramDm: <Instagram className="h-5 w-5 text-purple-600" />,
+  tradeShow: <Building className="h-5 w-5 text-orange-500" />,
+  referral: <Handshake className="h-5 w-5 text-indigo-500" />,
 };
 
 const sourceLabels: { [key in LeadSource | string]: string } = {
-  Manual: 'Manual',
-  Website: 'Website',
+  manual: 'Manual',
+  website: 'Website',
   whatsapp: 'WhatsApp',
   metaWhatsapp: 'WhatsApp',
   facebookLeadAds: 'Facebook',
   instagramDm: 'Instagram',
+  tradeShow: 'Trade Show',
+  referral: 'Referral',
 };
 
 

@@ -82,12 +82,14 @@
           "type": "string",
           "description": "Source of the lead.",
           "enum": [
-            "Manual",
-            "Website",
+            "manual",
+            "website",
             "whatsapp",
             "metaWhatsapp",
             "facebookLeadAds",
-            "instagramDm"
+            "instagramDm",
+            "tradeShow",
+            "referral"
           ]
         },
         "productInterest": {
