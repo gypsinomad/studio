@@ -17,7 +17,8 @@ import {
 import { Button } from '@/components/ui/button';
 import type { Contact } from '@/lib/types';
 import { format } from 'date-fns';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, CheckCircle, XCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 
 interface ContactsTableProps {
@@ -45,7 +46,7 @@ export function ContactsTable({ data, onDelete }: ContactsTableProps) {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone / WhatsApp</TableHead>
-            <TableHead>Job Title</TableHead>
+            <TableHead>Decision Maker</TableHead>
             <TableHead>Created At</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -56,7 +57,9 @@ export function ContactsTable({ data, onDelete }: ContactsTableProps) {
               <TableCell className="font-medium">{`${contact.firstName} ${contact.lastName}`}</TableCell>
               <TableCell>{contact.email}</TableCell>
               <TableCell>{contact.whatsappNumber || contact.phone || 'N/A'}</TableCell>
-              <TableCell>{contact.jobTitle || 'N/A'}</TableCell>
+              <TableCell>
+                {contact.decisionMaker ? <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="mr-1 h-3 w-3"/> Yes</Badge> : <Badge variant="outline">No</Badge>}
+                </TableCell>
               <TableCell>{format(toDate(contact.createdAt), 'PP')}</TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -84,5 +87,3 @@ export function ContactsTable({ data, onDelete }: ContactsTableProps) {
     </div>
   );
 }
-
-    

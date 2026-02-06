@@ -28,29 +28,41 @@ interface ExportOrdersTableProps {
 }
 
 const stageColors: Record<string, string> = {
+    leadReceived: 'bg-blue-100 text-blue-800',
+    quotationSent: 'bg-cyan-100 text-cyan-800',
+    orderConfirmed: 'bg-yellow-100 text-yellow-800',
+    exportDocumentation: 'bg-purple-100 text-purple-800',
+    shipmentReady: 'bg-orange-100 text-orange-800',
+    shippedDelivered: 'bg-teal-100 text-teal-800',
+    cancelled: 'bg-red-100 text-red-800',
+    lostNoResponse: 'bg-gray-400 text-white',
+    // Legacy support
     enquiry: 'bg-gray-200 text-gray-800',
-    proformaIssued: 'bg-blue-100 text-blue-800',
+    proformaIssued: 'bg-cyan-100 text-cyan-800',
     advanceReceived: 'bg-yellow-100 text-yellow-800',
-    production: 'bg-purple-100 text-purple-800',
-    exportDocumentation: 'bg-indigo-100 text-indigo-800',
+    production: 'bg-indigo-100 text-indigo-800',
     readyToShip: 'bg-orange-100 text-orange-800',
     shipped: 'bg-teal-100 text-teal-800',
     closed: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-    lostNoResponse: 'bg-gray-400 text-white',
 };
 
-const stageLabels: Record<ExportOrderStage, string> = {
+const stageLabels: Record<string, string> = {
+    leadReceived: 'Lead Received',
+    quotationSent: 'Quotation Sent',
+    orderConfirmed: 'Order Confirmed',
+    exportDocumentation: 'Documentation',
+    shipmentReady: 'Shipment Ready',
+    shippedDelivered: 'Shipped & Delivered',
+    cancelled: 'Cancelled',
+    lostNoResponse: 'Lost',
+     // Legacy support
     enquiry: "Enquiry",
     proformaIssued: "Quotation Sent",
     advanceReceived: "Order Confirmed",
     production: "Production",
-    exportDocumentation: "Documentation",
     readyToShip: "Shipment Ready",
     shipped: "Shipped & Delivered",
     closed: "Closed",
-    cancelled: "Cancelled",
-    lostNoResponse: "Lost",
 };
 
 
@@ -87,7 +99,7 @@ export function ExportOrdersTable({ data, onDelete }: ExportOrdersTableProps) {
               <TableCell>${order.totalValue.toLocaleString()}</TableCell>
               <TableCell>
                 <Badge variant="outline" className={cn("capitalize", stageColors[order.stage])}>
-                    {stageLabels[order.stage as ExportOrderStage] || order.stage}
+                    {stageLabels[order.stage] || order.stage}
                 </Badge>
               </TableCell>
               <TableCell>{format(toDate(order.createdAt), 'PP')}</TableCell>
@@ -117,5 +129,3 @@ export function ExportOrdersTable({ data, onDelete }: ExportOrdersTableProps) {
     </div>
   );
 }
-
-    

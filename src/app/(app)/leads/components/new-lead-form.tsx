@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { addDays } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 import type { Lead, Task } from '@/lib/types';
 import { logActivity } from '@/lib/logger';
+import { logUserActivity } from '@/lib/user-activity';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -65,6 +66,8 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
     setIsSubmitting(true);
 
     try {
+      const batch = writeBatch(firestore);
+
       // 1. Create the lead document
       const leadRef = doc(collection(firestore, 'leads'));
       const newLeadPayload: Omit<Lead, 'id'> = {
@@ -75,7 +78,7 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
         createdAt: serverTimestamp(),
         incotermsPreference: 'CIF', // Default value
       };
-      await setDoc(leadRef, newLeadPayload);
+      batch.set(leadRef, newLeadPayload);
       await logActivity(firestore, user, 'create', 'leads', leadRef.id, null, newLeadPayload);
 
       // 2. Create the automated follow-up task
@@ -88,8 +91,13 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
         relatedLeadId: leadRef.id,
         createdAt: serverTimestamp()
       };
-      await setDoc(taskRef, taskPayload);
-      await logActivity(firestore, user, 'create', 'tasks', taskRef.id, null, taskPayload);
+      batch.set(taskRef, taskPayload);
+
+      await batch.commit();
+
+      // 3. Log user-facing activity
+      await logUserActivity(firestore, 'Sprout', 'New Lead Created', `Manually added: ${values.fullName} from ${values.companyName}`);
+
 
       toast({
         title: 'Lead Created',

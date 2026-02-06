@@ -8,7 +8,7 @@ import { collection, query, orderBy, doc, getDoc, deleteDoc } from 'firebase/fir
 import { CompaniesTable } from './components/companies-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 import { NewCompanyForm } from './components/new-company-form';
@@ -38,6 +38,11 @@ export default function CustomersPage() {
     setSelectedCompanyId(companyId);
     setIsDeleteAlertOpen(true);
   };
+  
+  const handleEditRequest = (companyId: string) => {
+    // TODO: Implement edit functionality
+    toast({ title: 'Not Implemented', description: 'Editing companies will be available soon.' });
+  }
 
   const handleDeleteConfirm = async () => {
     if (!selectedCompanyId || !firestore || !user) return;
@@ -66,7 +71,7 @@ export default function CustomersPage() {
         description="Manage your customer companies."
       >
         <Button onClick={() => setIsNewCompanyOpen(true)} disabled={!isAuthenticated || isLoading}>
-          <PlusCircle />
+          <PlusCircle className="mr-2 h-4 w-4" />
           New Customer
         </Button>
       </PageHeader>
@@ -79,7 +84,7 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {!isLoading && companies && <CompaniesTable data={companies} onDelete={handleDeleteRequest}/>}
+      {!isLoading && companies && <CompaniesTable data={companies} onDelete={handleDeleteRequest} onEdit={handleEditRequest} />}
 
       <Dialog open={isNewCompanyOpen} onOpenChange={setIsNewCompanyOpen}>
         <DialogContent>

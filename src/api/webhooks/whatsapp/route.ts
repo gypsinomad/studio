@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
             lastName: nameParts.slice(1).join(' ') || 'N/A',
             email: leadDataToSave.email,
             phone: leadDataToSave.phone,
+            whatsappNumber: leadDataToSave.whatsappNumber,
+            contactSource: 'WhatsApp',
             createdAt: FieldValue.serverTimestamp(),
         };
         batch.set(contactRef, contactPayload);
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
         };
         batch.set(leadRef, finalLeadPayload);
 
-        // Create an activity log entry
+        // Create an activity log entry for the user-facing feed
         const activityLog = {
             icon: 'Sprout',
             title: `New WhatsApp Lead: ${finalLeadPayload.fullName}`,

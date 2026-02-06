@@ -18,14 +18,17 @@ import { Button } from '@/components/ui/button';
 import type { Company } from '@/lib/types';
 import { format } from 'date-fns';
 import { MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 
 interface CompaniesTableProps {
   data: Company[];
   onDelete: (companyId: string) => void;
+  onEdit: (companyId: string) => void;
 }
 
-export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
+export function CompaniesTable({ data, onDelete, onEdit }: CompaniesTableProps) {
   if (data.length === 0) {
     return <p className="text-muted-foreground">No customer companies found.</p>;
   }
@@ -53,10 +56,16 @@ export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
         <TableBody>
           {data.map((company) => (
             <TableRow key={company.id}>
-              <TableCell className="font-medium">{company.name}</TableCell>
+              <TableCell className="font-medium">
+                <Link href={`/companies/${company.id}`} className="hover:underline text-primary">
+                    {company.name}
+                </Link>
+              </TableCell>
               <TableCell>{company.country}</TableCell>
               <TableCell>{company.industryType || 'N/A'}</TableCell>
-               <TableCell>{company.relationshipStatus || 'N/A'}</TableCell>
+               <TableCell>
+                    {company.relationshipStatus ? <Badge variant="outline">{company.relationshipStatus}</Badge> : 'N/A'}
+                </TableCell>
               <TableCell>{format(toDate(company.createdAt), 'PP')}</TableCell>
                <TableCell>
                 <DropdownMenu>
@@ -67,7 +76,7 @@ export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => onEdit(company.id!)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onSelect={() => onDelete(company.id!)}
@@ -84,5 +93,3 @@ export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
     </div>
   );
 }
-
-    

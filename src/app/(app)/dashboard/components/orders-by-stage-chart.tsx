@@ -28,17 +28,15 @@ interface OrdersByStageChartProps {
 }
 
 const stageLabels: Record<ExportOrderStage, string> = {
-    enquiry: "Enquiry",
-    proformaIssued: "Quotation Sent",
-    advanceReceived: "Order Confirmed",
-    production: "Production",
-    exportDocumentation: "Documentation",
-    readyToShip: "Shipment Ready",
-    shipped: "Shipped & Delivered",
-    closed: "Closed",
-    cancelled: "Cancelled",
-    lostNoResponse: "Lost",
-}
+    leadReceived: 'Lead',
+    quotationSent: 'Quotation',
+    orderConfirmed: 'Confirmed',
+    exportDocumentation: 'Documentation',
+    shipmentReady: 'Ready to Ship',
+    shippedDelivered: 'Delivered',
+    cancelled: 'Cancelled',
+    lostNoResponse: 'Lost',
+};
 
 export function OrdersByStageChart({ data }: OrdersByStageChartProps) {
     const chartData = data.map(item => ({...item, name: stageLabels[item.name as ExportOrderStage] || item.name}));
@@ -71,5 +69,3 @@ export function OrdersByStageChart({ data }: OrdersByStageChartProps) {
     </Card>
   );
 }
-
-    

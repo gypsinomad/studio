@@ -40,27 +40,34 @@ export interface Lead {
   lastInboundChannel?: LeadChannel;
 }
 
-export type ExportOrderStage = 'enquiry' | 'proformaIssued' | 'advanceReceived' | 'production' | 'exportDocumentation' | 'readyToShip' | 'shipped' | 'closed' | 'cancelled' | 'lostNoResponse';
+export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';
+export type IcegateStatus = 'Not Started' | 'Documentation Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Clearance Completed';
+export type PaymentTerms = 'Advance' | 'L/C' | 'D/P' | 'D/A' | 'CAD';
+export type ContainerType = '20ft' | '40ft' | '40ft HC' | 'LCL';
+
 
 export interface ExportOrder {
   id?: string;
   title: string;
   stage: ExportOrderStage;
   contactId: string;
+  companyId: string;
   destinationCountry: string;
   destinationPort?: string;
   incoterms: string;
   totalValue: number;
-  paymentTerms: string;
+  paymentTerms: PaymentTerms | string;
   assignedUserId: string;
   createdAt: any; // Date or Firestore Timestamp
   aiValidation?: string;
   expectedShipmentDate?: any;
   portOfLoading?: string;
-  containerType?: string;
+  containerType?: ContainerType | string;
   fssaiLicenseNumber?: string;
-  icegateStatus?: string;
+  icegateStatus?: IcegateStatus;
   certificateRequirements?: string[];
+  productType?: string;
+  hsCode?: string;
 }
 
 export interface LineItem {
@@ -76,17 +83,24 @@ export interface LineItem {
   netWeightPerBox: number; // in kg
 }
 
+export type IndustryType = 'Wholesaler' | 'Retailer' | 'Food Processor' | 'Restaurant Chain';
+export type RelationshipStatus = 'New' | 'Active' | 'VIP' | 'Inactive';
 
 export interface Company {
   id?: string;
   name: string;
   country: string;
   website?: string;
-  industryType?: string;
-  paymentTerms?: string;
-  relationshipStatus?: string;
+  industryType?: IndustryType;
+  paymentTerms?: PaymentTerms | string;
+  relationshipStatus?: RelationshipStatus;
   createdAt: any; // Date or Firestore Timestamp
+  taxId?: string;
+  importLicense?: string;
+  preferredIncoterms?: string;
 }
+
+export type CommunicationMethod = 'email' | 'phone' | 'whatsapp';
 
 export interface Contact {
   id?: string;
@@ -97,9 +111,11 @@ export interface Contact {
   whatsappNumber?: string;
   jobTitle?: string;
   contactRole?: string;
-  preferredCommunication?: 'email' | 'phone' | 'whatsapp';
+  preferredCommunicationMethod?: CommunicationMethod;
   companyId?: string;
   createdAt: any; // Date or Firestore Timestamp
+  decisionMaker?: boolean;
+  contactSource?: string;
 }
 
 export type TaskStatus = 'open' | 'inProgress' | 'done';
@@ -219,5 +235,3 @@ export interface AuditLog {
   before?: { [key: string]: any };
   after?: { [key:string]: any };
 }
-
-    

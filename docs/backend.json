@@ -176,11 +176,15 @@
         "stage": {
           "type": "string",
           "description": "Stage of the export order.",
-           "enum": ["enquiry", "proformaIssued", "advanceReceived", "production", "exportDocumentation", "readyToShip", "shipped", "closed", "cancelled", "lostNoResponse"]
+          "enum": ["leadReceived", "quotationSent", "orderConfirmed", "exportDocumentation", "shipmentReady", "shippedDelivered", "cancelled", "lostNoResponse"]
         },
         "contactId": {
           "type": "string",
           "description": "Reference to the primary Contact for this order."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to the Customer Company for this order."
         },
         "destinationCountry": {
           "type": "string",
@@ -234,18 +238,28 @@
         },
         "icegateStatus": {
             "type": "string",
-            "description": "Status from the ICEGATE portal."
+            "description": "Status from the ICEGATE portal.",
+            "enum": ["Not Started", "Documentation Submitted", "Under Review", "Approved", "Rejected", "Clearance Completed"]
         },
         "certificateRequirements": {
             "type": "array",
             "items": { "type": "string" },
             "description": "List of required certificates for the export."
+        },
+        "productType": {
+          "type": "string",
+          "description": "The primary type of product in the order (e.g. Cardamom, Black Pepper)."
+        },
+        "hsCode": {
+          "type": "string",
+          "description": "Harmonized System code for the overall shipment."
         }
       },
       "required": [
         "title",
         "stage",
         "contactId",
+        "companyId",
         "destinationCountry",
         "incoterms",
         "totalValue",
@@ -334,7 +348,7 @@
           "type": "string",
           "description": "The role of the contact in the buying process (e.g., Decision Maker)."
         },
-        "preferredCommunication": {
+        "preferredCommunicationMethod": {
             "type": "string",
             "description": "The preferred method of communication.",
             "enum": ["email", "phone", "whatsapp"]
@@ -347,6 +361,14 @@
           "type": "string",
           "description": "Timestamp when the contact was created.",
           "format": "date-time"
+        },
+        "decisionMaker": {
+          "type": "boolean",
+          "description": "Indicates if the contact is a decision maker."
+        },
+        "contactSource": {
+          "type": "string",
+          "description": "Where this contact originated from."
         }
       },
       "required": [
@@ -366,10 +388,16 @@
             "name": { "type": "string", "description": "Name of the customer company." },
             "country": { "type": "string", "description": "Country where the company is located." },
             "website": { "type": "string", "description": "Company's official website." },
-            "industryType": { "type": "string", "description": "The industry the company operates in (e.g., Wholesale, Retail)." },
-            "paymentTerms": { "type": "string", "description": "Standard payment terms with this company." },
-            "relationshipStatus": { "type": "string", "description": "The status of the business relationship." },
-            "createdAt": { "type": "string", "format": "date-time" }
+            "industryType": { "type": "string", "description": "The industry the company operates in.", "enum": ["Wholesaler", "Retailer", "Food Processor", "Restaurant Chain"] },
+            "paymentTerms": { "type": "string", "description": "Standard payment terms with this company.", "enum": ["Advance", "L/C", "D/P", "D/A", "CAD"] },
+            "relationshipStatus": { "type": "string", "description": "The status of the business relationship.", "enum": ["New", "Active", "VIP", "Inactive"] },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "taxId": { "type": "string", "description": "Company's Tax ID or VAT number." },
+            "importLicense": { "type": "string", "description": "Company's Import License number." },
+            "preferredIncoterms": {
+                "type": "string",
+                "description": "The company's preferred incoterms."
+            }
         },
         "required": ["name", "country", "createdAt"]
     },
@@ -619,14 +647,14 @@
         "exportOrdersByStage": {
             "type": "object",
             "properties": {
-                "enquiry": { "type": "number" },
-                "proformaIssued": { "type": "number" },
-                "advanceReceived": { "type": "number" },
-                "production": { "type": "number" },
-                "readyToShip": { "type": "number" },
-                "shipped": { "type": "number" },
-                "closed": { "type": "number" },
-                "cancelled": { "type": "number" }
+                "leadReceived": { "type": "number" },
+                "quotationSent": { "type": "number" },
+                "orderConfirmed": { "type": "number" },
+                "exportDocumentation": { "type": "number" },
+                "shipmentReady": { "type": "number" },
+                "shippedDelivered": { "type": "number" },
+                "cancelled": { "type": "number" },
+                "lostNoResponse": { "type": "number" }
             }
         },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
@@ -777,5 +805,3 @@
     "reasoning": "The Firestore structure is now flat and optimized for a single company's internal use. All primary business data collections are at the root level. This simplifies queries and application logic, removing the need for multi-tenant checks. User profiles are kept in a top-level collection for authentication and role management purposes."
   }
 }
-
-    
