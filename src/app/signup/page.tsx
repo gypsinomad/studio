@@ -54,7 +54,7 @@ export default function SignUpPage() {
       authUid: firebaseUser.uid,
       email: firebaseUser.email || '',
       displayName: displayName || firebaseUser.displayName || 'New User',
-      role: firebaseUser.email === 'admin@spiceroute.com' ? 'admin' : 'salesExecutive',
+      role: firebaseUser.email === 'akhilvenugopal@gmail.com' ? 'admin' : 'salesExecutive',
       isActive: true,
       createdAt: serverTimestamp(),
       companyIds: [], // New users start with no companies

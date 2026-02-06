@@ -37,7 +37,7 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
-  const [email, setEmail] = useState('admin@spiceroute.com');
+  const [email, setEmail] = useState('akhilvenugopal@gmail.com');
   const [password, setPassword] = useState('password');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
             authUid: user.uid,
             email: user.email || '',
             displayName: user.displayName || 'New User',
-            role: user.email === 'admin@spiceroute.com' ? 'admin' : 'salesExecutive',
+            role: user.email === 'akhilvenugopal@gmail.com' ? 'admin' : 'salesExecutive',
             isActive: true,
             createdAt: serverTimestamp(),
             companyIds: [], // New users are not assigned to a company initially
