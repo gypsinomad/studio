@@ -9,7 +9,7 @@ import {
   type GenerateQuotationInput,
 } from '@/ai/flows/generate-quotation-flow';
 import type { LineItem, ExportOrder } from '@/lib/types';
-import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 
 
@@ -43,6 +43,7 @@ import {
 import { LoaderCircle, Sparkles, Upload, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { PageHeader } from '@/components/page-header';
 
 const lineItemSchema = z.object({
   productName: z.string(),
@@ -60,6 +61,7 @@ const formSchema = z.object({
   paymentTerms: z.string().min(1, 'Payment terms are required.'),
   contactId: z.string().min(1, 'A contact must be assigned.'), // Assuming a contact selection UI exists
   lineItems: z.array(lineItemSchema).min(1, 'At least one product is required.'),
+  image: z.any().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -193,15 +195,25 @@ export default function NewExportOrderPage() {
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6 items-start">
                 <div className="space-y-4">
-                     <FormField
+                    <FormField
                         control={form.control}
                         name="image"
-                        render={({ field }) => (
+                        render={({ field: { onChange, ...fieldProps } }) => (
                             <FormItem>
                                 <FormLabel>Buyer's List Image</FormLabel>
                                 <FormControl>
                                     <div className="flex items-center gap-4">
-                                        <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="flex-1" />
+                                        <Input
+                                            id="picture"
+                                            type="file"
+                                            accept="image/*"
+                                            {...fieldProps}
+                                            onChange={(e) => {
+                                                handleImageChange(e);
+                                                onChange(e.target.files?.[0]);
+                                            }}
+                                            className="flex-1"
+                                        />
                                         <Button type="button" onClick={handleGenerateFromImage} disabled={isAiProcessing || !imagePreview}>
                                             {isAiProcessing ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
                                             Generate
