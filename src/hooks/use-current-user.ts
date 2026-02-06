@@ -18,10 +18,13 @@ interface UseCurrentUserResult {
   canCreateLead: boolean;
 }
 
+const ADMIN_EMAIL = 'akhilvenugopal@gmail.com';
+
 /**
  * A hook to manage the user's authentication state and Firestore profile data.
  * It provides a consolidated view of the user, their role, and permissions.
  * It also handles creating a user profile document in Firestore on their first sign-in.
+ * Admin status is determined by email, while other roles are from the Firestore document.
  */
 export function useCurrentUser(): UseCurrentUserResult {
   const { user: firebaseUser, isUserLoading: authLoading } = useUser();
@@ -46,11 +49,14 @@ export function useCurrentUser(): UseCurrentUserResult {
         setIsCreatingProfile(true);
         if (!userDocRef) return;
 
+        // The user's role is determined by email for admin, otherwise defaults to 'viewer'.
+        const initialRole: UserRole = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'viewer';
+
         const newUserProfileData: Omit<User, 'id'> = {
           authUid: firebaseUser.uid,
           email: firebaseUser.email!,
           displayName: firebaseUser.displayName || 'New User',
-          role: firebaseUser.email === 'akhilvenugopal@gmail.com' ? 'admin' : 'viewer',
+          role: initialRole,
           isActive: true,
           createdAt: serverTimestamp(),
           companyIds: [],
@@ -71,12 +77,18 @@ export function useCurrentUser(): UseCurrentUserResult {
   }, [authLoading, firebaseUser, profileLoading, userProfile, isCreatingProfile, userDocRef]);
   
   const isLoading = authLoading || profileLoading || isCreatingProfile;
-  const role = userProfile?.role || null;
-
   const isAuthenticated = !!firebaseUser && !isLoading;
-  const isAdmin = role === 'admin';
+  
+  // Admin status is definitively determined by the email address.
+  const isAdmin = isAuthenticated && firebaseUser.email?.toLowerCase() === ADMIN_EMAIL;
+  
+  // The role is 'admin' if the email matches, otherwise it's the role from their Firestore profile.
+  const role = isAdmin ? 'admin' : (userProfile?.role || null);
+  
   const isSales = role === 'salesExecutive';
   const isViewer = role === 'viewer';
+  
+  // Define who can create leads based on their role.
   const canCreateLead = isAdmin || isSales;
 
   return {

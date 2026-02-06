@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { User } from '@/lib/types';
 import { format } from 'date-fns';
@@ -86,8 +87,8 @@ function UsersPageContent() {
   return (
     <>
       <PageHeader
-        title="User Management"
-        description="View and manage user roles and access."
+        title="Admin Settings"
+        description="Manage users, AI settings, and system configuration."
       >
         <Button>
           <PlusCircle className="mr-2" />
@@ -95,15 +96,45 @@ function UsersPageContent() {
         </Button>
       </PageHeader>
       
-      {isLoading && (
-        <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-        </div>
-      )}
+        <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>AI Settings</CardTitle>
+                        <CardDescription>Configure AI mode, budget, and usage limits.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">AI settings management UI will be here.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>User Invites & Approvals</CardTitle>
+                        <CardDescription>Manage pending user approvals and send new invitations.</CardDescription>
+                    </CardHeader>
+                     <CardContent>
+                        <p className="text-muted-foreground">User approval and invitation UI will be here.</p>
+                    </CardContent>
+                </Card>
+            </div>
 
-      {!isLoading && users && <UsersTable data={users} />}
+            <Card>
+                <CardHeader>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>View and manage existing users in the system.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isLoading && (
+                        <div className="space-y-2">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    )}
+                    {!isLoading && users && <UsersTable data={users} />}
+                </CardContent>
+            </Card>
+        </div>
     </>
   );
 }

@@ -53,7 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: BarChart3,
   },
   {
-    title: 'User Management',
+    title: 'Admin Settings',
     href: '/users',
     icon: Settings,
     adminOnly: true,
