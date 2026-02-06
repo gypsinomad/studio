@@ -26,6 +26,9 @@ const formSchema = z.object({
   name: z.string().min(2, 'Company name must be at least 2 characters.'),
   country: z.string().min(2, 'Country is required.'),
   website: z.string().optional(),
+  industryType: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  relationshipStatus: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -46,6 +49,9 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
       name: '',
       country: '',
       website: '',
+      industryType: '',
+      paymentTerms: '',
+      relationshipStatus: '',
     },
   });
 
@@ -127,6 +133,45 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="industryType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Industry (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Wholesale" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="paymentTerms"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default Payment Terms (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Net 30" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="relationshipStatus"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Relationship Status (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Active, Prospect" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <LoaderCircle className="animate-spin mr-2" />}
@@ -137,3 +182,5 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
     </Form>
   );
 }
+
+    

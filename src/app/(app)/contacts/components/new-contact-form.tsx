@@ -34,7 +34,10 @@ const formSchema = z.object({
   lastName: z.string().min(1, 'Last name is required.'),
   email: z.string().email('Please enter a valid email address.'),
   phone: z.string().optional(),
+  whatsappNumber: z.string().optional(),
   jobTitle: z.string().optional(),
+  contactRole: z.string().optional(),
+  preferredCommunication: z.enum(['email', 'phone', 'whatsapp']).optional(),
   companyId: z.string().optional(),
 });
 
@@ -148,19 +151,35 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
             </FormItem>
           )}
         />
-         <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone (Optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="+1 555-123-4567" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="+1 555-123-4567" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="whatsappNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>WhatsApp (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="+1 555-123-4567" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
          <FormField
           control={form.control}
           name="jobTitle"
@@ -174,6 +193,20 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
             </FormItem>
           )}
         />
+         <FormField
+          control={form.control}
+          name="contactRole"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Decision Maker" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        </div>
          <FormField
             control={form.control}
             name="companyId"
@@ -208,3 +241,5 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
     </Form>
   );
 }
+
+    

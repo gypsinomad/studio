@@ -82,6 +82,9 @@ export interface Company {
   name: string;
   country: string;
   website?: string;
+  industryType?: string;
+  paymentTerms?: string;
+  relationshipStatus?: string;
   createdAt: any; // Date or Firestore Timestamp
 }
 
@@ -91,7 +94,10 @@ export interface Contact {
   lastName: string;
   email: string;
   phone?: string;
+  whatsappNumber?: string;
   jobTitle?: string;
+  contactRole?: string;
+  preferredCommunication?: 'email' | 'phone' | 'whatsapp';
   companyId?: string;
   createdAt: any; // Date or Firestore Timestamp
 }
@@ -213,3 +219,5 @@ export interface AuditLog {
   before?: { [key: string]: any };
   after?: { [key:string]: any };
 }
+
+    

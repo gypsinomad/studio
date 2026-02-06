@@ -44,7 +44,8 @@ export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
           <TableRow>
             <TableHead>Customer Name</TableHead>
             <TableHead>Country</TableHead>
-            <TableHead>Website</TableHead>
+            <TableHead>Industry</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Added On</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -54,13 +55,8 @@ export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
             <TableRow key={company.id}>
               <TableCell className="font-medium">{company.name}</TableCell>
               <TableCell>{company.country}</TableCell>
-              <TableCell>
-                {company.website ? (
-                    <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        {company.website}
-                    </a>
-                ) : 'N/A'}
-              </TableCell>
+              <TableCell>{company.industryType || 'N/A'}</TableCell>
+               <TableCell>{company.relationshipStatus || 'N/A'}</TableCell>
               <TableCell>{format(toDate(company.createdAt), 'PP')}</TableCell>
                <TableCell>
                 <DropdownMenu>
@@ -88,3 +84,5 @@ export function CompaniesTable({ data, onDelete }: CompaniesTableProps) {
     </div>
   );
 }
+
+    

@@ -44,7 +44,7 @@ export function ContactsTable({ data, onDelete }: ContactsTableProps) {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Phone</TableHead>
+            <TableHead>Phone / WhatsApp</TableHead>
             <TableHead>Job Title</TableHead>
             <TableHead>Created At</TableHead>
             <TableHead className="w-[50px]"></TableHead>
@@ -55,7 +55,7 @@ export function ContactsTable({ data, onDelete }: ContactsTableProps) {
             <TableRow key={contact.id}>
               <TableCell className="font-medium">{`${contact.firstName} ${contact.lastName}`}</TableCell>
               <TableCell>{contact.email}</TableCell>
-              <TableCell>{contact.phone || 'N/A'}</TableCell>
+              <TableCell>{contact.whatsappNumber || contact.phone || 'N/A'}</TableCell>
               <TableCell>{contact.jobTitle || 'N/A'}</TableCell>
               <TableCell>{format(toDate(contact.createdAt), 'PP')}</TableCell>
               <TableCell>
@@ -84,3 +84,5 @@ export function ContactsTable({ data, onDelete }: ContactsTableProps) {
     </div>
   );
 }
+
+    

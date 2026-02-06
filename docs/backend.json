@@ -322,9 +322,22 @@
           "type": "string",
           "description": "Phone number of the contact."
         },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "WhatsApp number of the contact."
+        },
         "jobTitle": {
           "type": "string",
           "description": "Job title of the contact (e.g. Purchase Manager)."
+        },
+        "contactRole": {
+          "type": "string",
+          "description": "The role of the contact in the buying process (e.g., Decision Maker)."
+        },
+        "preferredCommunication": {
+            "type": "string",
+            "description": "The preferred method of communication.",
+            "enum": ["email", "phone", "whatsapp"]
         },
         "companyId": {
             "type": "string",
@@ -353,6 +366,9 @@
             "name": { "type": "string", "description": "Name of the customer company." },
             "country": { "type": "string", "description": "Country where the company is located." },
             "website": { "type": "string", "description": "Company's official website." },
+            "industryType": { "type": "string", "description": "The industry the company operates in (e.g., Wholesale, Retail)." },
+            "paymentTerms": { "type": "string", "description": "Standard payment terms with this company." },
+            "relationshipStatus": { "type": "string", "description": "The status of the business relationship." },
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["name", "country", "createdAt"]
@@ -761,3 +777,5 @@
     "reasoning": "The Firestore structure is now flat and optimized for a single company's internal use. All primary business data collections are at the root level. This simplifies queries and application logic, removing the need for multi-tenant checks. User profiles are kept in a top-level collection for authentication and role management purposes."
   }
 }
+
+    

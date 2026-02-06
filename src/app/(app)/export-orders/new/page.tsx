@@ -7,6 +7,8 @@ import { z } from 'zod';
 import type { ExportOrder, LineItem } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, writeBatch, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { format } from "date-fns"
+import { Calendar as CalendarIcon } from "lucide-react"
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +42,9 @@ import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Textarea } from '@/components/ui/textarea';
 import { logActivity } from '@/lib/logger';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
 
 const lineItemSchema = z.object({
   productName: z.string().min(1, 'Product name is required'),
@@ -61,6 +66,12 @@ const formSchema = z.object({
   paymentTerms: z.string().min(1, 'Payment terms are required.'),
   contactId: z.string().min(1, 'A contact must be selected.'), // This will need a selector UI
   lineItems: z.array(lineItemSchema).min(1, 'At least one product is required.'),
+  // New export-specific fields
+  expectedShipmentDate: z.date().optional(),
+  portOfLoading: z.string().optional(),
+  containerType: z.string().optional(),
+  fssaiLicenseNumber: z.string().optional(),
+  certificateRequirements: z.string().optional(), // Using a single string for comma-separated values
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -83,6 +94,10 @@ export default function NewExportOrderPage() {
       paymentTerms: '100% LC at Sight',
       contactId: 'contact-placeholder-01', // Placeholder
       lineItems: [],
+      portOfLoading: '',
+      containerType: '',
+      fssaiLicenseNumber: '',
+      certificateRequirements: '',
     },
   });
 
@@ -105,6 +120,7 @@ export default function NewExportOrderPage() {
         const orderRef = doc(collection(firestore, 'exportOrders'));
         const newOrderPayload: Omit<ExportOrder, 'id'> = {
             ...values,
+            certificateRequirements: values.certificateRequirements?.split(',').map(s => s.trim()).filter(Boolean),
             totalValue: totalValue,
             assignedUserId: user.uid,
             stage: 'enquiry',
@@ -141,12 +157,12 @@ export default function NewExportOrderPage() {
         
         <Card>
             <CardHeader>
-                <CardTitle>Order Details</CardTitle>
-                <CardDescription>Fill in the main details for this export order.</CardDescription>
+                <CardTitle>Shipment Details</CardTitle>
+                <CardDescription>Fill in the main shipment and contact details for this export order.</CardDescription>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6">
+            <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <FormField control={form.control} name="title" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="lg:col-span-3">
                         <FormLabel>Order Title</FormLabel>
                         <FormControl><Input placeholder="e.g., Spices to Dubai" {...field} /></FormControl>
                         <FormMessage />
@@ -159,7 +175,7 @@ export default function NewExportOrderPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={form.control} name="destinationCountry" render={({ field }) => (
+                 <FormField control={form.control} name="destinationCountry" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Destination Country</FormLabel>
                         <FormControl><Input placeholder="e.g., UAE" {...field} /></FormControl>
@@ -173,7 +189,64 @@ export default function NewExportOrderPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={form.control} name="incoterms" render={({ field }) => (
+                 <FormField control={form.control} name="portOfLoading" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Port of Loading</FormLabel>
+                        <FormControl><Input placeholder="e.g., Cochin" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                 <FormField control={form.control} name="containerType" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Container Type</FormLabel>
+                        <FormControl><Input placeholder="e.g., 40ft HC" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="expectedShipmentDate" render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Expected Shipment Date</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP")
+                            ) : (
+                                <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Financial & Legal</CardTitle>
+            </CardHeader>
+             <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 <FormField control={form.control} name="incoterms" render={({ field }) => (
                     <FormItem>
                         <FormLabel>INCOTERMS</FormLabel>
                         <FormControl><Input placeholder="e.g., CIF, FOB" {...field} /></FormControl>
@@ -187,7 +260,21 @@ export default function NewExportOrderPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
-            </CardContent>
+                 <FormField control={form.control} name="fssaiLicenseNumber" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>FSSAI License No.</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                  <FormField control={form.control} name="certificateRequirements" render={({ field }) => (
+                    <FormItem className="lg:col-span-3">
+                        <FormLabel>Certificate Requirements</FormLabel>
+                        <FormControl><Textarea placeholder="e.g., Certificate of Origin, Phyto-sanitary Certificate" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+             </CardContent>
         </Card>
 
         <Card>
@@ -253,3 +340,5 @@ export default function NewExportOrderPage() {
     </>
   );
 }
+
+    

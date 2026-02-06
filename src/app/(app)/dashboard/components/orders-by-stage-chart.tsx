@@ -33,8 +33,8 @@ const stageLabels: Record<ExportOrderStage, string> = {
     advanceReceived: "Order Confirmed",
     production: "Production",
     exportDocumentation: "Documentation",
-    readyToShip: "Ready to Ship",
-    shipped: "Shipped",
+    readyToShip: "Shipment Ready",
+    shipped: "Shipped & Delivered",
     closed: "Closed",
     cancelled: "Cancelled",
     lostNoResponse: "Lost",
@@ -71,3 +71,5 @@ export function OrdersByStageChart({ data }: OrdersByStageChartProps) {
     </Card>
   );
 }
+
+    
