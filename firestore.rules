@@ -11,6 +11,7 @@
  * ## Data Structure & Security Model
  * - `/users/{userId}`: Contains user profiles with a critical `companyIds` array and a `role`.
  *   Access is restricted to the document owner or an admin.
+ * - `/dashboardStats/{userId}`: Pre-aggregated data for a user's dashboard. Only readable by the owner.
  * - `/companies/{companyId}`: The root for all tenant-specific data. Access requires membership.
  * - `/companies/{companyId}/leads/{leadId}` (and similar collections): Data for a specific company.
  *   - **Admin:** Can read/write all documents within any company they are a member of.
@@ -78,6 +79,14 @@ service cloud.firestore {
       // Only admins can delete users.
       allow delete: if isAdmin();
     }
+
+    // Rule for dashboard stats. Users can read their own stats document.
+    // These documents are created and managed by backend functions.
+    match /dashboardStats/{userId} {
+      allow get: if isOwner(userId);
+      allow list, create, update, delete: if false;
+    }
+
 
     // This is the root of our multi-tenant structure.
     match /companies/{companyId} {
