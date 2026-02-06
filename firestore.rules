@@ -28,7 +28,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Users can view their own dashboard stats, but not change them directly.
+    // Users can view/create their own dashboard stats, but not change them directly.
     match /dashboardStats/{userId} {
       allow get, create: if isOwner(userId) || isAdmin();
       allow write: if false; // Should be updated by backend jobs, not the client.
@@ -65,10 +65,25 @@ service cloud.firestore {
       allow read, write: if false;
     }
     
-    // --- Default Rule for All Other Data ---
-    // This rule applies to any path not matched above (e.g., /leads, /tasks, /companies).
-    // It grants full read/write access to any authenticated user.
-    match /{document=**} {
+    // --- Explicit Rules for Core Data Collections ---
+    // Grants full read/write access to any authenticated user.
+    
+    match /companies/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /contacts/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /leads/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /exportOrders/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /tasks/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /documents/{document=**} {
       allow read, write: if isSignedIn();
     }
   }
