@@ -11,7 +11,7 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { NewCompanyForm } from './components/new-company-form';
 
-export default function CompaniesPage() {
+export default function CustomersPage() {
   const [isNewCompanyOpen, setIsNewCompanyOpen] = useState(false);
   const firestore = useFirestore();
   const { isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
@@ -28,12 +28,12 @@ export default function CompaniesPage() {
   return (
     <>
       <PageHeader
-        title="Companies"
+        title="Customers"
         description="Manage your customer companies."
       >
         <Button onClick={() => setIsNewCompanyOpen(true)} disabled={!isAuthenticated || isLoading}>
           <PlusCircle />
-          New Company
+          New Customer
         </Button>
       </PageHeader>
       
@@ -52,7 +52,7 @@ export default function CompaniesPage() {
             <DialogHeader>
                 <DialogTitle>Create a New Customer Company</DialogTitle>
                 <DialogDescription>
-                    This company will be added to your CRM.
+                    This customer will be added to your CRM.
                 </DialogDescription>
             </DialogHeader>
             <NewCompanyForm onSuccess={() => setIsNewCompanyOpen(false)} />

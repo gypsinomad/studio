@@ -32,7 +32,7 @@ export function CompaniesTable({ data }: CompaniesTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Company Name</TableHead>
+            <TableHead>Customer Name</TableHead>
             <TableHead>Country</TableHead>
             <TableHead>Website</TableHead>
             <TableHead>Added On</TableHead>

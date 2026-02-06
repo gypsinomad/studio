@@ -28,7 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Ship,
   },
   {
-    title: 'Companies',
+    title: 'Customers',
     href: '/companies',
     icon: Building,
   },

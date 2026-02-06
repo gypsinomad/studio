@@ -66,7 +66,7 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
       await addDoc(companiesCollection, newCompanyPayload);
 
       toast({
-        title: 'Company Created',
+        title: 'Customer Created',
         description: `${values.name} has been added to your customer list.`,
       });
       onSuccess();
@@ -91,7 +91,7 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Company Name</FormLabel>
+              <FormLabel>Customer Name</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., Global Spice Importers Inc." {...field} />
               </FormControl>
@@ -128,7 +128,7 @@ export function NewCompanyForm({ onSuccess }: NewCompanyFormProps) {
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <LoaderCircle className="animate-spin mr-2" />}
-            Create Company
+            Create Customer
           </Button>
         </div>
       </form>

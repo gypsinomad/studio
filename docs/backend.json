@@ -352,7 +352,7 @@
         "properties": {
             "name": { "type": "string", "description": "Name of the customer company." },
             "country": { "type": "string", "description": "Country where the company is located." },
-            "website": { "type": "string", "format": "uri", "description": "Company's official website." },
+            "website": { "type": "string", "description": "Company's official website." },
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["name", "country", "createdAt"]

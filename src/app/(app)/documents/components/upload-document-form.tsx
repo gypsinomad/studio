@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser, useStorage } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useStorage, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
-import type { DocumentType } from '@/lib/types';
+import type { DocumentType, Lead, ExportOrder } from '@/lib/types';
 
 const DOCUMENT_TYPES: DocumentType[] = ["proformaInvoice", "contract", "packingList", "billOfLading", "coo", "fssai", "apeda", "phytoCertificate", "shippingBill", "other"];
 
@@ -29,6 +29,8 @@ const formSchema = z.object({
   name: z.string().min(3, 'Document name must be at least 3 characters.'),
   type: z.enum(DOCUMENT_TYPES),
   file: z.instanceof(File).refine(file => file.size > 0, 'Please select a file.'),
+  relatedLeadId: z.string().optional(),
+  relatedOrderId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -43,6 +45,12 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
   const storage = useStorage();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const leadsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'leads')) : null, [firestore]);
+  const { data: leads, isLoading: areLeadsLoading } = useCollection<Lead>(leadsQuery);
+
+  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'exportOrders')) : null, [firestore]);
+  const { data: orders, isLoading: areOrdersLoading } = useCollection<ExportOrder>(ordersQuery);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -72,9 +80,11 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
         name: values.name,
         type: values.type,
         fileUrl: fileUrl,
-        status: 'uploaded',
+        status: 'uploaded' as const,
         uploadedBy: user.uid,
         uploadedAt: serverTimestamp(),
+        relatedLeadId: values.relatedLeadId || null,
+        relatedOrderId: values.relatedOrderId || null,
       };
       
       const docsCollection = collection(firestore, 'documents');
@@ -155,6 +165,40 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
             </FormItem>
           )}
         />
+        <div className="grid grid-cols-2 gap-4">
+             <FormField
+                control={form.control}
+                name="relatedLeadId"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Link to Lead (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={areLeadsLoading}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a lead" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {leads?.map(lead => <SelectItem key={lead.id} value={lead.id}>{lead.fullName}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
+             <FormField
+                control={form.control}
+                name="relatedOrderId"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Link to Order (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={areOrdersLoading}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select an order" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {orders?.map(order => <SelectItem key={order.id} value={order.id}>{order.title}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        </div>
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <LoaderCircle className="animate-spin mr-2" />}

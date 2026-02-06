@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query } from 'firebase/firestore';
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 
@@ -30,7 +30,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
-import type { Task, TaskStatus } from '@/lib/types';
+import type { Task, TaskStatus, Lead, ExportOrder } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 
 const TASK_STATUSES: TaskStatus[] = ['open', 'inProgress', 'done'];
@@ -42,6 +42,8 @@ const formSchema = z.object({
   dueDate: z.date({
     required_error: "A due date is required.",
   }),
+  relatedLeadId: z.string().optional(),
+  relatedOrderId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -55,6 +57,13 @@ export function NewTaskForm({ onSuccess }: NewTaskFormProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const leadsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'leads')) : null, [firestore]);
+  const { data: leads, isLoading: areLeadsLoading } = useCollection<Lead>(leadsQuery);
+
+  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'exportOrders')) : null, [firestore]);
+  const { data: orders, isLoading: areOrdersLoading } = useCollection<ExportOrder>(ordersQuery);
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -196,6 +205,40 @@ export function NewTaskForm({ onSuccess }: NewTaskFormProps) {
                     </FormItem>
                 )}
                 />
+        </div>
+         <div className="grid grid-cols-2 gap-4">
+             <FormField
+                control={form.control}
+                name="relatedLeadId"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Link to Lead (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={areLeadsLoading}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a lead" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {leads?.map(lead => <SelectItem key={lead.id} value={lead.id}>{lead.fullName}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
+             <FormField
+                control={form.control}
+                name="relatedOrderId"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Link to Order (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={areOrdersLoading}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select an order" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {orders?.map(order => <SelectItem key={order.id} value={order.id}>{order.title}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
         </div>
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isSubmitting}>

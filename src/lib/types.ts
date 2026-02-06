@@ -117,8 +117,8 @@ export interface Document {
   id?: string;
   name: string;
   type: DocumentType;
-  orderId?: string;
-  leadId?: string;
+  relatedOrderId?: string;
+  relatedLeadId?: string;
   fileUrl: string; 
   status: DocumentStatus;
   expiryDate?: any; // Date or Firestore Timestamp

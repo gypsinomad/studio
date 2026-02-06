@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +17,16 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
-import type { Contact } from '@/lib/types';
+import type { Contact, Company } from '@/lib/types';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
@@ -27,6 +34,7 @@ const formSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
   phone: z.string().optional(),
   jobTitle: z.string().optional(),
+  companyId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -41,6 +49,12 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const companiesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'companies'));
+  }, [firestore]);
+  const { data: companies, isLoading: areCompaniesLoading } = useCollection<Company>(companiesQuery);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,6 +63,7 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
       email: '',
       phone: '',
       jobTitle: '',
+      companyId: '',
     },
   });
 
@@ -156,6 +171,30 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
               <FormMessage />
             </FormItem>
           )}
+        />
+         <FormField
+            control={form.control}
+            name="companyId"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Customer (Optional)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={areCompaniesLoading}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder={areCompaniesLoading ? "Loading customers..." : "Assign to a customer"} />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {companies?.map(company => (
+                            <SelectItem key={company.id} value={company.id}>
+                                {company.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
         />
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isSubmitting}>
