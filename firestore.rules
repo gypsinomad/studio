@@ -16,36 +16,10 @@ service cloud.firestore {
              request.auth.token.email.toLowerCase() == 'akhilvenugopal@gmail.com';
     }
 
-    // --- Core Data Collections ---
-    // Any authenticated user can perform all operations on these collections and their subcollections.
-    match /companies/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /contacts/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /leads/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /exportOrders/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /tasks/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /documents/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /products/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /notes/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    
-    // --- User & Settings Collections ---
+    // --- User & Settings Collections (Specific Rules) ---
+    // These rules are matched first because they are more specific.
 
-    // Users can only edit their own profile, and cannot change their role. Admins can manage all users.
+    // Users can only manage their own profile, and cannot change their role. Admins can manage all users.
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -66,29 +40,36 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
 
-    // Usage stats are append-only from the backend.
+    // Usage stats are read-only for clients.
     match /usageStats/{month} {
         allow get: if isSignedIn();
         allow write: if false;
     }
 
-    // --- Log & Event Collections (stricter rules) ---
+    // --- Log & Event Collections (Specific Rules) ---
 
-    // Raw webhook payloads are for server-side debugging only. No client access.
-    match /whatsappEvents/{eventId} {
-      allow read, write: if false;
-    }
-    
-    // The main audit log is append-only for any authenticated user. No one can update or delete entries.
+    // The main audit log is append-only for any authenticated user.
     match /activityLogs/{logId} {
       allow read, create: if isSignedIn();
       allow update, delete: if false;
     }
     
-    // The user-facing activity feed is written by the backend only.
+    // The user-facing activity feed is read-only for clients.
     match /activity_logs/{logId} {
       allow read: if isSignedIn();
       allow write: if false;
+    }
+    
+    // Raw webhook payloads are for server-side debugging only. No client access.
+    match /whatsappEvents/{eventId} {
+      allow read, write: if false;
+    }
+    
+    // --- Default Rule for All Other Data ---
+    // This rule applies to any path not matched above (e.g., /leads, /tasks, /companies).
+    // It grants full read/write access to any authenticated user.
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
