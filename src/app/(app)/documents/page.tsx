@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
@@ -16,6 +17,8 @@ import {
 import type { Document as DocumentType } from '@/lib/types';
 import { format } from 'date-fns';
 import { useCurrentCompany } from '@/hooks/use-current-company';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { UploadDocumentForm } from './components/upload-document-form';
 
 function DocumentsTable({ data }: { data: DocumentType[] }) {
    if (data.length === 0) {
@@ -59,14 +62,21 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
 
 
 export default function DocumentsPage() {
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const firestore = useFirestore();
   const { user } = useUser();
   const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const documentsQuery = useMemoFirebase(() => {
     if (!firestore || !user || !companyId) return null;
+    // For admins, show all docs in the company. For others, only their own.
+    const docsCollection = collection(firestore, 'companies', companyId, 'documents');
+    const userProfile = user; // Assuming useUser provides the profile
+    if (userProfile?.role === 'admin') {
+      return query(docsCollection);
+    }
     return query(
-      collection(firestore, 'companies', companyId, 'documents'), 
+      docsCollection,
       where('uploadedBy', '==', user.uid)
     );
   }, [firestore, user, companyId]);
@@ -81,7 +91,7 @@ export default function DocumentsPage() {
         title="Documents"
         description="Manage all documents related to your leads and orders."
       >
-        <Button>
+        <Button onClick={() => setIsUploadOpen(true)} disabled={!companyId}>
           <Upload className="mr-2" />
           Upload Document
         </Button>
@@ -96,6 +106,18 @@ export default function DocumentsPage() {
       )}
 
       {!isLoading && documents && <DocumentsTable data={documents} />}
+
+      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload a New Document</DialogTitle>
+            <DialogDescription>
+              The file will be stored securely and linked to your company.
+            </DialogDescription>
+          </DialogHeader>
+          <UploadDocumentForm onSuccess={() => setIsUploadOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
