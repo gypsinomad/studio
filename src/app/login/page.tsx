@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Sprout, LoaderCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
 import { Separator } from '@/components/ui/separator';
@@ -41,17 +41,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('password');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // This effect will run when the user state changes.
-  // It checks if a new user has signed in and if they have a user profile document.
-  // If not, it creates one.
+  // This effect handles profile creation for new users (e.g., first Google sign-in)
+  // and redirects existing users to the dashboard.
   useEffect(() => {
     if (user && firestore) {
       setIsSubmitting(true);
       const userRef = doc(firestore, 'users', user.uid);
       
+      const handleDbError = (error: any) => {
+          console.error("Firestore operation failed after login:", error);
+          toast({
+              variant: 'destructive',
+              title: 'Account Incomplete',
+              description: 'Could not create or retrieve your user profile. Please try again.',
+          });
+          setIsSubmitting(false);
+          // Optional: sign the user out again if the profile is mandatory.
+          // signOut(auth);
+      }
+
       getDoc(userRef).then(docSnap => {
         if (!docSnap.exists()) {
-          // This is a new user, create a profile for them.
+          // This is a new user (likely from Google Sign-In), create a profile for them.
           const newUserProfile = {
             authUid: user.uid,
             email: user.email || '',
@@ -59,16 +70,16 @@ export default function LoginPage() {
             role: user.email === 'akhilvenugopal@gmail.com' ? 'admin' : 'salesExecutive',
             isActive: true,
             createdAt: serverTimestamp(),
-            companyIds: [], // New users are not assigned to a company initially
+            companyIds: [],
           };
           setDoc(userRef, newUserProfile)
             .then(() => router.replace('/dashboard'))
-            .catch(handleAuthError);
+            .catch(handleDbError);
         } else {
           // Existing user, just go to dashboard
           router.replace('/dashboard');
         }
-      }).catch(handleAuthError);
+      }).catch(handleDbError);
     }
   }, [user, firestore, router]);
 
