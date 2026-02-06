@@ -46,12 +46,15 @@ service cloud.firestore {
 
     match /dashboardStats/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      // This data is written by a backend process, not the client.
-      allow create, update, delete: if false;
+      // Allow user to create their own stats doc on first visit.
+      // Updates should be handled by a backend process.
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
     }
     
     match /settings/ai {
         allow get: if isSignedIn();
+        // Allow admin to create/update the AI settings document.
         allow write: if isAdmin();
     }
 
@@ -75,11 +78,11 @@ service cloud.firestore {
     // =====================================================================
 
     match /companies/{companyId} {
-      allow read, write, create, update, delete: if isSignedIn();
+      allow read, create, update, delete: if isSignedIn();
     }
 
     match /contacts/{contactId} {
-      allow read, write, create, update, delete: if isSignedIn();
+       allow read, create, update, delete: if isSignedIn();
     }
     
     match /products/{productId} {
@@ -98,11 +101,11 @@ service cloud.firestore {
     }
     
     match /leads/{leadId} {
-      allow read, write, create, update, delete: if isSignedIn();
+      allow read, create, update, delete: if isSignedIn();
     }
     
      match /exportOrders/{orderId} {
-      allow read, write, create, update, delete: if isSignedIn();
+      allow read, create, update, delete: if isSignedIn();
 
       match /lineItems/{lineItemId} {
          allow read, list, create, update, delete: if isSignedIn();
@@ -110,11 +113,11 @@ service cloud.firestore {
     }
     
      match /tasks/{taskId} {
-      allow read, write, create, update, delete: if isSignedIn();
+      allow read, create, update, delete: if isSignedIn();
     }
     
      match /documents/{documentId} {
-      allow read, write, create, update, delete: if isSignedIn();
+      allow read, create, update, delete: if isSignedIn();
     }
   }
 }

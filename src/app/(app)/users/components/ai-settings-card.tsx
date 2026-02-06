@@ -31,6 +31,8 @@ export function AiSettingsCard({ settings, usage, isLoading }: AiSettingsCardPro
         )
     }
 
+    // Since the document is now auto-created, we can assume it will exist soon after loading.
+    // A null state here indicates it's either still loading or there was a permission error fetching.
     if (!settings) {
         return (
              <Card>
@@ -39,20 +41,11 @@ export function AiSettingsCard({ settings, usage, isLoading }: AiSettingsCardPro
                     <CardDescription>Configure AI mode, budget, and usage limits.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Alert>
+                     <Alert variant="destructive">
                         <Terminal className="h-4 w-4" />
-                        <AlertTitle>Configuration Required</AlertTitle>
+                        <AlertTitle>Could Not Load AI Settings</AlertTitle>
                         <AlertDescription>
-                            <p>To manage AI settings, create a document in Firestore:</p>
-                            <code className="text-xs relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold">
-                                settings/ai
-                            </code>
-                             <p className="mt-2">Required fields:</p>
-                            <ul className="list-disc list-inside text-xs">
-                                <li>`aiMode` (string: "safe", "off", or "unrestricted")</li>
-                                <li>`monthlyAiBudgetInr` (number)</li>
-                                <li>`maxDailyAiCalls` (number)</li>
-                            </ul>
+                            There was an error loading the AI configuration. Please check the console or Firestore permissions.
                         </AlertDescription>
                     </Alert>
                 </CardContent>
