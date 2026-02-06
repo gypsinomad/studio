@@ -1,7 +1,7 @@
 // src/app/api/webhooks/whatsapp/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/firebase/admin';
-import type { Lead, Task, WhatsappEvent } from '@/lib/types';
+import type { Lead, Task, WhatsappEvent, Contact } from '@/lib/types';
 import { FieldValue } from 'firebase-admin/firestore';
 import { addDays } from 'date-fns';
 import { validateAndStandardizeLeadData } from '@/ai/flows/validate-and-standardize-lead-data';
@@ -114,6 +114,22 @@ export async function POST(request: NextRequest) {
             };
         }
 
+        const batch = adminDb.batch();
+
+        // Create Contact
+        const contactRef = adminDb.collection('contacts').doc();
+        const nameParts = leadDataToSave.fullName.split(' ');
+        const contactPayload: Omit<Contact, 'id'> = {
+            firstName: nameParts[0] || 'N/A',
+            lastName: nameParts.slice(1).join(' ') || 'N/A',
+            email: leadDataToSave.email,
+            phone: leadDataToSave.phone,
+            createdAt: FieldValue.serverTimestamp(),
+        };
+        batch.set(contactRef, contactPayload);
+
+        // Create Lead
+        const leadRef = adminDb.collection('leads').doc();
         const finalLeadPayload: Omit<Lead, 'id'> = {
             ...leadDataToSave,
             source: 'whatsapp',
@@ -125,10 +141,7 @@ export async function POST(request: NextRequest) {
             lastInboundChannel: 'whatsapp',
             whatsappThreadId: messageInfo.id,
         };
-
-        const leadRef = await adminDb.collection('leads').add(finalLeadPayload);
-
-        const batch = adminDb.batch();
+        batch.set(leadRef, finalLeadPayload);
 
         // Create an activity log entry
         const activityLog = {
@@ -156,15 +169,17 @@ export async function POST(request: NextRequest) {
 
         await logRef.update({
             leadId: leadRef.id,
+            contactId: contactRef.id,
             aiUsed: result.aiUsed,
             aiReason: result.aiReason
         });
         
-        console.log(`WhatsApp Webhook: Created new lead ${leadRef.id} and automations for ${userPhone}.`);
+        console.log(`WhatsApp Webhook: Created new lead ${leadRef.id}, contact ${contactRef.id}, and automations for ${userPhone}.`);
         return NextResponse.json({ 
             success: true, 
-            message: 'Lead created successfully.', 
+            message: 'Lead and contact created successfully.', 
             leadId: leadRef.id, 
+            contactId: contactRef.id,
             aiUsed: result.aiUsed, 
             aiReason: result.aiReason 
         });
