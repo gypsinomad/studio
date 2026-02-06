@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -64,26 +65,26 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
 export default function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, userProfile, isLoading: isUserLoading } = useCurrentUser();
   const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const documentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !companyId) return null;
-    // For admins, show all docs in the company. For others, only their own.
+    if (!firestore || !user || !companyId || !userProfile) return null;
+    
     const docsCollection = collection(firestore, 'companies', companyId, 'documents');
-    const userProfile = user; // Assuming useUser provides the profile
-    if (userProfile?.role === 'admin') {
+    
+    if (userProfile.role === 'admin') {
       return query(docsCollection);
     }
     return query(
       docsCollection,
       where('uploadedBy', '==', user.uid)
     );
-  }, [firestore, user, companyId]);
+  }, [firestore, user, userProfile, companyId]);
 
   const { data: documents, isLoading: areDocumentsLoading } = useCollection(documentsQuery);
 
-  const isLoading = isCompanyLoading || areDocumentsLoading;
+  const isLoading = isCompanyLoading || isUserLoading || areDocumentsLoading;
 
   return (
     <>
