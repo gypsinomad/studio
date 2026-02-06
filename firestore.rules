@@ -3,9 +3,8 @@
  *
  * ## Core Philosophy
  * This ruleset enforces a simple, role-based security model for a single internal team.
- * Data access is primarily controlled by authentication state and a global admin role.
- * - **Admin Identification**: A user is an admin if their email matches a specific value.
- * - **Team Access**: All authenticated users are considered part of the team and can read/write operational data.
+ * Any authenticated user can create, edit, and delete business data. A comprehensive
+ * audit trail is kept in the `activityLogs` collection.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -23,9 +22,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * A user is an admin if their verified email matches the hardcoded admin email.
-     */
     function isAdmin() {
       return isSignedIn() &&
              request.auth.token.email_verified &&
@@ -36,9 +32,11 @@ service cloud.firestore {
     // Global & Settings Collections
     // =====================================================================
 
+    match /users {
+      allow list: if isAdmin();
+    }
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
       allow create: if isOwner(userId);
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if isAdmin();
@@ -46,78 +44,106 @@ service cloud.firestore {
 
     match /dashboardStats/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      // Allow user to create their own stats doc on first visit.
-      // Updates should be handled by a backend process.
       allow create: if isOwner(userId);
       allow update, delete: if false;
     }
     
     match /settings/ai {
         allow get: if isSignedIn();
-        // Allow admin to create/update the AI settings document.
         allow write: if isAdmin();
     }
 
     match /usageStats/{month} {
-        allow get: if isSignedIn(); // Allow any team member to read for UI purposes
-        allow write: if false; // Written by backend functions only
+        allow get: if isSignedIn();
+        allow write: if false;
     }
 
     match /whatsappEvents/{eventId} {
-      // For server-side debugging only. No client access.
-      allow read, write: if false;
+      allow read, write: if false; // Server-side debugging only
     }
     
+    match /activityLogs {
+      allow list: if isSignedIn();
+    }
     match /activityLogs/{logId} {
-      allow read, create: if isSignedIn();
+      allow get, create: if isSignedIn();
       allow update, delete: if false; // Logs are immutable
     }
-
-    // =====================================================================
-    // Top-Level Business Data Collections (Single-Tenant)
-    // =====================================================================
-
-    match /companies/{companyId} {
-      allow read, create, update, delete: if isSignedIn();
+    
+    match /activity_logs {
+        allow list: if isSignedIn();
+    }
+    match /activity_logs/{logId} {
+      allow get: if isSignedIn();
+      allow create, update, delete: if false; // Append-only from backend
     }
 
+    // =====================================================================
+    // Top-Level Business Data Collections
+    // =====================================================================
+
+    match /companies {
+      allow list: if isSignedIn();
+    }
+    match /companies/{companyId} {
+      allow get, create, update, delete: if isSignedIn();
+    }
+
+    match /contacts {
+      allow list: if isSignedIn();
+    }
     match /contacts/{contactId} {
-       allow read, create, update, delete: if isSignedIn();
+       allow get, create, update, delete: if isSignedIn();
     }
     
+    match /products {
+       allow list: if isSignedIn();
+    }
     match /products/{productId} {
-       allow read, list, create, update: if isSignedIn();
+       allow get, create, update: if isSignedIn();
        allow delete: if isAdmin();
     }
     
-     match /activity_logs/{logId} {
-      allow get, list: if isSignedIn();
-      // Logs are append-only from the backend.
-      allow create, update, delete: if false;
+    match /notes {
+       allow list: if isSignedIn();
     }
-    
     match /notes/{noteId} {
-       allow read, list, create, update, delete: if isSignedIn();
+       allow get, create, update, delete: if isSignedIn();
     }
     
+    match /leads {
+       allow list: if isSignedIn();
+    }
     match /leads/{leadId} {
-      allow read, create, update, delete: if isSignedIn();
+      allow get, create, update, delete: if isSignedIn();
     }
     
-     match /exportOrders/{orderId} {
-      allow read, create, update, delete: if isSignedIn();
+    match /exportOrders {
+      allow list: if isSignedIn();
+    }
+    match /exportOrders/{orderId} {
+      allow get, create, update, delete: if isSignedIn();
 
+      match /lineItems {
+        allow list: if isSignedIn();
+      }
       match /lineItems/{lineItemId} {
-         allow read, list, create, update, delete: if isSignedIn();
+         allow get, create, update, delete: if isSignedIn();
       }
     }
     
-     match /tasks/{taskId} {
-      allow read, create, update, delete: if isSignedIn();
+    match /tasks {
+      allow list: if isSignedIn();
+    }
+    match /tasks/{taskId} {
+      allow get, create, update, delete: if isSignedIn();
     }
     
-     match /documents/{documentId} {
-      allow read, create, update, delete: if isSignedIn();
+    match /documents {
+      allow list: if isSignedIn();
+    }
+    match /documents/{documentId} {
+      allow get, create, update, delete: if isSignedIn();
     }
   }
 }
