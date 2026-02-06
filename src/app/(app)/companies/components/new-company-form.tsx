@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { runTransaction, doc, collection, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';
+import { runTransaction, doc, collection, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,7 +22,7 @@ import { LoaderCircle } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Company name must be at least 2 characters.'),
-  website: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+  website: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
