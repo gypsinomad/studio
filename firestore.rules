@@ -3,7 +3,7 @@
  *
  * ## Core Philosophy
  * This ruleset enforces a simple, role-based security model for a single internal team.
- * Any authenticated user can create, edit, and delete business data. A comprehensive
+ * All authenticated users can create, edit, and delete business data. A comprehensive
  * audit trail is kept in the `activityLogs` collection.
  */
 rules_version = '2';
@@ -32,11 +32,9 @@ service cloud.firestore {
     // Global & Settings Collections
     // =====================================================================
 
-    match /users {
-      allow list: if isAdmin();
-    }
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId);
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if isAdmin();
@@ -58,92 +56,56 @@ service cloud.firestore {
         allow write: if false;
     }
 
-    match /whatsappEvents/{eventId} {
+    match /whatsappEvents/{eventId=**} {
       allow read, write: if false; // Server-side debugging only
     }
     
-    match /activityLogs {
-      allow list: if isSignedIn();
-    }
-    match /activityLogs/{logId} {
-      allow get, create: if isSignedIn();
-      allow update, delete: if false; // Logs are immutable
+    // Audit Trail - append-only for all users
+    match /activityLogs/{logId=**} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if false;
     }
     
-    match /activity_logs {
-        allow list: if isSignedIn();
-    }
-    match /activity_logs/{logId} {
-      allow get: if isSignedIn();
-      allow create, update, delete: if false; // Append-only from backend
+    // UI Activity Feed - backend writes, client reads
+    match /activity_logs/{logId=**} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     // =====================================================================
-    // Top-Level Business Data Collections
+    // Top-Level Business Data Collections - All users can CRUD
     // =====================================================================
 
-    match /companies {
-      allow list: if isSignedIn();
-    }
-    match /companies/{companyId} {
-      allow get, create, update, delete: if isSignedIn();
+    match /companies/{companyId=**} {
+      allow read, write: if isSignedIn();
     }
 
-    match /contacts {
-      allow list: if isSignedIn();
-    }
-    match /contacts/{contactId} {
-       allow get, create, update, delete: if isSignedIn();
+    match /contacts/{contactId=**} {
+       allow read, write: if isSignedIn();
     }
     
-    match /products {
-       allow list: if isSignedIn();
-    }
-    match /products/{productId} {
-       allow get, create, update: if isSignedIn();
-       allow delete: if isAdmin();
+    match /products/{productId=**} {
+       allow read, write: if isSignedIn();
     }
     
-    match /notes {
-       allow list: if isSignedIn();
-    }
-    match /notes/{noteId} {
-       allow get, create, update, delete: if isSignedIn();
+    match /notes/{noteId=**} {
+       allow read, write: if isSignedIn();
     }
     
-    match /leads {
-       allow list: if isSignedIn();
-    }
-    match /leads/{leadId} {
-      allow get, create, update, delete: if isSignedIn();
+    match /leads/{leadId=**} {
+      allow read, write: if isSignedIn();
     }
     
-    match /exportOrders {
-      allow list: if isSignedIn();
-    }
-    match /exportOrders/{orderId} {
-      allow get, create, update, delete: if isSignedIn();
-
-      match /lineItems {
-        allow list: if isSignedIn();
-      }
-      match /lineItems/{lineItemId} {
-         allow get, create, update, delete: if isSignedIn();
-      }
+    match /exportOrders/{orderId=**} {
+      allow read, write: if isSignedIn();
     }
     
-    match /tasks {
-      allow list: if isSignedIn();
-    }
-    match /tasks/{taskId} {
-      allow get, create, update, delete: if isSignedIn();
+    match /tasks/{taskId=**} {
+      allow read, write: if isSignedIn();
     }
     
-    match /documents {
-      allow list: if isSignedIn();
-    }
-    match /documents/{documentId} {
-      allow get, create, update, delete: if isSignedIn();
+    match /documents/{documentId=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
