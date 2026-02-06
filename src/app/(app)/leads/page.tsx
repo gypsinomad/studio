@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -7,8 +8,11 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { LeadsTable } from './components/leads-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentCompany } from '@/hooks/use-current-company';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { NewLeadForm } from './components/new-lead-form';
 
 export default function LeadsPage() {
+  const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
   const firestore = useFirestore();
   const { user } = useUser();
   const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
@@ -41,7 +45,7 @@ export default function LeadsPage() {
         title="Leads"
         description="Manage all your potential customers and track their progress."
       >
-        <Button>
+        <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId || isLoading}>
           <PlusCircle className="mr-2" />
           New Lead
         </Button>
@@ -56,6 +60,18 @@ export default function LeadsPage() {
       )}
 
       {!isLoading && leads && <LeadsTable data={leads} />}
+
+      <Dialog open={isNewLeadOpen} onOpenChange={setIsNewLeadOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a New Lead</DialogTitle>
+            <DialogDescription>
+              Enter the details below to add a new lead to your current company.
+            </DialogDescription>
+          </DialogHeader>
+          <NewLeadForm onSuccess={() => setIsNewLeadOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
