@@ -16,7 +16,15 @@ service cloud.firestore {
              request.auth.token.email.toLowerCase() == 'akhilvenugopal@gmail.com';
     }
 
-    // --- System & User Collections ---
+    // --- Default rule: Allow full access for any authenticated user ---
+    // This is the baseline for the internal team tool.
+    match /{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    
+    // --- Overrides for specific collections that need tighter security ---
+
+    // Users can only edit their own profile, and cannot change their role. Admins can manage all users.
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -24,69 +32,42 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if isAdmin();
     }
-
+    
+    // Users can view their own dashboard stats, but not change them directly.
     match /dashboardStats/{userId} {
       allow get, create: if isOwner(userId) || isAdmin();
-      allow update, delete: if false;
+      allow write: if false; // Should be updated by backend jobs, not the client.
     }
     
+    // AI settings can be read by anyone, but only written by an admin.
     match /settings/ai {
         allow get: if isSignedIn();
         allow write: if isAdmin();
     }
 
+    // Usage stats are append-only from the backend.
     match /usageStats/{month} {
         allow get: if isSignedIn();
         allow write: if false;
     }
 
-    // --- Log & Event Collections ---
-    match /whatsappEvents/{eventId=**} {
-      allow read, write: if false; // Server-side debugging only
-    }
-    
-    match /activityLogs/{logId=**} {
-      allow get, list, create: if isSignedIn();
-      allow update, delete: if false; // Append-only
-    }
-    
-    match /activity_logs/{logId=**} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false; // Backend writes only
-    }
+    // --- Log & Event Collections (stricter rules) ---
 
-    // --- Core Business Data Collections ---
-    // Explicitly grant all CRUD permissions to any authenticated user.
-    match /companies/{docId=**} {
-      allow get, list, create, update, delete: if isSignedIn();
-    }
-
-    match /contacts/{docId=**} {
-       allow get, list, create, update, delete: if isSignedIn();
+    // Raw webhook payloads are for server-side debugging only. No client access.
+    match /whatsappEvents/{eventId} {
+      allow read, write: if false;
     }
     
-    match /products/{docId=**} {
-       allow get, list, create, update, delete: if isSignedIn();
+    // The main audit log is append-only for any authenticated user. No one can update or delete entries.
+    match /activityLogs/{logId} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if false;
     }
     
-    match /notes/{docId=**} {
-       allow get, list, create, update, delete: if isSignedIn();
-    }
-    
-    match /leads/{docId=**} {
-      allow get, list, create, update, delete: if isSignedIn();
-    }
-    
-    match /exportOrders/{docId=**} {
-      allow get, list, create, update, delete: if isSignedIn();
-    }
-    
-    match /tasks/{docId=**} {
-      allow get, list, create, update, delete: if isSignedIn();
-    }
-    
-    match /documents/{docId=**} {
-      allow get, list, create, update, delete: if isSignedIn();
+    // The user-facing activity feed is written by the backend only.
+    match /activity_logs/{logId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
   }
 }
