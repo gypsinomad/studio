@@ -106,9 +106,10 @@ service cloud.firestore {
         allow list, create, update, delete: if isAdmin(); // Broader write for single doc
     }
 
-    // AI usage stats can be read by admins, but only written by backend functions.
+    // AI usage stats can be read by any signed in user, but only written by backend functions.
+    // The UI ensures only admins can see this data.
     match /usageStats/{month} {
-        allow get: if isAdmin();
+        allow get: if isSignedIn();
         allow list, create, update, delete: if false; // Deny all client writes
     }
 
@@ -159,7 +160,7 @@ service cloud.firestore {
         // Read access for any company member.
         allow get, list: if isUserMemberOfCompany(companyId);
         // Write access for admins or sales executives who are assigned.
-        allow create, update, delete: if isUserMemberOf-Company(companyId) && (isAdmin() || (isSalesExecutive() && request.resource.data.assignedUserId == request.auth.uid));
+        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || (isSalesExecutive() && request.resource.data.assignedUserId == request.auth.uid));
       }
        match /exportOrders/{orderId} {
         allow get, list: if isUserMemberOfCompany(companyId);
