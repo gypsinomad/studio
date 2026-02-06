@@ -14,6 +14,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
+import type { ExportOrderStage } from '@/lib/types';
 
 const chartConfig = {
   orders: {
@@ -26,19 +27,19 @@ interface OrdersByStageChartProps {
     data: { name: string, value: number }[];
 }
 
-const stageLabels: Record<string, string> = {
-    leadReceived: "Lead",
-    quotationSent: "Quoted",
-    orderConfirmed: "Confirmed",
-    exportDocumentation: "Docs",
-    shipmentReady: "Ready",
-    shippedDelivered: "Shipped",
+const stageLabels: Record<ExportOrderStage, string> = {
+    enquiry: "Enquiry",
+    proformaIssued: "Proforma",
+    advanceReceived: "Advance",
+    production: "Production",
+    readyToShip: "Ready",
+    shipped: "Shipped",
+    closed: "Closed",
     cancelled: "Cancelled",
-    lostNoResponse: "Lost"
 }
 
 export function OrdersByStageChart({ data }: OrdersByStageChartProps) {
-    const chartData = data.map(item => ({...item, name: stageLabels[item.name] || item.name}));
+    const chartData = data.map(item => ({...item, name: stageLabels[item.name as ExportOrderStage] || item.name}));
   return (
     <Card>
       <CardHeader>

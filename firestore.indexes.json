@@ -17,6 +17,13 @@
       ]
     },
     {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uploadedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "activity_logs",
       "queryScope": "COLLECTION",
       "fields": [
