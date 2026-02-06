@@ -1,7 +1,7 @@
 'use client';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Upload, PlusCircle } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import type { Document as DocumentType } from '@/lib/types';
 import { format } from 'date-fns';
+import { useCurrentCompany } from '@/hooks/use-current-company';
 
 function DocumentsTable({ data }: { data: DocumentType[] }) {
    if (data.length === 0) {
@@ -60,13 +61,19 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
 export default function DocumentsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const documentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'documents'), where('uploadedBy', '==', user.uid));
-  }, [firestore, user]);
+    if (!firestore || !user || !companyId) return null;
+    return query(
+      collection(firestore, 'companies', companyId, 'documents'), 
+      where('uploadedBy', '==', user.uid)
+    );
+  }, [firestore, user, companyId]);
 
-  const { data: documents, isLoading } = useCollection(documentsQuery);
+  const { data: documents, isLoading: areDocumentsLoading } = useCollection(documentsQuery);
+
+  const isLoading = isCompanyLoading || areDocumentsLoading;
 
   return (
     <>

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Task, TaskStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useCurrentCompany } from '@/hooks/use-current-company';
 
 
 const statusColors: Record<TaskStatus, string> = {
@@ -70,13 +71,19 @@ function TasksTable({ data }: { data: Task[] }) {
 export default function TasksPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const tasksQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'tasks'), where('assigneeId', '==', user.uid));
-  }, [firestore, user]);
+    if (!firestore || !user || !companyId) return null;
+    return query(
+      collection(firestore, 'companies', companyId, 'tasks'), 
+      where('assigneeId', '==', user.uid)
+    );
+  }, [firestore, user, companyId]);
 
-  const { data: tasks, isLoading } = useCollection(tasksQuery);
+  const { data: tasks, isLoading: areTasksLoading } = useCollection(tasksQuery);
+
+  const isLoading = isCompanyLoading || areTasksLoading;
 
   return (
     <>

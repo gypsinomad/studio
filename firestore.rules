@@ -121,24 +121,27 @@ service cloud.firestore {
       match /leads/{leadId} {
         // Allow read if admin, or if user is assigned to the lead.
         allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
-        // Only admins can list all leads in a company. Users query for their own.
-        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        // Allow list for any company member. Client queries MUST be filtered.
+        allow list: if isUserMemberOfCompany(companyId);
         // Allow create/update/delete if admin, or if user is assigned.
         allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assignedUserId == request.auth.uid);
       }
        match /exportOrders/{orderId} {
         allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
-        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        // Allow list for any company member. Client queries MUST be filtered.
+        allow list: if isUserMemberOfCompany(companyId);
         allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assignedUserId == request.auth.uid);
       }
        match /tasks/{taskId} {
         allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assigneeId == request.auth.uid);
-        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        // Allow list for any company member. Client queries MUST be filtered.
+        allow list: if isUserMemberOfCompany(companyId);
         allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assigneeId == request.auth.uid);
       }
        match /documents/{documentId} {
         allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.uploadedBy == request.auth.uid);
-        allow list: if isUserMemberOfCompany(companyId) && isAdmin();
+        // Allow list for any company member. Client queries MUST be filtered.
+        allow list: if isUserMemberOfCompany(companyId);
         allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.uploadedBy == request.auth.uid);
       }
     }
