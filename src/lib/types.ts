@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'admin' | 'salesExecutive';
 
 export interface User {
@@ -40,22 +41,24 @@ export interface ExportOrder {
   title: string;
   stage: ExportOrderStage;
   contactId: string;
-  productType: string;
   destinationCountry: string;
   incoterms: string;
-  hsCode: string;
   totalValue: number;
   paymentTerms: string;
-  containerType: string;
-  portOfLoading: string;
-  expectedShipmentDate: any; // Date or Firestore Timestamp
-  fssaiLicenseNumber?: string;
-  icegateStatus?: string;
-  certificateRequirements?: string[];
   assignedUserId: string;
   createdAt: any; // Date or Firestore Timestamp
   aiValidation?: string;
 }
+
+export interface LineItem {
+  id?: string;
+  productName: string;
+  quantity: number; // in kg
+  boxes: number;
+  grossWeightPerBox: number; // in kg
+  netWeightPerBox: number; // in kg
+}
+
 
 export interface Company {
   id?: string;

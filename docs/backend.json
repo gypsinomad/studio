@@ -151,10 +151,6 @@
           "type": "string",
           "description": "Reference to the primary Contact for this order."
         },
-        "productType": {
-          "type": "string",
-          "description": "Type of product being exported."
-        },
         "destinationCountry": {
           "type": "string",
           "description": "Destination country for the export order."
@@ -163,10 +159,6 @@
           "type": "string",
           "description": "Incoterms for the export order."
         },
-        "hsCode": {
-          "type": "string",
-          "description": "HS code for the export order."
-        },
         "totalValue": {
           "type": "number",
           "description": "Total value of the export order in USD."
@@ -174,34 +166,6 @@
         "paymentTerms": {
           "type": "string",
           "description": "Payment terms for the export order."
-        },
-        "containerType": {
-          "type": "string",
-          "description": "Container type for the export order."
-        },
-        "portOfLoading": {
-          "type": "string",
-          "description": "Port of loading for the export order."
-        },
-        "expectedShipmentDate": {
-          "type": "string",
-          "description": "Expected shipment date for the export order.",
-          "format": "date-time"
-        },
-        "fssaiLicenseNumber": {
-          "type": "string",
-          "description": "FSSAI license number for the export order."
-        },
-        "icegateStatus": {
-          "type": "string",
-          "description": "Icegate status for the export order."
-        },
-        "certificateRequirements": {
-          "type": "array",
-          "description": "Certificate requirements for the export order.",
-          "items": {
-            "type": "string"
-          }
         },
         "assignedUserId": {
           "type": "string",
@@ -221,18 +185,42 @@
         "title",
         "stage",
         "contactId",
-        "productType",
         "destinationCountry",
         "incoterms",
-        "hsCode",
         "totalValue",
         "paymentTerms",
-        "containerType",
-        "portOfLoading",
-        "expectedShipmentDate",
         "assignedUserId",
         "createdAt"
       ]
+    },
+    "LineItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LineItem",
+      "type": "object",
+      "description": "Represents a single line item within an ExportOrder.",
+      "properties": {
+        "productName": {
+          "type": "string",
+          "description": "Name of the product for this line item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Total quantity of the product in kg."
+        },
+        "boxes": {
+          "type": "number",
+          "description": "Number of boxes for this product."
+        },
+        "grossWeightPerBox": {
+          "type": "number",
+          "description": "Gross weight per box in kg."
+        },
+        "netWeightPerBox": {
+          "type": "number",
+          "description": "Net weight of the produce per box in kg."
+        }
+      },
+      "required": ["productName", "quantity", "boxes", "grossWeightPerBox", "netWeightPerBox"]
     },
     "Company": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -567,6 +555,13 @@
         }
       },
       {
+        "path": "/companies/{companyId}/exportOrders/{exportOrderId}/lineItems/{lineItemId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/LineItem" },
+          "description": "Stores the individual line items for an export order."
+        }
+      },
+      {
         "path": "/companies/{companyId}/products/{productId}",
         "definition": {
           "schema": { "$ref": "#/entities/Product" },
@@ -605,5 +600,3 @@
     "reasoning": "The Firestore structure is designed for multi-tenancy. All primary business data is nested within a `/companies/{companyId}` collection. A user's access to a company's data is determined by checking if the `companyId` is in the `companyIds` array on their user profile (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. User profiles are kept in a top-level collection for authentication purposes."
   }
 }
-
-    

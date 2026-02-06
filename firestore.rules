@@ -131,6 +131,11 @@ service cloud.firestore {
         // Allow list for any company member. Client queries MUST be filtered.
         allow list: if isUserMemberOfCompany(companyId);
         allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assignedUserId == request.auth.uid);
+
+        // Rule for the lineItems subcollection
+        match /lineItems/{lineItemId} {
+           allow get, list, create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || get(/databases/$(database)/documents/companies/$(companyId)/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid);
+        }
       }
        match /tasks/{taskId} {
         allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assigneeId == request.auth.uid);
