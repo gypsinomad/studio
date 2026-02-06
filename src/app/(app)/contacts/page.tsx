@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Info } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { ContactsTable } from './components/contacts-table';
@@ -11,12 +12,13 @@ import { useCurrentCompany } from '@/hooks/use-current-company';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { NewContactForm } from './components/new-contact-form';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function ContactsPage() {
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const firestore = useFirestore();
-  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
-  const { isSales, isAdmin, isLoading: isUserLoading } = useCurrentUser();
+  const { companyId, companyIds, isLoading: isCompanyLoading } = useCurrentCompany();
+  const { isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
 
   const contactsQuery = useMemoFirebase(() => {
     if (!firestore || !companyId) return null;
@@ -26,7 +28,7 @@ export default function ContactsPage() {
   const { data: contacts, isLoading: areContactsLoading } = useCollection(contactsQuery);
 
   const isLoading = isCompanyLoading || areContactsLoading || isUserLoading;
-  const canCreate = (isSales || isAdmin) && !!companyId;
+  const canCreate = !!companyId && isAuthenticated;
 
   return (
     <>
@@ -39,6 +41,17 @@ export default function ContactsPage() {
           New Contact
         </Button>
       </PageHeader>
+
+      {!isLoading && companyIds.length === 0 && isAuthenticated && (
+         <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Create a Company to Get Started</AlertTitle>
+            <AlertDescription>
+                You need to create or be added to a company before you can manage contacts.
+                Go to the <Link href="/companies" className="font-bold hover:underline">Companies page</Link> to create your first one.
+            </AlertDescription>
+         </Alert>
+      )}
       
       {isLoading && (
          <div className="space-y-2">

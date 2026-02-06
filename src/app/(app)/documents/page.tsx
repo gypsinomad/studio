@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Upload, Info } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { collection, query, where } from 'firebase/firestore';
@@ -20,6 +21,7 @@ import { format } from 'date-fns';
 import { useCurrentCompany } from '@/hooks/use-current-company';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { UploadDocumentForm } from './components/upload-document-form';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function DocumentsTable({ data }: { data: DocumentType[] }) {
    if (data.length === 0) {
@@ -65,8 +67,8 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
 export default function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const firestore = useFirestore();
-  const { user, userProfile, isAdmin, isSales, isLoading: isUserLoading } = useCurrentUser();
-  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
+  const { user, userProfile, isAdmin, isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
+  const { companyId, companyIds, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const documentsQuery = useMemoFirebase(() => {
     if (!firestore || !user || !companyId || !userProfile) return null;
@@ -87,7 +89,7 @@ export default function DocumentsPage() {
   const { data: documents, isLoading: areDocumentsLoading } = useCollection(documentsQuery);
 
   const isLoading = isCompanyLoading || isUserLoading || areDocumentsLoading;
-  const canUpload = (isAdmin || isSales) && !!companyId;
+  const canCreate = !!companyId && isAuthenticated;
 
   return (
     <>
@@ -95,11 +97,22 @@ export default function DocumentsPage() {
         title="Documents"
         description="Manage all documents related to your leads and orders."
       >
-        <Button onClick={() => setIsUploadOpen(true)} disabled={!canUpload}>
+        <Button onClick={() => setIsUploadOpen(true)} disabled={!canCreate}>
           <Upload className="mr-2" />
           Upload Document
         </Button>
       </PageHeader>
+
+       {!isLoading && companyIds.length === 0 && isAuthenticated && (
+         <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Create a Company to Get Started</AlertTitle>
+            <AlertDescription>
+                You need to create or be added to a company before you can manage documents.
+                Go to the <Link href="/companies" className="font-bold hover:underline">Companies page</Link> to create your first one.
+            </AlertDescription>
+         </Alert>
+      )}
 
       {isLoading && (
         <div className="space-y-2">

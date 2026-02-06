@@ -84,14 +84,12 @@ service cloud.firestore {
     }
     
     // AI settings can be read by any signed-in user, but only written by the admin.
-    // The UI ensures only admins can see this data.
     match /settings/ai {
         allow get: if isSignedIn();
         allow write: if isAdmin();
     }
 
     // AI usage stats can be read by any signed-in user, but only written by backend functions.
-    // The UI ensures only admins can see this data.
     match /usageStats/{month} {
         allow get: if isSignedIn();
         allow write: if false; 
@@ -113,20 +111,18 @@ service cloud.firestore {
       allow get: if isUserMemberOfCompany(companyId);
       // Listing companies is not based on membership; queries should handle this.
       allow list: if isSignedIn(); 
-      // Only admins can create/delete companies. Any member can update (e.g. company name).
-      allow create: if isAdmin();
+      // Any authenticated user can create a company. Only members can update. Admins can delete.
+      allow create: if isSignedIn();
       allow update: if isUserMemberOfCompany(companyId);
       allow delete: if isAdmin();
 
-
-      // === Generic read/write rule for simple collections ===
       match /contacts/{contactId} {
         allow read: if isUserMemberOfCompany(companyId);
-        allow write: if isUserMemberOfCompany(companyId) && (isAdmin() || isSalesExecutive());
+        allow write: if isUserMemberOfCompany(companyId);
       }
       match /products/{productId} {
          allow read: if isUserMemberOfCompany(companyId);
-         allow write: if isUserMemberOfCompany(companyId) && (isAdmin() || isSalesExecutive());
+         allow write: if isUserMemberOfCompany(companyId);
       }
        match /activity_logs/{logId} {
         allow get, list: if isUserMemberOfCompany(companyId);
@@ -135,34 +131,33 @@ service cloud.firestore {
       }
       match /notes/{noteId} {
          allow read: if isUserMemberOfCompany(companyId);
-         allow write: if isUserMemberOfCompany(companyId) && (isAdmin() || isSalesExecutive());
+         allow write: if isUserMemberOfCompany(companyId);
       }
-
-
-      // === Granular rules for assignment-based collections ===
       match /leads/{leadId} {
-        // Read access for any company member.
-        allow get, list: if isUserMemberOfCompany(companyId);
-        // Write access for admins or sales executives who are assigned.
-        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || (isSalesExecutive() && request.resource.data.assignedUserId == request.auth.uid));
+        allow read, list: if isUserMemberOfCompany(companyId);
+        allow create, update: if isUserMemberOfCompany(companyId);
+        allow delete: if isAdmin();
       }
        match /exportOrders/{orderId} {
-        allow get, list: if isUserMemberOfCompany(companyId);
-        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || (isSalesExecutive() && request.resource.data.assignedUserId == request.auth.uid));
+        allow read, list: if isUserMemberOfCompany(companyId);
+        allow create, update: if isUserMemberOfCompany(companyId);
+        allow delete: if isAdmin();
 
         // Rule for the lineItems subcollection
         match /lineItems/{lineItemId} {
            allow read: if isUserMemberOfCompany(companyId);
-           allow write: if isUserMemberOfCompany(companyId) && (isAdmin() || (isSalesExecutive() && get(/databases/$(database)/documents/companies/$(companyId)/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid));
+           allow write: if isUserMemberOfCompany(companyId);
         }
       }
        match /tasks/{taskId} {
-        allow get, list: if isUserMemberOfCompany(companyId);
-        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || (isSalesExecutive() && request.resource.data.assigneeId == request.auth.uid));
+        allow read, list: if isUserMemberOfCompany(companyId);
+        allow create, update: if isUserMemberOfCompany(companyId);
+        allow delete: if isAdmin();
       }
        match /documents/{documentId} {
-        allow get, list: if isUserMemberOfCompany(companyId);
-        allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || (isSalesExecutive() && request.resource.data.uploadedBy == request.auth.uid));
+        allow read, list: if isUserMemberOfCompany(companyId);
+        allow create, update: if isUserMemberOfCompany(companyId);
+        allow delete: if isAdmin();
       }
     }
   }

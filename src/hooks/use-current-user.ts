@@ -9,13 +9,9 @@ import { User as FirebaseUser } from 'firebase/auth';
 interface UseCurrentUserResult {
   user: FirebaseUser | null;
   userProfile: User | null;
-  role: UserRole | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  isSales: boolean;
-  isViewer: boolean;
-  canCreateLead: boolean;
 }
 
 const ADMIN_EMAIL = 'akhilvenugopal@gmail.com';
@@ -49,7 +45,7 @@ export function useCurrentUser(): UseCurrentUserResult {
         setIsCreatingProfile(true);
         if (!userDocRef) return;
 
-        // The user's role is determined by email for admin, otherwise defaults to 'salesExecutive'.
+        // New users default to salesExecutive to allow them to create entities.
         const initialRole: UserRole = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'salesExecutive';
 
         const newUserProfileData: Omit<User, 'id'> = {
@@ -82,24 +78,11 @@ export function useCurrentUser(): UseCurrentUserResult {
   // Admin status is definitively determined by the email address.
   const isAdmin = isAuthenticated && firebaseUser.email?.toLowerCase() === ADMIN_EMAIL;
   
-  // The role is 'admin' if the email matches, otherwise it's the role from their Firestore profile.
-  const role = isAdmin ? 'admin' : (userProfile?.role || null);
-  
-  const isSales = role === 'salesExecutive';
-  const isViewer = role === 'viewer';
-  
-  // Define who can create leads based on their role.
-  const canCreateLead = isAdmin || isSales;
-
   return {
     user: firebaseUser,
     userProfile,
-    role,
     isLoading,
     isAuthenticated,
     isAdmin,
-    isSales,
-    isViewer,
-    canCreateLead,
   };
 }
