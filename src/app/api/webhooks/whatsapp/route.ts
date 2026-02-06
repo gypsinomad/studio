@@ -1,9 +1,12 @@
 // src/app/api/webhooks/whatsapp/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/firebase/admin';
-import type { Lead, Task, Contact, WhatsappEvent } from '@/lib/types';
+import type { Lead, Task, WhatsappEvent } from '@/lib/types';
 import { FieldValue } from 'firebase-admin/firestore';
 import { addDays } from 'date-fns';
+import { validateAndStandardizeLeadData } from '@/ai/flows/validate-and-standardize-lead-data';
+import type { ValidateAndStandardizeLeadDataInput } from '@/ai/flows/validate-and-standardize-lead-data';
+
 
 /**
  * Finds a default user and company to assign a new lead to.
@@ -42,13 +45,13 @@ export async function POST(request: NextRequest) {
     const rawPayload = await request.json();
     const eventType = rawPayload.entry?.[0]?.changes?.[0]?.field;
     
-    // Log every event for debugging purposes
+    // Log every event for debugging purposes. We will update this log later with more context.
     const logRef = adminDb.collection('whatsappEvents').doc();
     await logRef.set({
         rawPayload: rawPayload,
         processedAt: FieldValue.serverTimestamp(),
         eventType: eventType || 'unknown',
-    } as Omit<WhatsappEvent, 'id'>);
+    } as Omit<WhatsappEvent, 'id' | 'leadId' | 'contactId' | 'error'>);
 
     // We only care about new messages
     if (eventType !== 'messages') {
@@ -82,18 +85,44 @@ export async function POST(request: NextRequest) {
 
         const assignment = await getDefaultLeadAssignment();
         if (!assignment) {
+            await logRef.update({ error: 'CRM is not configured to accept new leads.' });
             return NextResponse.json({ success: false, error: 'CRM is not configured to accept new leads.' }, { status: 500 });
         }
         
-        const finalLeadPayload: Omit<Lead, 'id'> = {
+        const leadInput: ValidateAndStandardizeLeadDataInput = {
             fullName: userName,
-            companyName: userName, // Defaulting company name to user's name
-            email: `${userPhone}@whatsapp.spiceroute.crm`, // Placeholder email
+            companyName: userName,
+            email: `${userPhone}@whatsapp.spiceroute.crm`,
             phone: userPhone,
             whatsappNumber: userPhone,
             source: 'whatsapp',
-            productInterest: 'N/A',
-            destinationCountry: 'N/A',
+            productInterest: 'Not specified',
+            destinationCountry: 'Not specified',
+            incotermsPreference: 'Not specified',
+        };
+
+        const result = await validateAndStandardizeLeadData(leadInput);
+        console.log(`WhatsApp Webhook: AI standardization result for ${userPhone}:`, JSON.stringify(result, null, 2));
+
+        let leadDataToSave;
+        if (result.aiUsed && result.aiData) {
+            leadDataToSave = result.aiData;
+        } else {
+            console.log(`WhatsApp Webhook: AI not used for ${userPhone}. Reason: ${result.aiReason}. Saving raw data.`);
+            leadDataToSave = {
+                fullName: leadInput.fullName,
+                companyName: leadInput.companyName,
+                email: leadInput.email,
+                phone: leadInput.phone,
+                whatsappNumber: leadInput.whatsappNumber,
+                destinationCountry: leadInput.destinationCountry,
+                productInterest: leadInput.productInterest,
+            };
+        }
+
+        const finalLeadPayload: Omit<Lead, 'id'> = {
+            ...leadDataToSave,
+            source: 'whatsapp',
             incotermsPreference: 'N/A',
             status: 'new',
             assignedUserId: assignment.userId,
@@ -103,17 +132,54 @@ export async function POST(request: NextRequest) {
             whatsappThreadId: messageInfo.id,
         };
 
-        const leadRef = await adminDb.collection('companies').doc(assignment.companyId).collection('leads').add(finalLeadPayload);
-        
-        await adminDb.doc(logRef.path).update({ leadId: leadRef.id });
+        const leadsCollection = adminDb.collection('companies').doc(assignment.companyId).collection('leads');
+        const leadRef = await leadsCollection.add(finalLeadPayload);
 
-        console.log(`WhatsApp Webhook: Created new lead ${leadRef.id} for ${userPhone}.`);
-        return NextResponse.json({ success: true, message: 'Lead created successfully.', leadId: leadRef.id });
+        const batch = adminDb.batch();
+
+        // Create an activity log entry
+        const activityLog = {
+            icon: 'Sprout',
+            title: `New WhatsApp Lead: ${finalLeadPayload.fullName}`,
+            description: `From ${userPhone}, assigned to ${assignment.userName}.`,
+            timestamp: FieldValue.serverTimestamp()
+        };
+        const activityRef = adminDb.collection('companies').doc(assignment.companyId).collection('activity_logs').doc();
+        batch.set(activityRef, activityLog);
+    
+        // Create a follow-up task for the new lead
+        const taskPayload: Omit<Task, 'id'> = {
+            title: `Follow up with new WhatsApp lead: ${finalLeadPayload.fullName}`,
+            status: 'open',
+            dueDate: addDays(new Date(), 2), // Due in 2 days
+            assigneeId: assignment.userId,
+            relatedLeadId: leadRef.id,
+            createdAt: FieldValue.serverTimestamp()
+        };
+        const taskRef = adminDb.collection('companies').doc(assignment.companyId).collection('tasks').doc();
+        batch.set(taskRef, taskPayload);
+        
+        await batch.commit();
+
+        await logRef.update({
+            leadId: leadRef.id,
+            aiUsed: result.aiUsed,
+            aiReason: result.aiReason
+        });
+        
+        console.log(`WhatsApp Webhook: Created new lead ${leadRef.id} and automations for ${userPhone}.`);
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Lead created successfully.', 
+            leadId: leadRef.id, 
+            aiUsed: result.aiUsed, 
+            aiReason: result.aiReason 
+        });
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         console.error('WhatsApp Webhook Error:', errorMessage, error);
-        await adminDb.doc(logRef.path).update({ error: errorMessage });
+        await logRef.update({ error: errorMessage });
         return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
     }
 }
