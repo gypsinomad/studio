@@ -29,6 +29,20 @@
       "fields": [
         { "fieldPath": "role", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "leads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assignedUserId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "exportOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assignedUserId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

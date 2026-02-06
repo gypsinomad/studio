@@ -509,6 +509,42 @@
         "description",
         "timestamp"
       ]
+    },
+    "DashboardStats": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DashboardStats",
+      "type": "object",
+      "description": "Pre-aggregated statistics for a user's dashboard for fast reads.",
+      "properties": {
+        "totalLeads": { "type": "number" },
+        "activeExportOrders": { "type": "number" },
+        "leadsByStatus": {
+            "type": "object",
+            "properties": {
+                "new": { "type": "number" },
+                "contacted": { "type": "number" },
+                "qualified": { "type": "number" },
+                "quoted": { "type": "number" },
+                "converted": { "type": "number" },
+                "lost": { "type": "number" }
+            }
+        },
+        "exportOrdersByStage": {
+            "type": "object",
+            "properties": {
+                "leadReceived": { "type": "number" },
+                "quotationSent": { "type": "number" },
+                "orderConfirmed": { "type": "number" },
+                "exportDocumentation": { "type": "number" },
+                "shipmentReady": { "type": "number" },
+                "shippedDelivered": { "type": "number" },
+                "cancelled": { "type": "number" },
+                "lostNoResponse": { "type": "number" }
+            }
+        },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["totalLeads", "activeExportOrders", "leadsByStatus", "exportOrdersByStage", "lastUpdatedAt"]
     }
   },
   "auth": {
@@ -524,6 +560,13 @@
         "definition": {
           "schema": { "$ref": "#/entities/User" },
           "description": "Stores user profiles. The document ID (`userId`) MUST MATCH the Firebase Authentication UID (`authUid`)."
+        }
+      },
+      {
+        "path": "/dashboardStats/{userId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/DashboardStats" },
+          "description": "Stores pre-aggregated dashboard data for each user. The document ID is the user's UID."
         }
       },
       {
