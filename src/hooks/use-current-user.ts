@@ -49,8 +49,8 @@ export function useCurrentUser(): UseCurrentUserResult {
         setIsCreatingProfile(true);
         if (!userDocRef) return;
 
-        // The user's role is determined by email for admin, otherwise defaults to 'viewer'.
-        const initialRole: UserRole = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'viewer';
+        // The user's role is determined by email for admin, otherwise defaults to 'salesExecutive'.
+        const initialRole: UserRole = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'salesExecutive';
 
         const newUserProfileData: Omit<User, 'id'> = {
           authUid: firebaseUser.uid,
