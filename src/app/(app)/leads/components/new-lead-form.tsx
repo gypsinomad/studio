@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,6 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-  const { companyId } = useCurrentCompany();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
@@ -57,8 +55,8 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
   });
 
   async function onSubmit(values: FormValues) {
-    if (!firestore || !user || !companyId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Missing required context. Please ensure you have selected a company.' });
+    if (!firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a lead.' });
       return;
     }
 
@@ -74,7 +72,7 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
         incotermsPreference: 'CIF', // Default value
       };
       
-      const leadsCollection = collection(firestore, 'companies', companyId, 'leads');
+      const leadsCollection = collection(firestore, 'leads');
       await addDoc(leadsCollection, newLeadPayload);
 
       toast({
@@ -186,5 +184,3 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
     </Form>
   );
 }
-
-    

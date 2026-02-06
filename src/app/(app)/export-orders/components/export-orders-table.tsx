@@ -18,25 +18,25 @@ interface ExportOrdersTableProps {
 }
 
 const stageColors: Record<ExportOrderStage, string> = {
-    leadReceived: 'bg-gray-200 text-gray-800',
-    quotationSent: 'bg-blue-100 text-blue-800',
-    orderConfirmed: 'bg-yellow-100 text-yellow-800',
-    exportDocumentation: 'bg-purple-100 text-purple-800',
-    shipmentReady: 'bg-orange-100 text-orange-800',
-    shippedDelivered: 'bg-green-100 text-green-800',
+    enquiry: 'bg-gray-200 text-gray-800',
+    proformaIssued: 'bg-blue-100 text-blue-800',
+    advanceReceived: 'bg-yellow-100 text-yellow-800',
+    production: 'bg-purple-100 text-purple-800',
+    readyToShip: 'bg-orange-100 text-orange-800',
+    shipped: 'bg-teal-100 text-teal-800',
+    closed: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-800',
-    lostNoResponse: 'bg-gray-100 text-gray-500'
 };
 
 const stageLabels: Record<ExportOrderStage, string> = {
-    leadReceived: "Lead",
-    quotationSent: "Quoted",
-    orderConfirmed: "Confirmed",
-    exportDocumentation: "Docs",
-    shipmentReady: "Ready",
-    shippedDelivered: "Shipped",
+    enquiry: "Enquiry",
+    proformaIssued: "Proforma Issued",
+    advanceReceived: "Advance Received",
+    production: "Production",
+    readyToShip: "Ready to Ship",
+    shipped: "Shipped",
+    closed: "Closed",
     cancelled: "Cancelled",
-    lostNoResponse: "Lost"
 };
 
 

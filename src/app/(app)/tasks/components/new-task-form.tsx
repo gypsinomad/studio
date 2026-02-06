@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
@@ -55,7 +54,6 @@ export function NewTaskForm({ onSuccess }: NewTaskFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-  const { companyId } = useCurrentCompany();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
@@ -68,8 +66,8 @@ export function NewTaskForm({ onSuccess }: NewTaskFormProps) {
   });
 
   async function onSubmit(values: FormValues) {
-    if (!firestore || !user || !companyId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Missing required context. Please try again.' });
+    if (!firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a task.' });
       return;
     }
 
@@ -82,7 +80,7 @@ export function NewTaskForm({ onSuccess }: NewTaskFormProps) {
         createdAt: serverTimestamp(),
       };
       
-      const tasksCollection = collection(firestore, 'companies', companyId, 'tasks');
+      const tasksCollection = collection(firestore, 'tasks');
       await addDoc(tasksCollection, newTaskPayload);
 
       toast({

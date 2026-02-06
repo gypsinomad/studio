@@ -32,13 +32,6 @@
           "type": "string",
           "description": "Timestamp of when the user account was created.",
           "format": "date-time"
-        },
-        "companyIds": {
-          "type": "array",
-          "description": "References to Companies the user belongs to. (Relationship: User N:N Company)",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -47,15 +40,14 @@
         "displayName",
         "role",
         "isActive",
-        "createdAt",
-        "companyIds"
+        "createdAt"
       ]
     },
     "Lead": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Lead",
       "type": "object",
-      "description": "Represents a potential customer or deal, belonging to a specific company.",
+      "description": "Represents a potential customer or deal.",
       "properties": {
         "fullName": {
           "type": "string",
@@ -89,12 +81,13 @@
             "facebookLeadAds",
             "instagramDm",
             "tradeShow",
-            "referral"
+            "referral",
+            "b2bPortal"
           ]
         },
         "productInterest": {
           "type": "string",
-          "description": "Product the lead is interested in."
+          "description": "Product the lead is interested in (e.g. spices, honey)."
         },
         "destinationCountry": {
           "type": "string",
@@ -174,7 +167,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExportOrder",
       "type": "object",
-      "description": "Represents an export order, belonging to a specific company.",
+      "description": "Represents an export order.",
       "properties": {
         "title": {
           "type": "string",
@@ -183,7 +176,7 @@
         "stage": {
           "type": "string",
           "description": "Stage of the export order.",
-           "enum": ["leadReceived", "quotationSent", "orderConfirmed", "exportDocumentation", "shipmentReady", "shippedDelivered", "cancelled", "lostNoResponse"]
+           "enum": ["enquiry", "proformaIssued", "advanceReceived", "production", "readyToShip", "shipped", "closed", "cancelled"]
         },
         "contactId": {
           "type": "string",
@@ -192,6 +185,10 @@
         "destinationCountry": {
           "type": "string",
           "description": "Destination country for the export order."
+        },
+        "destinationPort": {
+          "type": "string",
+          "description": "Destination port for the export order."
         },
         "incoterms": {
           "type": "string",
@@ -249,6 +246,10 @@
           "type": "number",
           "description": "Number of boxes for this product."
         },
+        "packing": {
+          "type": "string",
+          "description": "Packing description (e.g. '25kg PP bags')."
+        },
         "grossWeightPerBox": {
           "type": "number",
           "description": "Gross weight per box in kg."
@@ -260,50 +261,11 @@
       },
       "required": ["productName", "quantity", "boxes", "grossWeightPerBox", "netWeightPerBox"]
     },
-    "Company": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Company",
-      "type": "object",
-      "description": "Represents a company tenant in the CRM system. This is the root for most other data.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the company."
-        },
-        "address": {
-          "type": "string",
-          "description": "Address of the company."
-        },
-        "phone": {
-          "type": "string",
-          "description": "Phone number of the company."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the company.",
-          "format": "email"
-        },
-        "website": {
-          "type": "string",
-          "description": "Website of the company.",
-          "format": "uri"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the company was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "name",
-        "createdAt"
-      ]
-    },
     "Contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact",
       "type": "object",
-      "description": "Represents a contact person, belonging to a specific company.",
+      "description": "Represents a contact person, e.g. at a buyer company.",
       "properties": {
         "firstName": {
           "type": "string",
@@ -324,7 +286,7 @@
         },
         "jobTitle": {
           "type": "string",
-          "description": "Job title of the contact."
+          "description": "Job title of the contact (e.g. Purchase Manager)."
         },
         "createdAt": {
           "type": "string",
@@ -366,11 +328,11 @@
         },
         "relatedLeadId": {
           "type": "string",
-          "description": "Reference to a Lead within the same company."
+          "description": "Reference to a Lead."
         },
         "relatedOrderId": {
           "type": "string",
-          "description": "Reference to an ExportOrder within the same company."
+          "description": "Reference to an ExportOrder."
         },
         "assigneeId": {
           "type": "string",
@@ -403,15 +365,15 @@
         "type": {
           "type": "string",
           "description": "Type of document.",
-          "enum": ["invoice", "packingList", "billOfLading", "COO", "certificate", "other"]
+          "enum": ["proformaInvoice", "contract", "packingList", "billOfLading", "coo", "fssai", "apeda", "phytoCertificate", "shippingBill", "other"]
         },
         "relatedLeadId": {
           "type": "string",
-          "description": "Reference to a Lead within the same company."
+          "description": "Reference to a Lead."
         },
         "relatedOrderId": {
           "type": "string",
-          "description": "Reference to an ExportOrder within the same company."
+          "description": "Reference to an ExportOrder."
         },
         "fileUrl": {
           "type": "string",
@@ -451,7 +413,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a product offered by a company.",
+      "description": "Represents a product offered by the company.",
       "properties": {
         "name": {
           "type": "string",
@@ -485,7 +447,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Note",
       "type": "object",
-      "description": "Represents a note related to another entity within a company.",
+      "description": "Represents a note related to another entity.",
       "properties": {
         "content": {
           "type": "string",
@@ -521,7 +483,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ActivityLog",
       "type": "object",
-      "description": "A log of an activity that occurred within a company.",
+      "description": "A log of an activity that occurred.",
       "properties": {
         "icon": {
           "type": "string",
@@ -570,14 +532,14 @@
         "exportOrdersByStage": {
             "type": "object",
             "properties": {
-                "leadReceived": { "type": "number" },
-                "quotationSent": { "type": "number" },
-                "orderConfirmed": { "type": "number" },
-                "exportDocumentation": { "type": "number" },
-                "shipmentReady": { "type": "number" },
-                "shippedDelivered": { "type": "number" },
-                "cancelled": { "type": "number" },
-                "lostNoResponse": { "type": "number" }
+                "enquiry": { "type": "number" },
+                "proformaIssued": { "type": "number" },
+                "advanceReceived": { "type": "number" },
+                "production": { "type": "number" },
+                "readyToShip": { "type": "number" },
+                "shipped": { "type": "number" },
+                "closed": { "type": "number" },
+                "cancelled": { "type": "number" }
             }
         },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
@@ -630,7 +592,7 @@
         "path": "/users/{userId}",
         "definition": {
           "schema": { "$ref": "#/entities/User" },
-          "description": "Stores user profiles. The document ID (`userId`) MUST MATCH the Firebase Authentication UID (`authUid`)."
+          "description": "Stores user profiles for the internal team. The document ID (`userId`) MUST MATCH the Firebase Authentication UID (`authUid`)."
         }
       },
       {
@@ -644,80 +606,73 @@
         "path": "/whatsappEvents/{eventId}",
         "definition": {
           "schema": { "$ref": "#/entities/WhatsappEvent" },
-          "description": "Stores raw webhook events from WhatsApp Cloud API for debugging purposes. Not tied to a company."
+          "description": "Stores raw webhook events from WhatsApp Cloud API for debugging purposes."
         }
       },
       {
-        "path": "/companies/{companyId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Company" },
-          "description": "Root collection for all company data, enabling multi-tenancy."
-        }
-      },
-      {
-        "path": "/companies/{companyId}/contacts/{contactId}",
+        "path": "/contacts/{contactId}",
         "definition": {
           "schema": { "$ref": "#/entities/Contact" },
-          "description": "Stores contacts associated with a company."
+          "description": "Stores contacts associated with buyers and partners."
         }
       },
       {
-        "path": "/companies/{companyId}/leads/{leadId}",
+        "path": "/leads/{leadId}",
         "definition": {
           "schema": { "$ref": "#/entities/Lead" },
-          "description": "Stores leads associated with a company."
+          "description": "Stores all leads for the company."
         }
       },
       {
-        "path": "/companies/{companyId}/exportOrders/{exportOrderId}",
+        "path": "/exportOrders/{exportOrderId}",
         "definition": {
           "schema": { "$ref": "#/entities/ExportOrder" },
-          "description": "Stores export orders associated with a company."
+          "description": "Stores all export orders for the company."
         }
       },
       {
-        "path": "/companies/{companyId}/exportOrders/{exportOrderId}/lineItems/{lineItemId}",
+        "path": "/exportOrders/{exportOrderId}/lineItems/{lineItemId}",
         "definition": {
           "schema": { "$ref": "#/entities/LineItem" },
           "description": "Stores the individual line items for an export order."
         }
       },
       {
-        "path": "/companies/{companyId}/products/{productId}",
+        "path": "/products/{productId}",
         "definition": {
           "schema": { "$ref": "#/entities/Product" },
-          "description": "Stores products offered by a specific company."
+          "description": "Stores products offered by the company."
         }
       },
       {
-        "path": "/companies/{companyId}/notes/{noteId}",
+        "path": "/notes/{noteId}",
         "definition": {
           "schema": { "$ref": "#/entities/Note" },
-          "description": "Stores notes associated with various entities within a company."
+          "description": "Stores notes associated with various entities."
         }
       },
       {
-        "path": "/companies/{companyId}/documents/{documentId}",
+        "path": "/documents/{documentId}",
         "definition": {
           "schema": { "$ref": "#/entities/Document" },
-          "description": "Stores documents associated with a company."
+          "description": "Stores all documents for the company."
         }
       },
       {
-        "path": "/companies/{companyId}/tasks/{taskId}",
+        "path": "/tasks/{taskId}",
         "definition": {
           "schema": { "$ref": "#/entities/Task" },
-          "description": "Stores tasks associated with a company."
+          "description": "Stores all tasks for the team."
         }
       },
        {
-        "path": "/companies/{companyId}/activity_logs/{logId}",
+        "path": "/activity_logs/{logId}",
         "definition": {
           "schema": { "$ref": "#/entities/ActivityLog" },
-          "description": "Stores a timeline of activities for a company."
+          "description": "Stores a timeline of activities for the company."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed for multi-tenancy. All primary business data is nested within a `/companies/{companyId}` collection. A user's access to a company's data is determined by checking if the `companyId` is in the `companyIds` array on their user profile (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. User profiles are kept in a top-level collection for authentication purposes."
+    "reasoning": "The Firestore structure is now flat and optimized for a single company's internal use. All primary business data collections are at the root level. This simplifies queries and application logic, removing the need for multi-tenant checks. User profiles are kept in a top-level collection for authentication and role management purposes."
   }
 }

@@ -1,10 +1,7 @@
-
-
-
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
-  id?: string; // id is the doc id, which is the same as authUid
+  id?: string;
   authUid: string;
   email: string;
   displayName: string;
@@ -12,11 +9,10 @@ export interface User {
   isActive: boolean;
   createdAt: any; // Date or Firestore Timestamp
   avatarUrl?: string;
-  companyIds: string[];
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
-export type LeadSource = 'manual' | 'website' | 'whatsapp' | 'metaWhatsapp' | 'facebookLeadAds' | 'instagramDm' | 'tradeShow' | 'referral';
+export type LeadSource = 'manual' | 'website' | 'whatsapp' | 'metaWhatsapp' | 'facebookLeadAds' | 'instagramDm' | 'tradeShow' | 'referral' | 'b2bPortal';
 export type LeadChannel = 'whatsapp' | 'facebook' | 'instagram' | 'other';
 
 
@@ -44,7 +40,7 @@ export interface Lead {
   lastInboundChannel?: LeadChannel;
 }
 
-export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';
+export type ExportOrderStage = 'enquiry' | 'proformaIssued' | 'advanceReceived' | 'production' | 'readyToShip' | 'shipped' | 'closed' | 'cancelled';
 
 export interface ExportOrder {
   id?: string;
@@ -52,6 +48,7 @@ export interface ExportOrder {
   stage: ExportOrderStage;
   contactId: string;
   destinationCountry: string;
+  destinationPort?: string;
   incoterms: string;
   totalValue: number;
   paymentTerms: string;
@@ -65,6 +62,7 @@ export interface LineItem {
   productName: string;
   quantity: number; // in kg
   boxes: number;
+  packing?: string;
   grossWeightPerBox: number; // in kg
   netWeightPerBox: number; // in kg
 }
@@ -103,7 +101,7 @@ export interface Task {
   createdAt: any; // Date or Firestore Timestamp
 }
 
-export type DocumentType = 'invoice' | 'packingList' | 'billOfLading' | 'COO' | 'certificate' | 'other';
+export type DocumentType = 'proformaInvoice' | 'contract' | 'packingList' | 'billOfLading' | 'coo' | 'fssai' | 'apeda' | 'phytoCertificate' | 'shippingBill' | 'other';
 export type DocumentStatus = 'pending' | 'uploaded' | 'verified';
 
 export interface Document {

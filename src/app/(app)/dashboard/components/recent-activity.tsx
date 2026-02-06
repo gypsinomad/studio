@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import type { ActivityLog } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,20 +27,17 @@ const LucideIcon = ({ name, className }: { name: string, className?: string }) =
 
 export function RecentActivity() {
   const firestore = useFirestore();
-  const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const activityQuery = useMemoFirebase(() => {
-    if (!firestore || !companyId) return null;
+    if (!firestore) return null;
     return query(
-      collection(firestore, 'companies', companyId, 'activity_logs'),
+      collection(firestore, 'activity_logs'),
       orderBy('timestamp', 'desc'),
       limit(5)
     );
-  }, [firestore, companyId]);
+  }, [firestore]);
 
   const { data: activities, isLoading: areActivitiesLoading } = useCollection<ActivityLog>(activityQuery);
-
-  const isLoading = isCompanyLoading || areActivitiesLoading;
 
   return (
     <Card>
@@ -50,17 +46,17 @@ export function RecentActivity() {
         <CardDescription>A log of recent events in the CRM.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isLoading && (
+        {areActivitiesLoading && (
           <>
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </>
         )}
-        {!isLoading && activities && activities.length === 0 && (
+        {!areActivitiesLoading && activities && activities.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">No recent activity.</p>
         )}
-        {!isLoading && activities && activities.map((activity) => (
+        {!areActivitiesLoading && activities && activities.map((activity) => (
           <div key={activity.id} className="flex items-start gap-4">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
               <LucideIcon name={activity.icon} className="h-4 w-4" />

@@ -1,21 +1,18 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { collection, query, where } from 'firebase/firestore';
 import { LeadsTable } from './components/leads-table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { NewLeadForm } from './components/new-lead-form';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { LeadDetails } from './components/lead-details';
 import type { Lead } from '@/lib/types';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function LeadsPage() {
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
@@ -24,12 +21,11 @@ export default function LeadsPage() {
 
   const firestore = useFirestore();
   const { user, userProfile, isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
-  const { companyId, companyIds, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const leadsQuery = useMemoFirebase(() => {
-    if (!firestore || !companyId || !userProfile || !user) return null;
+    if (!firestore || !userProfile || !user) return null;
     
-    let leadsCollectionRef = collection(firestore, 'companies', companyId, 'leads');
+    let leadsCollectionRef = collection(firestore, 'leads');
     
     const filters = [];
     if (userProfile.role !== 'admin') {
@@ -41,12 +37,11 @@ export default function LeadsPage() {
 
     return query(leadsCollectionRef, ...filters);
 
-  }, [firestore, companyId, userProfile, user, sourceFilter]);
+  }, [firestore, userProfile, user, sourceFilter]);
 
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
-  const isLoading = isCompanyLoading || isUserLoading || areLeadsLoading;
-  const canCreate = !!companyId && isAuthenticated;
+  const isLoading = isUserLoading || areLeadsLoading;
 
   const handleRowClick = (lead: Lead) => setSelectedLead(lead);
   const handleSheetClose = () => setSelectedLead(null);
@@ -73,24 +68,13 @@ export default function LeadsPage() {
                 onClick={() => toggleFilter('facebookLeadAds')}>
                 Facebook
             </Button>
-             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!canCreate}>
+             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!isAuthenticated || isLoading}>
                 <PlusCircle className="mr-2" />
                 New Lead
             </Button>
         </div>
       </PageHeader>
       
-      {!isLoading && companyIds.length === 0 && isAuthenticated && (
-         <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Create a Company to Get Started</AlertTitle>
-            <AlertDescription>
-                You need to create or be added to a company before you can manage leads.
-                Go to the <Link href="/companies" className="font-bold hover:underline">Companies page</Link> to create your first one.
-            </AlertDescription>
-         </Alert>
-      )}
-
       {isLoading && (
         <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -106,7 +90,7 @@ export default function LeadsPage() {
           <DialogHeader>
             <DialogTitle>Create a New Lead</DialogTitle>
             <DialogDescription>
-              Enter the details below to add a new lead to your current company.
+              Enter the details below to add a new lead to your CRM.
             </DialogDescription>
           </DialogHeader>
           <NewLeadForm onSuccess={() => setIsNewLeadOpen(false)} />

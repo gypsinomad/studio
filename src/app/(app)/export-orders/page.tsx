@@ -1,42 +1,35 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { ExportOrdersTable } from './components/export-orders-table';
 import type { ExportOrder } from '@/lib/types';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
 export default function ExportOrdersPage() {
   const router = useRouter();
   const firestore = useFirestore();
   const { user, userProfile, isAdmin, isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
-  const { companyId, companyIds, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !companyId || !userProfile || !user) return null;
+    if (!firestore || !userProfile || !user) return null;
     
-    const ordersCollection = collection(firestore, 'companies', companyId, 'exportOrders');
+    const ordersCollection = collection(firestore, 'exportOrders');
 
-    // Admins can see all orders in the company
     if (isAdmin) {
       return query(ordersCollection);
     } 
-    // Sales executives see only the orders they are assigned to
     return query(ordersCollection, where('assignedUserId', '==', user.uid));
-  }, [firestore, companyId, userProfile, user, isAdmin]);
+  }, [firestore, userProfile, user, isAdmin]);
 
   const { data: orders, isLoading: areOrdersLoading } = useCollection<ExportOrder>(ordersQuery);
 
-  const isLoading = isCompanyLoading || isUserLoading || areOrdersLoading;
-  const canCreate = !!companyId && isAuthenticated;
+  const isLoading = isUserLoading || areOrdersLoading;
 
   return (
     <>
@@ -44,23 +37,12 @@ export default function ExportOrdersPage() {
         title="Export Orders"
         description="Manage all your export orders and track their progress."
       >
-        <Button onClick={() => router.push('/export-orders/new')} disabled={!canCreate}>
+        <Button onClick={() => router.push('/export-orders/new')} disabled={!isAuthenticated || isLoading}>
           <PlusCircle className="mr-2" />
           New Export Order
         </Button>
       </PageHeader>
       
-      {!isLoading && companyIds.length === 0 && isAuthenticated && (
-         <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Create a Company to Get Started</AlertTitle>
-            <AlertDescription>
-                You need to create or be added to a company before you can manage export orders.
-                Go to the <Link href="/companies" className="font-bold hover:underline">Companies page</Link> to create your first one.
-            </AlertDescription>
-         </Alert>
-      )}
-
       {isLoading && (
         <div className="space-y-2">
             <Skeleton className="h-10 w-full" />

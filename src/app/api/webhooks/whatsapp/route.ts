@@ -12,7 +12,7 @@ import type { ValidateAndStandardizeLeadDataInput } from '@/ai/flows/validate-an
  * Finds a default user and company to assign a new lead to.
  * This is a fallback for when a lead comes from an automated source.
  */
-async function getDefaultLeadAssignment(): Promise<{ companyId: string; userId: string; userName: string } | null> {
+async function getDefaultLeadAssignment(): Promise<{ userId: string; userName: string } | null> {
     if (!adminDb) return null;
     const adminUsersSnapshot = await adminDb.collection('users').where('role', '==', 'admin').limit(1).get();
     if (adminUsersSnapshot.empty) {
@@ -21,15 +21,9 @@ async function getDefaultLeadAssignment(): Promise<{ companyId: string; userId: 
     }
     const adminUser = adminUsersSnapshot.docs[0].data();
     const adminUserId = adminUsersSnapshot.docs[0].id;
-    const defaultCompanyId = adminUser.companyIds?.[0];
     const adminUserName = adminUser.displayName || 'Admin';
   
-    if (!defaultCompanyId) {
-      console.warn(`Webhook: Admin user ${adminUserId} has no companies assigned.`);
-      return null;
-    }
-  
-    return { companyId: defaultCompanyId, userId: adminUserId, userName: adminUserName };
+    return { userId: adminUserId, userName: adminUserName };
 }
 
 
@@ -132,8 +126,7 @@ export async function POST(request: NextRequest) {
             whatsappThreadId: messageInfo.id,
         };
 
-        const leadsCollection = adminDb.collection('companies').doc(assignment.companyId).collection('leads');
-        const leadRef = await leadsCollection.add(finalLeadPayload);
+        const leadRef = await adminDb.collection('leads').add(finalLeadPayload);
 
         const batch = adminDb.batch();
 
@@ -144,7 +137,7 @@ export async function POST(request: NextRequest) {
             description: `From ${userPhone}, assigned to ${assignment.userName}.`,
             timestamp: FieldValue.serverTimestamp()
         };
-        const activityRef = adminDb.collection('companies').doc(assignment.companyId).collection('activity_logs').doc();
+        const activityRef = adminDb.collection('activity_logs').doc();
         batch.set(activityRef, activityLog);
     
         // Create a follow-up task for the new lead
@@ -156,7 +149,7 @@ export async function POST(request: NextRequest) {
             relatedLeadId: leadRef.id,
             createdAt: FieldValue.serverTimestamp()
         };
-        const taskRef = adminDb.collection('companies').doc(assignment.companyId).collection('tasks').doc();
+        const taskRef = adminDb.collection('tasks').doc();
         batch.set(taskRef, taskPayload);
         
         await batch.commit();

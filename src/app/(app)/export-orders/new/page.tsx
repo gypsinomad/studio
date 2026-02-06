@@ -8,7 +8,7 @@ import {
   generateQuotationFromImage,
   type GenerateQuotationInput,
 } from '@/ai/flows/generate-quotation-flow';
-import type { LineItem, ExportOrder } from '@/lib/types';
+import type { ExportOrder } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 
@@ -25,7 +25,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -40,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { LoaderCircle, Sparkles, Upload, Trash2 } from 'lucide-react';
+import { LoaderCircle, Sparkles, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
@@ -75,8 +74,6 @@ export default function NewExportOrderPage() {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -99,7 +96,6 @@ export default function NewExportOrderPage() {
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-        setImageFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
             setImagePreview(reader.result as string);
@@ -122,7 +118,6 @@ export default function NewExportOrderPage() {
         };
         const result = await generateQuotationFromImage(input);
         
-        // Clear existing line items and append new ones
         remove();
         result.lineItems.forEach(item => append(item));
 
@@ -147,7 +142,6 @@ export default function NewExportOrderPage() {
     try {
         const batch = writeBatch(firestore);
 
-        // 1. Create the main order document
         const orderRef = doc(collection(firestore, 'exportOrders'));
         const newOrder: Omit<ExportOrder, 'id'> = {
             title: values.title,
@@ -157,12 +151,11 @@ export default function NewExportOrderPage() {
             paymentTerms: values.paymentTerms,
             contactId: values.contactId,
             assignedUserId: user.uid,
-            stage: 'quotationSent',
+            stage: 'enquiry',
             createdAt: serverTimestamp(),
         };
         batch.set(orderRef, newOrder);
 
-        // 2. Create each line item in the subcollection
         values.lineItems.forEach(item => {
             const lineItemRef = doc(collection(firestore, `exportOrders/${orderRef.id}/lineItems`));
             batch.set(lineItemRef, item);
@@ -198,7 +191,7 @@ export default function NewExportOrderPage() {
                     <FormField
                         control={form.control}
                         name="image"
-                        render={({ field: { onChange, ...fieldProps } }) => (
+                        render={({ field: { onChange, value, ...fieldProps } }) => (
                             <FormItem>
                                 <FormLabel>Buyer's List Image</FormLabel>
                                 <FormControl>

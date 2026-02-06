@@ -1,12 +1,11 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Upload, Info } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -18,10 +17,8 @@ import {
 } from '@/components/ui/table';
 import type { Document as DocumentType } from '@/lib/types';
 import { format } from 'date-fns';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { UploadDocumentForm } from './components/upload-document-form';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function DocumentsTable({ data }: { data: DocumentType[] }) {
    if (data.length === 0) {
@@ -52,7 +49,7 @@ function DocumentsTable({ data }: { data: DocumentType[] }) {
               <TableCell className="font-medium hover:underline">
                 <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">{doc.name}</a>
               </TableCell>
-              <TableCell className="capitalize">{doc.type}</TableCell>
+              <TableCell className="capitalize">{doc.type.replace(/([A-Z])/g, ' $1').trim()}</TableCell>
               <TableCell className="capitalize">{doc.status}</TableCell>
               <TableCell>{format(toDate(doc.uploadedAt), 'PPp')}</TableCell>
             </TableRow>
@@ -68,28 +65,27 @@ export default function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const firestore = useFirestore();
   const { user, userProfile, isAdmin, isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
-  const { companyId, companyIds, isLoading: isCompanyLoading } = useCurrentCompany();
 
   const documentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !companyId || !userProfile) return null;
+    if (!firestore || !user || !userProfile) return null;
     
-    const docsCollection = collection(firestore, 'companies', companyId, 'documents');
+    const docsCollection = collection(firestore, 'documents');
     
-    // Admins can see all documents in the company
+    // Admins can see all documents
     if (isAdmin) {
-      return query(docsCollection);
+      return query(docsCollection, orderBy('uploadedAt', 'desc'));
     }
     // Other roles see only the documents they uploaded
     return query(
       docsCollection,
-      where('uploadedBy', '==', user.uid)
+      where('uploadedBy', '==', user.uid),
+      orderBy('uploadedAt', 'desc')
     );
-  }, [firestore, user, userProfile, companyId, isAdmin]);
+  }, [firestore, user, userProfile, isAdmin]);
 
   const { data: documents, isLoading: areDocumentsLoading } = useCollection(documentsQuery);
 
-  const isLoading = isCompanyLoading || isUserLoading || areDocumentsLoading;
-  const canCreate = !!companyId && isAuthenticated;
+  const isLoading = isUserLoading || areDocumentsLoading;
 
   return (
     <>
@@ -97,22 +93,11 @@ export default function DocumentsPage() {
         title="Documents"
         description="Manage all documents related to your leads and orders."
       >
-        <Button onClick={() => setIsUploadOpen(true)} disabled={!canCreate}>
+        <Button onClick={() => setIsUploadOpen(true)} disabled={!isAuthenticated || isLoading}>
           <Upload className="mr-2" />
           Upload Document
         </Button>
       </PageHeader>
-
-       {!isLoading && companyIds.length === 0 && isAuthenticated && (
-         <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Create a Company to Get Started</AlertTitle>
-            <AlertDescription>
-                You need to create or be added to a company before you can manage documents.
-                Go to the <Link href="/companies" className="font-bold hover:underline">Companies page</Link> to create your first one.
-            </AlertDescription>
-         </Alert>
-      )}
 
       {isLoading && (
         <div className="space-y-2">

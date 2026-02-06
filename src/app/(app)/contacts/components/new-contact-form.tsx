@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,6 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-  const { companyId } = useCurrentCompany();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
@@ -55,8 +53,8 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
   });
 
   async function onSubmit(values: FormValues) {
-    if (!firestore || !user || !companyId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Missing required context. Please ensure you have selected a company.' });
+    if (!firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a contact.' });
       return;
     }
 
@@ -68,7 +66,7 @@ export function NewContactForm({ onSuccess }: NewContactFormProps) {
         createdAt: serverTimestamp(),
       };
       
-      const contactsCollection = collection(firestore, 'companies', companyId, 'contacts');
+      const contactsCollection = collection(firestore, 'contacts');
       await addDoc(contactsCollection, newContactPayload);
 
       toast({

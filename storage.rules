@@ -3,23 +3,20 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper function to check if a user is a member of a company
-    function isUserMemberOfCompany(companyId) {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyIds.hasAny([companyId]);
-    }
-
-    // Admins can read/write anywhere
     function isAdmin() {
-        return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        return request.auth != null &&
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Rules for company-specific files
-    match /{companyId}/{allPaths=**} {
-      // Allow read and write access only if the user is a member of the company or an admin.
-      // This is the core of the multi-tenant security model for Storage.
-      allow read, write: if request.auth != null && (isAdmin() || isUserMemberOfCompany(companyId));
+    // Rules for document files. Allow any authenticated team member to upload and read.
+    match /documents/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow admins to access anything, as a failsafe.
+     match /{allPaths=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

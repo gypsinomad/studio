@@ -6,9 +6,9 @@ import { adminDb } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { addDays } from 'date-fns';
 
-async function getDefaultLeadAssignment(): Promise<{ companyId: string; userId: string; userName: string } | null> {
+async function getDefaultLeadAssignment(): Promise<{ userId: string; userName: string } | null> {
   if (!adminDb) return null;
-  // Find an admin user to assign the lead to their first company.
+  // Find an admin user to assign the lead to.
   const adminUsersSnapshot = await adminDb.collection('users').where('role', '==', 'admin').limit(1).get();
   if (adminUsersSnapshot.empty) {
     console.warn('Webhook: No admin user found to assign new lead.');
@@ -16,15 +16,9 @@ async function getDefaultLeadAssignment(): Promise<{ companyId: string; userId: 
   }
   const adminUser = adminUsersSnapshot.docs[0].data();
   const adminUserId = adminUsersSnapshot.docs[0].id;
-  const defaultCompanyId = adminUser.companyIds?.[0];
   const adminUserName = adminUser.displayName || 'Admin';
 
-  if (!defaultCompanyId) {
-    console.warn(`Webhook: Admin user ${adminUserId} has no companies assigned.`);
-    return null;
-  }
-
-  return { companyId: defaultCompanyId, userId: adminUserId, userName: adminUserName };
+  return { userId: adminUserId, userName: adminUserName };
 }
 
 export async function POST(request: Request) {
@@ -85,9 +79,8 @@ export async function POST(request: Request) {
       createdAt: FieldValue.serverTimestamp(),
     };
 
-    const leadsCollection = adminDb.collection('companies').doc(assignment.companyId).collection('leads');
-    const leadRef = await leadsCollection.add(finalLeadPayload);
-    console.log(`Lead saved with ID: ${leadRef.id} in Company: ${assignment.companyId}`);
+    const leadRef = await adminDb.collection('leads').add(finalLeadPayload);
+    console.log(`Lead saved with ID: ${leadRef.id}`);
     
     const batch = adminDb.batch();
 
@@ -98,7 +91,7 @@ export async function POST(request: Request) {
         description: `From ${finalLeadPayload.source}, assigned to ${assignment.userName}.`,
         timestamp: FieldValue.serverTimestamp()
     };
-    const activityRef = adminDb.collection('companies').doc(assignment.companyId).collection('activity_logs').doc();
+    const activityRef = adminDb.collection('activity_logs').doc();
     batch.set(activityRef, activityLog);
 
     // Create a follow-up task for the new lead
@@ -110,7 +103,7 @@ export async function POST(request: Request) {
         relatedLeadId: leadRef.id,
         createdAt: FieldValue.serverTimestamp()
     };
-    const taskRef = adminDb.collection('companies').doc(assignment.companyId).collection('tasks').doc();
+    const taskRef = adminDb.collection('tasks').doc();
     batch.set(taskRef, taskPayload);
     
     await batch.commit();
@@ -154,5 +147,3 @@ export async function GET(request: Request) {
       return new NextResponse('Forbidden', { status: 403 });
     }
   }
-
-    

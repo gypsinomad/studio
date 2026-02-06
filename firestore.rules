@@ -1,18 +1,12 @@
 /**
- * # Firestore Security Rules for SpiceRoute CRM
+ * # Firestore Security Rules for SpiceRoute CRM (Single-Tenant)
  *
  * ## Core Philosophy
- * This ruleset enforces a multi-tenant, role-based security model. Data access is primarily controlled
- * by a user's membership in a company. A global "admin" role, determined by a specific email address,
- * provides system-wide administrative access. For standard users (salesExecutive), access to sensitive
- * documents is restricted to only those documents they are assigned to. The 'viewer' role has read-only access.
- *
- * ## Data Structure & Security Model
- * - **Admin Identification**: A user is considered an admin if their authenticated email matches a specific value.
- *   This check is performed by the `isAdmin()` function and bypasses most other role checks.
- * - `/users/{userId}`: Contains user profiles with a `companyIds` array and a `role` field.
- *   Non-admin roles (`salesExecutive`, `viewer`) are read from this document.
- * - `/companies/{companyId}`: The root for all tenant-specific data. Access requires company membership.
+ * This ruleset enforces a simple, role-based security model for a single internal team.
+ * Data access is primarily controlled by authentication state and a global admin role.
+ * - **Admin Identification**: A user is an admin if their email matches a specific value.
+ * - **Team Access**: All authenticated users are considered part of the team and can read/write operational data.
+ * - **Destructive Actions**: Deleting primary records is restricted to the admin role to prevent accidental data loss.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -32,7 +26,6 @@ service cloud.firestore {
 
     /**
      * A user is an admin if their verified email matches the hardcoded admin email.
-     * This is the single source of truth for admin privileges.
      */
     function isAdmin() {
       return isSignedIn() &&
@@ -40,125 +33,86 @@ service cloud.firestore {
              request.auth.token.email.toLowerCase() == 'akhilvenugopal@gmail.com';
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
-    function getUserRole() {
-        return getUserData().role;
-    }
-    
-    function isSalesExecutive() {
-        return isSignedIn() && getUserRole() == 'salesExecutive';
-    }
-
-    /**
-     * Checks if the authenticated user is a member of the specified company.
-     * It performs a single `get` on the user's own profile.
-     */
-    function isUserMemberOfCompany(companyId) {
-      return isSignedIn() && companyId in getUserData().companyIds;
-    }
-
     // =====================================================================
     // Global & Settings Collections
     // =====================================================================
 
     match /users/{userId} {
-      // Users can read their own profile. Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
-      // Admins can list all users for the user management screen.
       allow list: if isAdmin();
-      // A user can create their own profile document.
       allow create: if isOwner(userId);
-      // Users can update their own profile, but cannot change their role. Admins can update anything.
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
-      // Only admins can delete users.
       allow delete: if isAdmin();
     }
 
-    // Rule for dashboard stats. Users can read their own stats document.
     match /dashboardStats/{userId} {
-      allow get: if isOwner(userId);
-      allow list, create, update, delete: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      // This data is written by a backend process, not the client.
+      allow create, update, delete: if false;
     }
     
-    // AI settings can be read by any signed-in user, but only written by the admin.
     match /settings/ai {
         allow get: if isSignedIn();
         allow write: if isAdmin();
     }
 
-    // AI usage stats can be read by any signed-in user, but only written by backend functions.
     match /usageStats/{month} {
-        allow get: if isSignedIn();
-        allow write: if false; 
+        allow get: if isSignedIn(); // Allow any team member to read for UI purposes
+        allow write: if false; // Written by backend functions only
     }
 
-    // WhatsApp webhook event logs are for debugging and created by a trusted server process.
-    // No client access should be allowed.
     match /whatsappEvents/{eventId} {
+      // For server-side debugging only. No client access.
       allow read, write: if false;
     }
 
-
     // =====================================================================
-    // Company-level (Multi-Tenant) Collections
+    // Top-Level Business Data Collections (Single-Tenant)
     // =====================================================================
 
-    match /companies/{companyId} {
-      // Allow access if user is a member of the company.
-      allow get: if isUserMemberOfCompany(companyId);
-      // Listing companies is not based on membership; queries should handle this.
-      allow list: if isSignedIn(); 
-      // Any authenticated user can create a company. Only members can update. Admins can delete.
-      allow create: if isSignedIn();
-      allow update: if isUserMemberOfCompany(companyId);
+    match /contacts/{contactId} {
+      allow read, list, create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+    
+    match /products/{productId} {
+       allow read, list, create, update: if isSignedIn();
+       allow delete: if isAdmin();
+    }
+    
+     match /activity_logs/{logId} {
+      allow get, list: if isSignedIn();
+      // Logs are append-only from the backend.
+      allow create, update, delete: if false;
+    }
+    
+    match /notes/{noteId} {
+       allow read, list, create, update: if isSignedIn();
+       allow delete: if isAdmin();
+    }
+    
+    match /leads/{leadId} {
+      allow read, list, create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+    
+     match /exportOrders/{orderId} {
+      allow read, list, create, update: if isSignedIn();
       allow delete: if isAdmin();
 
-      match /contacts/{contactId} {
-        allow read: if isUserMemberOfCompany(companyId);
-        allow write: if isUserMemberOfCompany(companyId);
+      match /lineItems/{lineItemId} {
+         allow read, list, create, update, delete: if isSignedIn();
       }
-      match /products/{productId} {
-         allow read: if isUserMemberOfCompany(companyId);
-         allow write: if isUserMemberOfCompany(companyId);
-      }
-       match /activity_logs/{logId} {
-        allow get, list: if isUserMemberOfCompany(companyId);
-        // Logs are created by functions, not clients.
-        allow create, update, delete: if false;
-      }
-      match /notes/{noteId} {
-         allow read: if isUserMemberOfCompany(companyId);
-         allow write: if isUserMemberOfCompany(companyId);
-      }
-      match /leads/{leadId} {
-        allow read, list: if isUserMemberOfCompany(companyId);
-        allow create, update: if isUserMemberOfCompany(companyId);
-        allow delete: if isAdmin();
-      }
-       match /exportOrders/{orderId} {
-        allow read, list: if isUserMemberOfCompany(companyId);
-        allow create, update: if isUserMemberOfCompany(companyId);
-        allow delete: if isAdmin();
-
-        // Rule for the lineItems subcollection
-        match /lineItems/{lineItemId} {
-           allow read: if isUserMemberOfCompany(companyId);
-           allow write: if isUserMemberOfCompany(companyId);
-        }
-      }
-       match /tasks/{taskId} {
-        allow read, list: if isUserMemberOfCompany(companyId);
-        allow create, update: if isUserMemberOfCompany(companyId);
-        allow delete: if isAdmin();
-      }
-       match /documents/{documentId} {
-        allow read, list: if isUserMemberOfCompany(companyId);
-        allow create, update: if isUserMemberOfCompany(companyId);
-        allow delete: if isAdmin();
-      }
+    }
+    
+     match /tasks/{taskId} {
+      allow read, list, create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+    
+     match /documents/{documentId} {
+      allow read, list, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
   }
 }

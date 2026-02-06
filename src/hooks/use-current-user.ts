@@ -12,6 +12,7 @@ interface UseCurrentUserResult {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  role: UserRole | null;
 }
 
 const ADMIN_EMAIL = 'akhilvenugopal@gmail.com';
@@ -55,7 +56,6 @@ export function useCurrentUser(): UseCurrentUserResult {
           role: initialRole,
           isActive: true,
           createdAt: serverTimestamp(),
-          companyIds: [],
           avatarUrl: firebaseUser.photoURL || undefined,
         };
 
@@ -63,7 +63,6 @@ export function useCurrentUser(): UseCurrentUserResult {
           await setDoc(userDocRef, newUserProfileData);
         } catch (error) {
           console.error("Failed to create user profile in hook:", error);
-          // Handle error appropriately, maybe set an error state
         } finally {
           setIsCreatingProfile(false);
         }
@@ -84,5 +83,6 @@ export function useCurrentUser(): UseCurrentUserResult {
     isLoading,
     isAuthenticated,
     isAdmin,
+    role: userProfile?.role || null,
   };
 }

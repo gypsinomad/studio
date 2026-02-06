@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useStorage } from '@/firebase';
-import { useCurrentCompany } from '@/hooks/use-current-company';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -24,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 import type { DocumentType } from '@/lib/types';
 
-const DOCUMENT_TYPES: DocumentType[] = ['invoice', 'packingList', 'billOfLading', 'COO', 'certificate', 'other'];
+const DOCUMENT_TYPES: DocumentType[] = ["proformaInvoice", "contract", "packingList", "billOfLading", "coo", "fssai", "apeda", "phytoCertificate", "shippingBill", "other"];
 
 const formSchema = z.object({
   name: z.string().min(3, 'Document name must be at least 3 characters.'),
@@ -43,7 +42,6 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
   const firestore = useFirestore();
   const storage = useStorage();
   const { user } = useUser();
-  const { companyId } = useCurrentCompany();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
@@ -55,8 +53,8 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
   });
 
   async function onSubmit(values: FormValues) {
-    if (!firestore || !storage || !user || !companyId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Missing required context. Please try again.' });
+    if (!firestore || !storage || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to upload documents.' });
       return;
     }
 
@@ -64,7 +62,7 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
 
     try {
       // 1. Upload file to Cloud Storage
-      const storagePath = `${companyId}/documents/${Date.now()}_${values.file.name}`;
+      const storagePath = `documents/${Date.now()}_${values.file.name}`;
       const storageRef = ref(storage, storagePath);
       const uploadResult = await uploadBytes(storageRef, values.file);
       const fileUrl = await getDownloadURL(uploadResult.ref);
@@ -79,7 +77,7 @@ export function UploadDocumentForm({ onSuccess }: UploadDocumentFormProps) {
         uploadedAt: serverTimestamp(),
       };
       
-      const docsCollection = collection(firestore, 'companies', companyId, 'documents');
+      const docsCollection = collection(firestore, 'documents');
       await addDoc(docsCollection, docPayload);
 
       toast({

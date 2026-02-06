@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Sprout,
   Ship,
-  Building2,
   Users,
   ClipboardList,
   FileText,
@@ -26,11 +25,6 @@ export const NAV_ITEMS: NavItem[] = [
     title: 'Export Orders',
     href: '/export-orders',
     icon: Ship,
-  },
-  {
-    title: 'Companies',
-    href: '/companies',
-    icon: Building2,
   },
   {
     title: 'Contacts',
