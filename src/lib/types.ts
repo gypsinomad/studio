@@ -15,6 +15,9 @@ export interface User {
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
+export type LeadSource = 'Manual' | 'Website' | 'whatsapp' | 'metaWhatsapp' | 'facebookLeadAds' | 'instagramDm';
+export type LeadChannel = 'whatsapp' | 'facebook' | 'instagram' | 'other';
+
 
 export interface Lead {
   id?: string;
@@ -23,7 +26,7 @@ export interface Lead {
   email: string;
   phone: string;
   whatsappNumber?: string;
-  source: string;
+  source: LeadSource | string;
   productInterest: string;
   destinationCountry: string;
   incotermsPreference: string;
@@ -32,6 +35,12 @@ export interface Lead {
   createdAt: any; // Date or Firestore Timestamp
   lastContactAt?: any;
   nextFollowUpAt?: any;
+  // Meta and WhatsApp integration fields
+  metaLeadId?: string;
+  whatsappThreadId?: string;
+  metaFormId?: string;
+  metaPageId?: string;
+  lastInboundChannel?: LeadChannel;
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';

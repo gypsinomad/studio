@@ -80,7 +80,15 @@
         },
         "source": {
           "type": "string",
-          "description": "Source of the lead (e.g., 'Facebook Lead Ads', 'Website')."
+          "description": "Source of the lead.",
+          "enum": [
+            "Manual",
+            "Website",
+            "whatsapp",
+            "metaWhatsapp",
+            "facebookLeadAds",
+            "instagramDm"
+          ]
         },
         "productInterest": {
           "type": "string",
@@ -97,7 +105,14 @@
         "status": {
           "type": "string",
           "description": "Status of the lead.",
-          "enum": ["new", "contacted", "qualified", "quoted", "converted", "lost"]
+          "enum": [
+            "new",
+            "contacted",
+            "qualified",
+            "quoted",
+            "converted",
+            "lost"
+          ]
         },
         "assignedUserId": {
           "type": "string",
@@ -117,6 +132,27 @@
           "type": "string",
           "description": "Timestamp of the next follow-up with the lead.",
           "format": "date-time"
+        },
+        "metaLeadId": {
+          "type": "string",
+          "description": "Optional ID from Meta for the lead."
+        },
+        "whatsappThreadId": {
+          "type": "string",
+          "description": "Optional ID for the WhatsApp thread."
+        },
+        "metaFormId": {
+          "type": "string",
+          "description": "Optional ID for the Meta form used."
+        },
+        "metaPageId": {
+          "type": "string",
+          "description": "Optional ID for the Meta page."
+        },
+        "lastInboundChannel": {
+          "type": "string",
+          "description": "The last channel a message was received from.",
+          "enum": ["whatsapp", "facebook", "instagram", "other"]
         }
       },
       "required": [

@@ -58,7 +58,7 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
 
   async function onSubmit(values: FormValues) {
     if (!firestore || !user || !companyId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Missing required context. Please try again.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Missing required context. Please ensure you have selected a company.' });
       return;
     }
 
@@ -186,3 +186,5 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
     </Form>
   );
 }
+
+    
