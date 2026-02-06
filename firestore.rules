@@ -104,6 +104,12 @@ service cloud.firestore {
         allow list, create, update, delete: if false; // Deny all client writes
     }
 
+    // WhatsApp webhook event logs are for debugging and created by a trusted server process.
+    // No client access should be allowed.
+    match /whatsappEvents/{eventId} {
+      allow read, write: if false;
+    }
+
 
     // =====================================================================
     // Company-level (Multi-Tenant) Collections
@@ -172,5 +178,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

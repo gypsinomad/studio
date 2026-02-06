@@ -184,4 +184,12 @@ export interface DashboardStats {
     lastUpdatedAt: any; // Date or Firestore Timestamp
 }
 
-    
+export interface WhatsappEvent {
+    id?: string;
+    rawPayload: any;
+    processedAt: any; // Firestore Timestamp
+    eventType?: string;
+    leadId?: string;
+    contactId?: string;
+    error?: string;
+}

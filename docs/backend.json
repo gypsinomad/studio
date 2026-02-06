@@ -581,6 +581,39 @@
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["totalLeads", "activeExportOrders", "leadsByStatus", "exportOrdersByStage", "lastUpdatedAt"]
+    },
+    "WhatsappEvent": {
+      "title": "WhatsappEvent",
+      "type": "object",
+      "description": "A log of a raw webhook payload from the WhatsApp Cloud API for debugging.",
+      "properties": {
+        "rawPayload": {
+          "type": "object",
+          "description": "The full, unprocessed JSON payload from Meta."
+        },
+        "processedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the event was processed."
+        },
+        "eventType": {
+          "type": "string",
+          "description": "The type of event (e.g., 'message', 'status')."
+        },
+        "leadId": {
+          "type": "string",
+          "description": "The ID of the lead that was created or affected."
+        },
+        "contactId": {
+          "type": "string",
+          "description": "The ID of the contact that was created or affected."
+        },
+        "error": {
+          "type": "string",
+          "description": "Records any error that occurred during processing."
+        }
+      },
+      "required": ["rawPayload", "processedAt"]
     }
   },
   "auth": {
@@ -603,6 +636,13 @@
         "definition": {
           "schema": { "$ref": "#/entities/DashboardStats" },
           "description": "Stores pre-aggregated dashboard data for each user. The document ID is the user's UID."
+        }
+      },
+       {
+        "path": "/whatsappEvents/{eventId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/WhatsappEvent" },
+          "description": "Stores raw webhook events from WhatsApp Cloud API for debugging purposes. Not tied to a company."
         }
       },
       {
@@ -679,5 +719,3 @@
     "reasoning": "The Firestore structure is designed for multi-tenancy. All primary business data is nested within a `/companies/{companyId}` collection. A user's access to a company's data is determined by checking if the `companyId` is in the `companyIds` array on their user profile (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. User profiles are kept in a top-level collection for authentication purposes."
   }
 }
-
-    
