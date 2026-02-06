@@ -106,6 +106,7 @@ export default function SignUpPage() {
 
   const handleSignUp = (event: React.FormEvent) => {
     event.preventDefault();
+    if (!auth) return;
     setIsSubmitting(true);
     
     // We don't await this. The useEffect will catch the new user state.
@@ -171,7 +172,7 @@ export default function SignUpPage() {
                 disabled={isSubmitting}
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting} id="email-signup-button">
               {isSubmitting && <LoaderCircle className="animate-spin" />}
               Create Account
             </Button>

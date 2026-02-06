@@ -24,7 +24,7 @@ import { useFirestore } from '@/firebase';
 
 // A helper component for the Google sign-in button
 const GoogleSignInButton = ({ onClick, disabled }: { onClick: () => void, disabled: boolean }) => (
-    <Button variant="outline" className="w-full" onClick={onClick} disabled={disabled}>
+    <Button variant="outline" className="w-full" onClick={onClick} disabled={disabled} id="google-sign-in-button">
         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 173.4 58.2l-67.4 66.2C322.2 99.8 287.4 82 248 82c-84.3 0-152.3 68.1-152.3 152.3s68 152.3 152.3 152.3c99.1 0 133.2-82.9 137.7-124.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
         Sign in with Google
     </Button>
@@ -81,7 +81,7 @@ export default function LoginPage() {
         }
       }).catch(handleDbError);
     }
-  }, [user, firestore, router]);
+  }, [user, firestore, router, toast]);
 
 
   const handleAuthError = (error: any) => {
@@ -111,11 +111,13 @@ export default function LoginPage() {
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
+    if (!auth) return;
     setIsSubmitting(true);
     initiateEmailSignIn(auth, email, password, handleAuthError);
   };
 
   const handleGoogleLogin = () => {
+    if (!auth) return;
     setIsSubmitting(true);
     initiateGoogleSignIn(auth, handleAuthError);
   }
@@ -167,7 +169,7 @@ export default function LoginPage() {
                     disabled={isSubmitting}
                 />
                 </div>
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting} id="email-login-button">
                 {isSubmitting && <LoaderCircle className="animate-spin mr-2" />}
                 Login
                 </Button>
