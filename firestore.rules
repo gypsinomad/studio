@@ -17,32 +17,29 @@ service cloud.firestore {
     }
 
     // --- Core Data Collections ---
-    // Any authenticated user can perform all operations.
-    match /companies/{docId} {
+    // Any authenticated user can perform all operations on these collections and their subcollections.
+    match /companies/{document=**} {
       allow read, write: if isSignedIn();
     }
-    match /contacts/{docId} {
+    match /contacts/{document=**} {
       allow read, write: if isSignedIn();
     }
-    match /leads/{docId} {
+    match /leads/{document=**} {
       allow read, write: if isSignedIn();
     }
-    match /exportOrders/{orderId} {
-      allow read, write: if isSignedIn();
-       match /lineItems/{lineItemId} {
-        allow read, write: if isSignedIn();
-      }
-    }
-    match /tasks/{docId} {
+    match /exportOrders/{document=**} {
       allow read, write: if isSignedIn();
     }
-    match /documents/{docId} {
+    match /tasks/{document=**} {
       allow read, write: if isSignedIn();
     }
-    match /products/{docId} {
+    match /documents/{document=**} {
       allow read, write: if isSignedIn();
     }
-    match /notes/{docId} {
+    match /products/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /notes/{document=**} {
       allow read, write: if isSignedIn();
     }
     
