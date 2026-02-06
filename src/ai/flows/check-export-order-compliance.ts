@@ -23,8 +23,7 @@ const CheckExportOrderComplianceInputSchema = z.object({
   destinationCountry: z.string().describe('Destination country for the export.'),
   incoterms: z.string().describe('Incoterms for the export order.'),
   hsCode: z.string().describe('Harmonized System code for the product.'),
-  quantity: z.number().describe('Quantity of the product being exported.'),
-  unitPrice: z.number().describe('Unit price of the product.'),
+  totalValue: z.number().describe('Total value of the export order in USD.'),
   paymentTerms: z.string().describe('Payment terms for the export order.'),
   containerType: z.string().describe('Type of container used for shipping.'),
   portOfLoading: z.string().describe('Port of loading for the shipment.'),
@@ -76,8 +75,7 @@ const compliancePrompt = ai.definePrompt({
   Destination Country: {{{destinationCountry}}}
   Incoterms: {{{incoterms}}}
   HS Code: {{{hsCode}}}
-  Quantity: {{{quantity}}}
-  Unit Price: {{{unitPrice}}}
+  Total Value: {{{totalValue}}}
   Payment Terms: {{{paymentTerms}}}
   Container Type: {{{containerType}}}
   Port of Loading: {{{portOfLoading}}}
@@ -100,3 +98,5 @@ const checkExportOrderComplianceFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

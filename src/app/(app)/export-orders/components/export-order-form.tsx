@@ -62,8 +62,7 @@ const formSchema = z.object({
   destinationCountry: z.string().min(1, 'Destination country is required.'),
   incoterms: z.string().min(1, 'Incoterms are required.'),
   hsCode: z.string().optional(),
-  quantity: z.coerce.number().positive('Quantity must be positive.'),
-  unitPrice: z.coerce.number().positive('Unit price must be positive.'),
+  totalValue: z.coerce.number().positive('Total value must be positive.'),
   paymentTerms: z.string().optional(),
   containerType: z.string().optional(),
   portOfLoading: z.string().optional(),
@@ -99,8 +98,7 @@ export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
       destinationCountry: '',
       incoterms: 'FOB',
       hsCode: '',
-      quantity: 1000,
-      unitPrice: 1,
+      totalValue: 1000,
       paymentTerms: '100% LC at Sight',
       containerType: '20ft',
       portOfLoading: '',
@@ -310,25 +308,12 @@ export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
                 />
                 <FormField
                   control={form.control}
-                  name="quantity"
+                  name="totalValue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quantity (kg)</FormLabel>
+                      <FormLabel>Total Order Value (USD)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unitPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit Price ($)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <Input type="number" step="0.01" {...field} placeholder="e.g., 15000"/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -459,3 +444,5 @@ export function ExportOrderForm({ aiSettings }: ExportOrderFormProps) {
     </>
   );
 }
+
+    

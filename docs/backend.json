@@ -167,13 +167,9 @@
           "type": "string",
           "description": "HS code for the export order."
         },
-        "quantity": {
+        "totalValue": {
           "type": "number",
-          "description": "Quantity of the product being exported."
-        },
-        "unitPrice": {
-          "type": "number",
-          "description": "Unit price of the product being exported."
+          "description": "Total value of the export order in USD."
         },
         "paymentTerms": {
           "type": "string",
@@ -229,8 +225,7 @@
         "destinationCountry",
         "incoterms",
         "hsCode",
-        "quantity",
-        "unitPrice",
+        "totalValue",
         "paymentTerms",
         "containerType",
         "portOfLoading",
@@ -610,3 +605,5 @@
     "reasoning": "The Firestore structure is designed for multi-tenancy. All primary business data is nested within a `/companies/{companyId}` collection. A user's access to a company's data is determined by checking if the `companyId` is in the `companyIds` array on their user profile (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. User profiles are kept in a top-level collection for authentication purposes."
   }
 }
+
+    

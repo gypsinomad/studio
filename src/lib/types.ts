@@ -44,8 +44,7 @@ export interface ExportOrder {
   destinationCountry: string;
   incoterms: string;
   hsCode: string;
-  quantity: number;
-  unitPrice: number;
+  totalValue: number;
   paymentTerms: string;
   containerType: string;
   portOfLoading: string;
@@ -172,3 +171,5 @@ export interface DashboardStats {
     exportOrdersByStage: Record<ExportOrderStage, number>;
     lastUpdatedAt: any; // Date or Firestore Timestamp
 }
+
+    
