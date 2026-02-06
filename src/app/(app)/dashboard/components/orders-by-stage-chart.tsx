@@ -29,13 +29,15 @@ interface OrdersByStageChartProps {
 
 const stageLabels: Record<ExportOrderStage, string> = {
     enquiry: "Enquiry",
-    proformaIssued: "Proforma",
-    advanceReceived: "Advance",
+    proformaIssued: "Quotation Sent",
+    advanceReceived: "Order Confirmed",
     production: "Production",
-    readyToShip: "Ready",
+    exportDocumentation: "Documentation",
+    readyToShip: "Ready to Ship",
     shipped: "Shipped",
     closed: "Closed",
     cancelled: "Cancelled",
+    lostNoResponse: "Lost",
 }
 
 export function OrdersByStageChart({ data }: OrdersByStageChartProps) {

@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import { addDays } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
-import type { Lead } from '@/lib/types';
+import type { Lead, Task } from '@/lib/types';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -63,6 +64,10 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
     setIsSubmitting(true);
 
     try {
+      const batch = writeBatch(firestore);
+
+      // 1. Create the lead document
+      const leadRef = doc(collection(firestore, 'leads'));
       const newLeadPayload: Omit<Lead, 'id'> = {
         ...values,
         status: 'new',
@@ -71,18 +76,30 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
         createdAt: serverTimestamp(),
         incotermsPreference: 'CIF', // Default value
       };
-      
-      const leadsCollection = collection(firestore, 'leads');
-      await addDoc(leadsCollection, newLeadPayload);
+      batch.set(leadRef, newLeadPayload);
+
+      // 2. Create the automated follow-up task
+      const taskRef = doc(collection(firestore, 'tasks'));
+      const taskPayload: Omit<Task, 'id'> = {
+        title: `Follow up with new lead: ${values.fullName}`,
+        status: 'open',
+        dueDate: addDays(new Date(), 2), // Due in 2 days
+        assigneeId: user.uid,
+        relatedLeadId: leadRef.id,
+        createdAt: serverTimestamp()
+      };
+      batch.set(taskRef, taskPayload);
+
+      await batch.commit();
 
       toast({
         title: 'Lead Created',
-        description: `${values.fullName} has been added to your leads.`,
+        description: `${values.fullName} has been added, and a follow-up task was created.`,
       });
       onSuccess();
 
     } catch (error) {
-      console.error("Failed to create lead: ", error);
+      console.error("Failed to create lead and task: ", error);
       toast({
         variant: 'destructive',
         title: 'Failed to create lead',

@@ -12,23 +12,17 @@ interface UseCurrentUserResult {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  role: UserRole | null;
+  role: 'admin' | 'user' | null;
+  canCreate: boolean;
 }
 
 const ADMIN_EMAIL = 'akhilvenugopal@gmail.com';
 
-/**
- * A hook to manage the user's authentication state and Firestore profile data.
- * It provides a consolidated view of the user, their role, and permissions.
- * It also handles creating a user profile document in Firestore on their first sign-in.
- * Admin status is determined by email, while other roles are from the Firestore document.
- */
 export function useCurrentUser(): UseCurrentUserResult {
   const { user: firebaseUser, isUserLoading: authLoading } = useUser();
   const firestore = useFirestore();
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
-  // Memoize the document reference to prevent re-fetching on every render
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !firebaseUser) return null;
     return doc(firestore, 'users', firebaseUser.uid);
@@ -36,8 +30,6 @@ export function useCurrentUser(): UseCurrentUserResult {
 
   const { data: userProfile, isLoading: profileLoading } = useDoc<User>(userDocRef);
 
-  // This effect handles the creation of the user profile document in Firestore
-  // if it doesn't exist upon login.
   useEffect(() => {
     const shouldCreateProfile = !authLoading && firebaseUser && !profileLoading && !userProfile && !isCreatingProfile;
 
@@ -46,8 +38,8 @@ export function useCurrentUser(): UseCurrentUserResult {
         setIsCreatingProfile(true);
         if (!userDocRef) return;
 
-        // New users default to salesExecutive to allow them to create entities.
-        const initialRole: UserRole = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'salesExecutive';
+        const isHardcodedAdmin = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL;
+        const initialRole: UserRole = isHardcodedAdmin ? 'admin' : 'salesExecutive';
 
         const newUserProfileData: Omit<User, 'id'> = {
           authUid: firebaseUser.uid,
@@ -74,15 +66,19 @@ export function useCurrentUser(): UseCurrentUserResult {
   const isLoading = authLoading || profileLoading || isCreatingProfile;
   const isAuthenticated = !!firebaseUser && !isLoading;
   
-  // Admin status is definitively determined by the email address.
   const isAdmin = isAuthenticated && firebaseUser.email?.toLowerCase() === ADMIN_EMAIL;
   
+  const role = isAdmin ? 'admin' : (isAuthenticated ? 'user' : null);
+  
+  const canCreate = isAuthenticated;
+
   return {
     user: firebaseUser,
     userProfile,
     isLoading,
     isAuthenticated,
     isAdmin,
-    role: userProfile?.role || null,
+    role,
+    canCreate,
   };
 }

@@ -176,7 +176,7 @@
         "stage": {
           "type": "string",
           "description": "Stage of the export order.",
-           "enum": ["enquiry", "proformaIssued", "advanceReceived", "production", "readyToShip", "shipped", "closed", "cancelled"]
+           "enum": ["enquiry", "proformaIssued", "advanceReceived", "production", "exportDocumentation", "readyToShip", "shipped", "closed", "cancelled", "lostNoResponse"]
         },
         "contactId": {
           "type": "string",
@@ -214,6 +214,32 @@
         "aiValidation": {
           "type": "string",
           "description": "AI validation suggestions for the export order."
+        },
+        "expectedShipmentDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The expected date of shipment."
+        },
+        "portOfLoading": {
+            "type": "string",
+            "description": "The port where the goods will be loaded."
+        },
+        "containerType": {
+            "type": "string",
+            "description": "The type of container used (e.g., '20ft', '40ft HC')."
+        },
+        "fssaiLicenseNumber": {
+            "type": "string",
+            "description": "FSSAI license number of the exporter."
+        },
+        "icegateStatus": {
+            "type": "string",
+            "description": "Status from the ICEGATE portal."
+        },
+        "certificateRequirements": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of required certificates for the export."
         }
       },
       "required": [
@@ -238,6 +264,18 @@
           "type": "string",
           "description": "Name of the product for this line item."
         },
+        "productType": {
+          "type": "string",
+          "description": "Category or type of the product."
+        },
+        "hsCode": {
+            "type": "string",
+            "description": "Harmonized System code for the product."
+        },
+        "unitPrice": {
+            "type": "number",
+            "description": "Price per unit (e.g., per kg)."
+        },
         "quantity": {
           "type": "number",
           "description": "Total quantity of the product in kg."
@@ -259,7 +297,7 @@
           "description": "Net weight of the produce per box in kg."
         }
       },
-      "required": ["productName", "quantity", "boxes", "grossWeightPerBox", "netWeightPerBox"]
+      "required": ["productName", "quantity", "boxes", "grossWeightPerBox", "netWeightPerBox", "unitPrice", "hsCode"]
     },
     "Contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -288,6 +326,10 @@
           "type": "string",
           "description": "Job title of the contact (e.g. Purchase Manager)."
         },
+        "companyId": {
+            "type": "string",
+            "description": "Reference to the Company this contact belongs to."
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the contact was created.",
@@ -301,6 +343,19 @@
         "phone",
         "createdAt"
       ]
+    },
+    "Company": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Company",
+        "type": "object",
+        "description": "Represents a customer company.",
+        "properties": {
+            "name": { "type": "string", "description": "Name of the customer company." },
+            "country": { "type": "string", "description": "Country where the company is located." },
+            "website": { "type": "string", "format": "uri", "description": "Company's official website." },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["name", "country", "createdAt"]
     },
     "Task": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -607,6 +662,13 @@
         "definition": {
           "schema": { "$ref": "#/entities/WhatsappEvent" },
           "description": "Stores raw webhook events from WhatsApp Cloud API for debugging purposes."
+        }
+      },
+      {
+        "path": "/companies/{companyId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/Company" },
+          "description": "Stores customer companies."
         }
       },
       {

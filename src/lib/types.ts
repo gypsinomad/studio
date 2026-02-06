@@ -40,7 +40,7 @@ export interface Lead {
   lastInboundChannel?: LeadChannel;
 }
 
-export type ExportOrderStage = 'enquiry' | 'proformaIssued' | 'advanceReceived' | 'production' | 'readyToShip' | 'shipped' | 'closed' | 'cancelled';
+export type ExportOrderStage = 'enquiry' | 'proformaIssued' | 'advanceReceived' | 'production' | 'exportDocumentation' | 'readyToShip' | 'shipped' | 'closed' | 'cancelled' | 'lostNoResponse';
 
 export interface ExportOrder {
   id?: string;
@@ -55,11 +55,20 @@ export interface ExportOrder {
   assignedUserId: string;
   createdAt: any; // Date or Firestore Timestamp
   aiValidation?: string;
+  expectedShipmentDate?: any;
+  portOfLoading?: string;
+  containerType?: string;
+  fssaiLicenseNumber?: string;
+  icegateStatus?: string;
+  certificateRequirements?: string[];
 }
 
 export interface LineItem {
   id?: string;
   productName: string;
+  productType?: string;
+  hsCode: string;
+  unitPrice: number;
   quantity: number; // in kg
   boxes: number;
   packing?: string;
@@ -71,9 +80,8 @@ export interface LineItem {
 export interface Company {
   id?: string;
   name: string;
-  industry?: string;
+  country: string;
   website?: string;
-  address?: string;
   createdAt: any; // Date or Firestore Timestamp
 }
 
@@ -84,6 +92,7 @@ export interface Contact {
   email: string;
   phone?: string;
   jobTitle?: string;
+  companyId?: string;
   createdAt: any; // Date or Firestore Timestamp
 }
 

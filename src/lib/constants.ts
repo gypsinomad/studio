@@ -8,6 +8,7 @@ import {
   FileText,
   BarChart3,
   Settings,
+  Building,
 } from 'lucide-react';
 
 export const NAV_ITEMS: NavItem[] = [
@@ -25,6 +26,11 @@ export const NAV_ITEMS: NavItem[] = [
     title: 'Export Orders',
     href: '/export-orders',
     icon: Ship,
+  },
+  {
+    title: 'Companies',
+    href: '/companies',
+    icon: Building,
   },
   {
     title: 'Contacts',
