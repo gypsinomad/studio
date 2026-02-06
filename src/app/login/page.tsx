@@ -56,7 +56,7 @@ export default function LoginPage() {
             authUid: user.uid,
             email: user.email || '',
             displayName: user.displayName || 'New User',
-            role: 'salesExecutive', // Default role
+            role: user.email === 'admin@spiceroute.com' ? 'admin' : 'salesExecutive',
             isActive: true,
             createdAt: serverTimestamp(),
             companyIds: [], // New users are not assigned to a company initially

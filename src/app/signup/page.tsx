@@ -17,7 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
 import { User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 
 export default function SignUpPage() {
@@ -37,7 +37,7 @@ export default function SignUpPage() {
     if (user && isSubmitting) { // only run for users being created
       createUserProfile(user);
     }
-  }, [user]);
+  }, [user, isSubmitting]);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -54,23 +54,28 @@ export default function SignUpPage() {
       authUid: firebaseUser.uid,
       email: firebaseUser.email || '',
       displayName: displayName || firebaseUser.displayName || 'New User',
-      role: 'salesExecutive', // Default role for new sign-ups
+      role: firebaseUser.email === 'admin@spiceroute.com' ? 'admin' : 'salesExecutive',
       isActive: true,
       createdAt: serverTimestamp(),
       companyIds: [], // New users start with no companies
     };
 
-    // Use a non-blocking write to create the user profile
-    setDocumentNonBlocking(userRef, newUserProfile, {});
-    
-    toast({
-        title: "Account Created!",
-        description: "Welcome to SpiceRoute CRM. Redirecting you to the dashboard...",
-    });
-
-    // The onAuthStateChanged listener in the provider will eventually redirect
-    // but we can do it here for a faster user experience.
-    router.replace('/dashboard');
+    try {
+        await setDoc(userRef, newUserProfile);
+        toast({
+            title: "Account Created!",
+            description: "Welcome to SpiceRoute CRM. Redirecting you to the dashboard...",
+        });
+        router.replace('/dashboard');
+    } catch(e) {
+        console.error("Error creating user profile: ", e);
+        toast({
+            variant: "destructive",
+            title: "Sign up failed",
+            description: "Could not create your user profile."
+        });
+        setIsSubmitting(false);
+    }
   };
 
   const handleSignUp = async (event: React.FormEvent) => {
