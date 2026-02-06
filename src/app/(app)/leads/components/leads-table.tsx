@@ -9,12 +9,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Lead, LeadStatus } from '@/lib/types';
+import type { Lead, LeadSource, LeadStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Laptop, User, MessageSquare, Facebook, Instagram } from 'lucide-react';
 
 interface LeadsTableProps {
   data: Lead[];
+  onRowClick: (lead: Lead) => void;
 }
 
 const statusColors: Record<LeadStatus, string> = {
@@ -26,9 +28,28 @@ const statusColors: Record<LeadStatus, string> = {
     lost: 'bg-gray-100 text-gray-800'
 }
 
-export function LeadsTable({ data }: LeadsTableProps) {
+const sourceIcons: { [key in LeadSource | string]: React.ReactElement } = {
+  Manual: <User className="h-5 w-5 text-gray-500" />,
+  Website: <Laptop className="h-5 w-5 text-gray-500" />,
+  whatsapp: <MessageSquare className="h-5 w-5 text-green-500" />,
+  metaWhatsapp: <MessageSquare className="h-5 w-5 text-green-500" />,
+  facebookLeadAds: <Facebook className="h-5 w-5 text-blue-600" />,
+  instagramDm: <Instagram className="h-5 w-5 text-purple-600" />,
+};
+
+const sourceLabels: { [key in LeadSource | string]: string } = {
+  Manual: 'Manual',
+  Website: 'Website',
+  whatsapp: 'WhatsApp',
+  metaWhatsapp: 'WhatsApp',
+  facebookLeadAds: 'Facebook',
+  instagramDm: 'Instagram',
+};
+
+
+export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
   if (data.length === 0) {
-    return <p className="text-muted-foreground">You have no leads assigned to you.</p>;
+    return <p className="text-muted-foreground">No leads match the current filter.</p>;
   }
 
   const toDate = (timestamp: any): Date => {
@@ -47,12 +68,13 @@ export function LeadsTable({ data }: LeadsTableProps) {
             <TableHead>Company</TableHead>
             <TableHead>Product Interest</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Source</TableHead>
             <TableHead>Created At</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((lead) => (
-            <TableRow key={lead.id}>
+            <TableRow key={lead.id} onClick={() => onRowClick(lead)} className="cursor-pointer">
               <TableCell className="font-medium">{lead.fullName}</TableCell>
               <TableCell>{lead.companyName}</TableCell>
               <TableCell>{lead.productInterest}</TableCell>
@@ -60,6 +82,12 @@ export function LeadsTable({ data }: LeadsTableProps) {
                 <Badge variant="outline" className={cn("capitalize", statusColors[lead.status])}>
                     {lead.status}
                 </Badge>
+              </TableCell>
+               <TableCell>
+                <div className="flex items-center gap-2" title={sourceLabels[lead.source] ?? 'Unknown'}>
+                  {sourceIcons[lead.source] ?? <User className="h-5 w-5 text-gray-500" />}
+                  <span className="hidden lg:inline">{sourceLabels[lead.source] ?? 'Unknown'}</span>
+                </div>
               </TableCell>
               <TableCell>{format(toDate(lead.createdAt), 'PP')}</TableCell>
             </TableRow>

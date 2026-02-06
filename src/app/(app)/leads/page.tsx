@@ -10,9 +10,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentCompany } from '@/hooks/use-current-company';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { NewLeadForm } from './components/new-lead-form';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { LeadDetails } from './components/lead-details';
+import type { Lead } from '@/lib/types';
 
 export default function LeadsPage() {
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+
   const firestore = useFirestore();
   const { user } = useUser();
   const { companyId, isLoading: isCompanyLoading } = useCurrentCompany();
@@ -26,18 +32,31 @@ export default function LeadsPage() {
   const leadsQuery = useMemoFirebase(() => {
     if (!firestore || !companyId || !userProfile || !user) return null;
     
-    const leadsCollection = collection(firestore, 'companies', companyId, 'leads');
-
-    if (userProfile.role === 'admin') {
-      return query(leadsCollection);
-    } else {
-      return query(leadsCollection, where('assignedUserId', '==', user.uid));
+    let leadsCollectionRef = collection(firestore, 'companies', companyId, 'leads');
+    
+    const filters = [];
+    if (userProfile.role !== 'admin') {
+      filters.push(where('assignedUserId', '==', user.uid));
     }
-  }, [firestore, companyId, userProfile, user]);
+    if (sourceFilter) {
+      filters.push(where('source', '==', sourceFilter));
+    }
+
+    return query(leadsCollectionRef, ...filters);
+
+  }, [firestore, companyId, userProfile, user, sourceFilter]);
 
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
   const isLoading = isCompanyLoading || isProfileLoading || areLeadsLoading;
+
+  const handleRowClick = (lead: Lead) => setSelectedLead(lead);
+  const handleSheetClose = () => setSelectedLead(null);
+
+  const toggleFilter = (filter: string) => {
+    setSourceFilter(current => (current === filter ? null : filter));
+  };
+
 
   return (
     <>
@@ -45,10 +64,22 @@ export default function LeadsPage() {
         title="Leads"
         description="Manage all your potential customers and track their progress."
       >
-        <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId || isLoading}>
-          <PlusCircle className="mr-2" />
-          New Lead
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button 
+                variant={sourceFilter === 'whatsapp' ? 'default' : 'outline'}
+                onClick={() => toggleFilter('whatsapp')}>
+                WhatsApp
+            </Button>
+            <Button 
+                variant={sourceFilter === 'facebookLeadAds' ? 'default' : 'outline'}
+                onClick={() => toggleFilter('facebookLeadAds')}>
+                Facebook
+            </Button>
+             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!companyId || isLoading}>
+                <PlusCircle className="mr-2" />
+                New Lead
+            </Button>
+        </div>
       </PageHeader>
       
       {isLoading && (
@@ -59,7 +90,7 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {!isLoading && leads && <LeadsTable data={leads} />}
+      {!isLoading && leads && <LeadsTable data={leads} onRowClick={handleRowClick} />}
 
       <Dialog open={isNewLeadOpen} onOpenChange={setIsNewLeadOpen}>
         <DialogContent>
@@ -72,8 +103,24 @@ export default function LeadsPage() {
           <NewLeadForm onSuccess={() => setIsNewLeadOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!selectedLead} onOpenChange={(isOpen) => !isOpen && handleSheetClose()}>
+        <SheetContent>
+            {selectedLead && (
+                <>
+                <SheetHeader>
+                    <SheetTitle>{selectedLead.fullName}</SheetTitle>
+                    <SheetDescription>
+                        Details for this lead from {selectedLead.companyName}.
+                    </SheetDescription>
+                </SheetHeader>
+                <div className="py-4">
+                    <LeadDetails lead={selectedLead} />
+                </div>
+                </>
+            )}
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
-
-    
