@@ -36,16 +36,17 @@ export function AppHeader() {
     return doc(firestore, 'usageStats', getMonthKey());
   }, [firestore, isAdmin]);
 
-  const { data: settings } = useDoc<AISettings>(settingsDocRef);
-  const { data: usage } = useDoc<AIUsageStats>(usageDocRef);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<AISettings>(settingsDocRef);
+  const { data: usage, isLoading: isLoadingUsage } = useDoc<AIUsageStats>(usageDocRef);
   
   const mergedUser = useMemo(() => {
     if (!user || !userProfile) return null;
     return { ...user, ...userProfile };
   }, [user, userProfile]);
 
+  const isDataLoading = isUserLoading || isProfileLoading || (isAdmin && (isLoadingSettings || isLoadingUsage));
 
-  if (isUserLoading || isProfileLoading) {
+  if (isDataLoading) {
     return (
        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
             <div className="md:hidden">
@@ -91,9 +92,11 @@ export function AppHeader() {
         SpiceRoute CRM
       </h1>
       <div className="ml-auto flex items-center gap-4">
-        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} />}
+        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isLoadingSettings || isLoadingUsage} />}
         <UserNav user={mergedUser} />
       </div>
     </header>
   );
 }
+
+    

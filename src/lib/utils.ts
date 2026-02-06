@@ -16,3 +16,5 @@ export function getDayKey(date: Date = new Date()): string {
 export function getTodaysDateKey(): string {
     return getDayKey(new Date());
 }
+
+    

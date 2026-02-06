@@ -21,29 +21,6 @@ export default function DashboardPage() {
   
   const { data: dashboardData, isLoading } = useDoc<DashboardStats>(dashboardStatsRef);
 
-  if (isLoading) {
-    return (
-       <>
-        <PageHeader
-          title="Dashboard"
-          description="Welcome back! Here's a snapshot of your business."
-        />
-         <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-                <Skeleton className="h-[400px] w-full" />
-                <Skeleton className="h-[400px] w-full" />
-            </div>
-        </div>
-      </>
-    )
-  }
-
   const leadsByStatus = dashboardData?.leadsByStatus ? Object.entries(dashboardData.leadsByStatus).map(([name, value]) => ({ name, value })) : [];
   const exportOrdersByStage = dashboardData?.exportOrdersByStage ? Object.entries(dashboardData.exportOrdersByStage).map(([name, value]) => ({ name, value })) : [];
 
@@ -56,13 +33,18 @@ export default function DashboardPage() {
 
       <div className="space-y-6">
         <StatsCards 
-            totalLeads={dashboardData?.totalLeads ?? 0} 
-            activeExportOrders={dashboardData?.activeExportOrders ?? 0} 
+            isLoading={isLoading}
+            totalLeads={dashboardData?.totalLeads} 
+            activeExportOrders={dashboardData?.activeExportOrders} 
         />
         
         <div className="grid gap-6 md:grid-cols-2">
-            <LeadsByStatusChart data={leadsByStatus} id="leads-by-status-chart" />
-            <OrdersByStageChart data={exportOrdersByStage} id="orders-by-stage-chart" />
+           {isLoading && <>
+             <Skeleton className="h-[400px] w-full" />
+             <Skeleton className="h-[400px] w-full" />
+           </>}
+           {!isLoading && leadsByStatus.length > 0 && <LeadsByStatusChart data={leadsByStatus} />}
+           {!isLoading && exportOrdersByStage.length > 0 && <OrdersByStageChart data={exportOrdersByStage} />}
         </div>
         
         <RecentActivity />
@@ -70,3 +52,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

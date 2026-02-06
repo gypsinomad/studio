@@ -643,3 +643,5 @@
     "reasoning": "The Firestore structure is designed for multi-tenancy. All primary business data is nested within a `/companies/{companyId}` collection. A user's access to a company's data is determined by checking if the `companyId` is in the `companyIds` array on their user profile (`/users/{userId}`). This is a scalable and secure pattern for SaaS applications. User profiles are kept in a top-level collection for authentication purposes."
   }
 }
+
+    

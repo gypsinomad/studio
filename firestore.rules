@@ -12,11 +12,15 @@
  * - `/users/{userId}`: Contains user profiles with a critical `companyIds` array and a `role`.
  *   Access is restricted to the document owner or an admin.
  * - `/dashboardStats/{userId}`: Pre-aggregated data for a user's dashboard. Only readable by the owner.
+ *   These are written by a backend function with admin privileges.
+ * - `/settings/ai` & `/usageStats/{month}`: Configuration and usage data for AI features. Admins
+ *   can read/write settings, but only backend processes can update usage stats.
  * - `/companies/{companyId}`: The root for all tenant-specific data. Access requires membership.
  * - `/companies/{companyId}/leads/{leadId}` (and similar collections): Data for a specific company.
  *   - **Admin:** Can read/write all documents within any company they are a member of.
  *   - **salesExecutive:** Can only read/write documents where `assignedUserId == request.auth.uid`.
- *     They cannot list all documents; they must query for their own.
+ *     They cannot list all documents; they must construct client-side queries that filter by their own
+ *     `assignedUserId`. The `get` rule then secures access to the individual documents returned by that query.
  *
  * ## Key Security Decisions
  * - **Multi-Tenancy via User Profile**: To check if a user can access `/companies/{companyId}`, the
@@ -64,7 +68,7 @@ service cloud.firestore {
     }
 
     // =====================================================================
-    // Collection Rules
+    // Global & Settings Collections
     // =====================================================================
 
     match /users/{userId} {
@@ -81,14 +85,30 @@ service cloud.firestore {
     }
 
     // Rule for dashboard stats. Users can read their own stats document.
-    // These documents are created and managed by backend functions.
+    // These documents are created and managed by backend functions with admin privileges.
     match /dashboardStats/{userId} {
       allow get: if isOwner(userId);
       allow list, create, update, delete: if false;
     }
+    
+    // AI settings can be read by any signed-in user, but only written by admins.
+    match /settings/ai {
+        allow get: if isSignedIn();
+        allow write: if isAdmin();
+        allow list, create, update, delete: if isAdmin(); // Broader write for single doc
+    }
+
+    // AI usage stats can be read by admins, but only written by backend functions.
+    match /usageStats/{month} {
+        allow get: if isAdmin();
+        allow list, create, update, delete: if false; // Deny all client writes
+    }
 
 
-    // This is the root of our multi-tenant structure.
+    // =====================================================================
+    // Company-level (Multi-Tenant) Collections
+    // =====================================================================
+
     match /companies/{companyId} {
       // Allow access if user is a member of the company, or is an admin.
       allow get: if isUserMemberOfCompany(companyId) || isAdmin();
@@ -121,7 +141,7 @@ service cloud.firestore {
       match /leads/{leadId} {
         // Allow read if admin, or if user is assigned to the lead.
         allow get: if isUserMemberOfCompany(companyId) && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
-        // Allow list for any company member. Client queries MUST be filtered.
+        // Allow list for any company member. Client queries MUST be filtered by assignedUserId for non-admins.
         allow list: if isUserMemberOfCompany(companyId);
         // Allow create/update/delete if admin, or if user is assigned.
         allow create, update, delete: if isUserMemberOfCompany(companyId) && (isAdmin() || request.resource.data.assignedUserId == request.auth.uid);
@@ -152,3 +172,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

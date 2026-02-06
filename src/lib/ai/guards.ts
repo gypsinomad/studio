@@ -3,10 +3,9 @@ import 'server-only';
 import { adminDb } from '@/firebase/admin';
 import { AISettings, AIUsageStats } from '@/lib/types';
 import { FieldValue } from 'firebase-admin/firestore';
-import { getMonthKey, getDayKey, getTodaysDateKey } from '@/lib/utils';
+import { getMonthKey, getTodaysDateKey } from '@/lib/utils';
 
 const AI_SETTINGS_DOC_PATH = 'settings/ai';
-const AI_USAGE_DOC_PATH = `usageStats/${getMonthKey()}`;
 const COST_PER_AI_CALL_INR = 0.05; // Simplified approximation
 
 /**
@@ -18,9 +17,10 @@ export async function checkAiBudgetAndProceed() {
   if (!adminDb) {
     throw new Error("Firebase Admin SDK is not initialized. Cannot perform AI budget check.");
   }
+  const usageDocPath = `usageStats/${getMonthKey()}`;
 
   const settingsDoc = await adminDb.doc(AI_SETTINGS_DOC_PATH).get();
-  const usageDoc = await adminDb.doc(AI_USAGE_DOC_PATH).get();
+  const usageDoc = await adminDb.doc(usageDocPath).get();
 
   const settings: AISettings = (settingsDoc.exists
     ? settingsDoc.data()
@@ -35,7 +35,7 @@ export async function checkAiBudgetAndProceed() {
   }
 
   if (settings.aiMode === 'safe') {
-    const usage = (usageDoc.exists
+    const usage: AIUsageStats = (usageDoc.exists
       ? usageDoc.data()
       : {
           estimatedSpendThisMonthInr: 0,
@@ -55,11 +55,11 @@ export async function checkAiBudgetAndProceed() {
   // If proceed, update stats in a transaction
   try {
     await adminDb.runTransaction(async (transaction) => {
-        const currentUsageDoc = await transaction.get(adminDb.doc(AI_USAGE_DOC_PATH));
+        const currentUsageDoc = await transaction.get(adminDb.doc(usageDocPath));
         const dayKey = getTodaysDateKey();
 
         if (!currentUsageDoc.exists) {
-             transaction.set(adminDb.doc(AI_USAGE_DOC_PATH), {
+             transaction.set(adminDb.doc(usageDocPath), {
                 monthKey: getMonthKey(),
                 totalCallsMonth: 1,
                 estimatedSpendThisMonthInr: COST_PER_AI_CALL_INR,
@@ -67,7 +67,7 @@ export async function checkAiBudgetAndProceed() {
                 lastUpdatedAt: FieldValue.serverTimestamp(),
             });
         } else {
-            transaction.update(adminDb.doc(AI_USAGE_DOC_PATH), {
+            transaction.update(adminDb.doc(usageDocPath), {
                 totalCallsMonth: FieldValue.increment(1),
                 estimatedSpendThisMonthInr: FieldValue.increment(COST_PER_AI_CALL_INR),
                 [`dailyCalls.${dayKey}`]: FieldValue.increment(1),
@@ -82,3 +82,5 @@ export async function checkAiBudgetAndProceed() {
 
   return { canProceed: true, reason: 'ok' as const };
 }
+
+    

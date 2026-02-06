@@ -1,6 +1,4 @@
-// This component is not yet implemented with live data
-// as it would require a full client-side Firebase setup.
-// For now, it displays static information based on server-rendered props.
+// This component is now implemented with live data.
 'use client';
 
 import {
@@ -13,23 +11,39 @@ import { Progress } from '@/components/ui/progress';
 import { Circle } from 'lucide-react';
 import type { AISettings, AIUsageStats } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Skeleton } from './ui/skeleton';
 
 interface AIUsageIndicatorProps {
   settings: AISettings | null;
   usage: AIUsageStats | null;
+  isLoading: boolean;
 }
 
-export function AiUsageIndicator({ settings, usage }: AIUsageIndicatorProps) {
-  if (!settings || !usage) {
+export function AiUsageIndicator({ settings, usage, isLoading }: AIUsageIndicatorProps) {
+  if (isLoading) {
+    return <Skeleton className="h-8 w-24" />;
+  }
+  
+  if (!settings) {
     return (
-      <span className="text-xs text-muted-foreground">
-        AI usage unavailable
-      </span>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 cursor-help">
+                <span className="text-sm font-medium">AI Status</span>
+                <Circle className={cn("h-3 w-3 fill-current", "bg-gray-400")} />
+              </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" align="end">
+            <p className="text-xs text-muted-foreground">AI settings not found. Using defaults.</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
   const { aiMode, monthlyAiBudgetInr } = settings;
-  const spend = usage.estimatedSpendThisMonthInr || 0;
+  const spend = usage?.estimatedSpendThisMonthInr || 0;
   const progress = Math.min((spend / monthlyAiBudgetInr) * 100, 100);
 
   const modeColors = {
@@ -85,3 +99,5 @@ export function AiUsageIndicator({ settings, usage }: AIUsageIndicatorProps) {
     </TooltipProvider>
   );
 }
+
+    
