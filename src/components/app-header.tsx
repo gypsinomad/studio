@@ -1,36 +1,21 @@
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
-import type { AISettings, AIUsageStats, User } from '@/lib/types';
+import type { User } from '@/lib/types';
 import { AiUsageIndicator } from './ai-usage-indicator';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useMemo } from 'react';
-import { doc } from 'firebase/firestore';
-import { getMonthKey } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
+import { useAISettings } from '@/hooks/use-ai-settings';
 
 export function AppHeader() {
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, userProfile, isLoading: isUserLoading, isAdmin } = useCurrentUser();
+  const { settings, usage, isLoading: isAiLoading } = useAISettings();
 
-  const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null;
-    return doc(firestore, 'settings', 'ai');
-  }, [firestore, isAdmin]);
-
-  const usageDocRef = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null;
-    return doc(firestore, 'usageStats', getMonthKey());
-  }, [firestore, isAdmin]);
-
-  const { data: settings, isLoading: isLoadingSettings } = useDoc<AISettings>(settingsDocRef);
-  const { data: usage, isLoading: isLoadingUsage } = useDoc<AIUsageStats>(usageDocRef);
-  
   const mergedUser = useMemo(() => {
     if (!user || !userProfile) return null;
     // Combine the auth user and firestore profile into a single object
@@ -44,7 +29,7 @@ export function AppHeader() {
     return fullUser;
   }, [user, userProfile]);
 
-  const isLoading = isUserLoading || (isAdmin && (isLoadingSettings || isLoadingUsage));
+  const isLoading = isUserLoading || (isAdmin && isAiLoading);
 
   if (isLoading) {
     return (
@@ -74,7 +59,7 @@ export function AppHeader() {
              </h1>
              <div className="ml-auto flex items-center gap-4">
                  <p className="text-sm text-destructive">Could not load user profile.</p>
-                 <Button variant="outline" onClick={() => signOut(auth)}>Logout</Button>
+                 <Button variant="outline" onClick={() => auth && signOut(auth)}>Logout</Button>
              </div>
          </header>
     )
@@ -90,11 +75,9 @@ export function AppHeader() {
         SpiceRoute CRM
       </h1>
       <div className="ml-auto flex items-center gap-4">
-        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isLoadingSettings || isLoadingUsage} />}
+        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
         <UserNav user={mergedUser} />
       </div>
     </header>
   );
 }
-
-    

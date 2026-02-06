@@ -19,6 +19,8 @@ import type { User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
+import { useAISettings } from '@/hooks/use-ai-settings';
+import { AiSettingsCard } from './components/ai-settings-card';
 
 function UsersTable({ data }: { data: User[] }) {
    if (data.length === 0) {
@@ -76,6 +78,7 @@ function UsersTable({ data }: { data: User[] }) {
 
 function UsersPageContent() {
   const firestore = useFirestore();
+  const { settings, usage, isLoading: isAiLoading } = useAISettings();
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -98,15 +101,7 @@ function UsersPageContent() {
       
         <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>AI Settings</CardTitle>
-                        <CardDescription>Configure AI mode, budget, and usage limits.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">AI settings management UI will be here.</p>
-                    </CardContent>
-                </Card>
+                <AiSettingsCard settings={settings} usage={usage} isLoading={isAiLoading} />
                 <Card>
                     <CardHeader>
                         <CardTitle>User Invites & Approvals</CardTitle>

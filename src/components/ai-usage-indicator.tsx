@@ -34,8 +34,11 @@ export function AiUsageIndicator({ settings, usage, isLoading }: AIUsageIndicato
                 <Circle className={cn("h-3 w-3 fill-current", "bg-gray-400")} />
               </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" align="end">
-            <p className="text-xs text-muted-foreground">AI settings not found. Using defaults.</p>
+          <TooltipContent side="bottom" align="end" className="max-w-xs">
+             <p className="text-xs font-semibold">AI Settings Not Found</p>
+            <p className="text-xs text-muted-foreground">
+              Create a document at <code className="text-xs relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono">settings/ai</code> in Firestore to configure. Using safe defaults.
+            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -99,5 +102,3 @@ export function AiUsageIndicator({ settings, usage, isLoading }: AIUsageIndicato
     </TooltipProvider>
   );
 }
-
-    
