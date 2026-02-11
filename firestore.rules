@@ -34,6 +34,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // AI usage stats are only readable by admins. Backend functions write to it.
+    match /usageStats/{monthKey} {
+      allow read: if isAdmin();
+      allow write: if false; // Only backend can write.
+    }
+
     // Dashboard stats are specific to each user.
     match /dashboardStats/{userId} {
       allow read, create: if isOwner(userId) || isAdmin();
