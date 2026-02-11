@@ -15,9 +15,8 @@ function getFirebaseServices() {
 
     // Try to enable persistence, but catch the error if it's already enabled.
     // This is the key to preventing crashes during development hot-reloads.
-    try {
-        enableIndexedDbPersistence(firestore);
-    } catch (error: any) {
+    enableIndexedDbPersistence(firestore)
+      .catch((error: any) => {
         if (error.code == 'failed-precondition') {
             // This can happen if persistence is already enabled on another tab
             // or in a previous hot-reload. It's safe to ignore.
@@ -25,7 +24,7 @@ function getFirebaseServices() {
             // The browser doesn't support persistence.
             console.warn('Browser does not support offline persistence.');
         }
-    }
+    });
 
     // Return all initialized services.
     return {
