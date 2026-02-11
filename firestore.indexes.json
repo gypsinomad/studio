@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -41,13 +42,6 @@
       "collectionGroup": "leads",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "assignedUserId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "leads",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "source", "order": "ASCENDING" }
       ]
     },
@@ -63,7 +57,16 @@
       "collectionGroup": "exportOrders",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "assignedUserId", "order": "ASCENDING" }
+        { "fieldPath": "stage", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "exportOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assignedUserId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

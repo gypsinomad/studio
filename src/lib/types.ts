@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -65,6 +66,7 @@ export interface ExportOrder {
   companyId: string;
   assignedUserId: string;
   createdAt: any; // Firestore Timestamp
+  updatedAt?: any; // Firestore Timestamp
   
   // Product & Quantity
   productType?: string;

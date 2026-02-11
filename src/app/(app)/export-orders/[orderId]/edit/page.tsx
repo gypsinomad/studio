@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -141,43 +142,49 @@ export default function EditExportOrderPage() {
 
             const newActivityLog: OrderActivityLog[] = [...(order.activityLog || [])];
 
-            const originalStage = order.stage;
-            const newStage = values.stage;
-
-            if (newStage !== originalStage) {
+            if (values.stage !== order.stage) {
                 newActivityLog.push({
                     action: `Stage changed`,
-                    details: `Stage updated from ${originalStage} to ${newStage}.`,
+                    details: `Stage updated from ${order.stage} to ${values.stage}.`,
                     timestamp: serverTimestamp(),
                     userId: user.uid,
                     userEmail: user.email || 'unknown',
                 });
             }
 
-            // 1. Update the main ExportOrder document
-            const updatedPayload: Omit<ExportOrder, 'id'> = {
-                 ...values,
+            const complianceFields: (keyof ExportOrder)[] = ['fssaiNumber', 'apedaStatus', 'iceGateStatus', 'phytosanitaryCert', 'certificateOfOrigin'];
+            complianceFields.forEach(field => {
+                if (order[field] !== values[field]) {
+                    newActivityLog.push({
+                        action: `Compliance Updated`,
+                        details: `${field} changed from "${order[field] || 'Not set'}" to "${values[field] || 'Not set'}".`,
+                        timestamp: serverTimestamp(),
+                        userId: user.uid,
+                        userEmail: user.email || 'unknown',
+                    });
+                }
+            });
+
+            const updatedPayload: Partial<ExportOrder> = {
+                ...values,
                 certificateRequirements: values.certificateRequirements?.split(',').map(s => s.trim()).filter(Boolean),
                 totalValue: totalValue,
-                assignedUserId: order.assignedUserId, // Keep original assignee
-                createdAt: order.createdAt, // Preserve original creation date
+                updatedAt: serverTimestamp(),
                 activityLog: newActivityLog,
             };
             batch.update(orderRef, updatedPayload);
 
-            // 2. Sync line items (delete all existing, then add all from form)
             const existingLineItemsSnapshot = await getDocs(lineItemsQuery!);
             existingLineItemsSnapshot.forEach(doc => batch.delete(doc.ref));
             
             values.lineItems.forEach(item => {
-                const { id, ...itemData } = item; // Exclude ID from form data before saving
+                const { id, ...itemData } = item;
                 const lineItemRef = doc(collection(firestore, `exportOrders/${orderRef.id}/lineItems`));
                 batch.set(lineItemRef, itemData);
             });
             
-            // 3. Handle stage-change automations
-            if (newStage !== originalStage) {
-                if (newStage === 'exportDocumentation') {
+            if (values.stage !== order.stage) {
+                if (values.stage === 'exportDocumentation') {
                     const taskRef = doc(collection(firestore, 'tasks'));
                     const taskPayload: Omit<Task, 'id'> = {
                         title: `Document Checklist for ${values.title}`,
@@ -191,7 +198,7 @@ export default function EditExportOrderPage() {
                     batch.set(taskRef, taskPayload);
                     await logUserActivity(firestore, 'FileCheck', `Documentation started`, `Order "${values.title}" has moved to documentation.`);
                 }
-                if (newStage === 'shippedDelivered') {
+                if (values.stage === 'shippedDelivered') {
                     const taskRef = doc(collection(firestore, 'tasks'));
                     const taskPayload: Omit<Task, 'id'> = {
                         title: `Send Tracking & Reminder for ${values.title}`,
@@ -207,10 +214,8 @@ export default function EditExportOrderPage() {
                 }
             }
             
-            // 4. Log the update activity
             await logActivity(firestore, user, 'update', 'exportOrders', orderId, order, updatedPayload);
 
-            // 5. Commit all writes
             await batch.commit();
             
             toast({ title: 'Success', description: 'Export order updated successfully.' });

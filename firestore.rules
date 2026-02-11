@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,43 +11,79 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // The isAdmin() function should read from the /users collection
+    // to check the user's role.
     function isAdmin() {
-      return isSignedIn() &&
-             request.auth.token.email_verified &&
-             request.auth.token.email.toLowerCase() == 'akhilvenugopal@gmail.com';
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // --- User & Settings Collections (Specific Rules) ---
-    // These rules are matched first because they are more specific.
-
-    // Users can only manage their own profile, and cannot change their role. Admins can manage all users.
+    // --- User & Settings Collections (Most Specific Rules First) ---
+    
+    // Users can read all profiles, but can only update their own. Admins can update any.
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId); // Allows new users to create their own profile
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
     
-    // Users can view/create their own dashboard stats, but not change them directly.
+    // AI and other settings are readable by authenticated users, but only writable by admins.
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Dashboard stats are specific to each user.
     match /dashboardStats/{userId} {
-      allow get, create: if isOwner(userId) || isAdmin();
-      allow write: if false; // Should be updated by backend jobs, not the client.
+      allow read, create: if isOwner(userId) || isAdmin();
+      allow write: if false; // Should only be updated by backend jobs.
     }
     
-    // AI settings can be read by anyone, but only written by an admin.
-    match /settings/ai {
-        allow get: if isSignedIn();
-        allow write: if isAdmin();
+    // --- Business Data Collections ---
+
+    // Leads can be read/updated by their assignee or an admin.
+    match /leads/{leadId} {
+      allow read, update: if isSignedIn() && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.assignedUserId == request.auth.uid;
+      allow delete: if isAdmin();
     }
 
-    // Usage stats are read-only for clients.
-    match /usageStats/{month} {
-        allow get: if isSignedIn();
-        allow write: if false;
+    // Export Orders can be read/updated by their assignee or an admin.
+    match /exportOrders/{orderId} {
+      allow read, update: if isSignedIn() && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.assignedUserId == request.auth.uid;
+      allow delete: if isAdmin();
+
+      // Sub-collections must also be secured.
+      match /lineItems/{lineItemId} {
+         allow read, write: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid);
+      }
+    }
+    
+    // All authenticated users can view companies. Only Admins can modify them.
+    match /companies/{companyId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
-    // --- Log & Event Collections (Specific Rules) ---
+    // All authenticated users can view and create contacts. Only Admins can modify them.
+    match /contacts/{contactId} {
+       allow read, create: if isSignedIn();
+       allow update, delete: if isAdmin();
+    }
+
+    // Users can only manage tasks assigned to them. Admins can manage all tasks.
+    match /tasks/{taskId} {
+        allow read, write: if isSignedIn() && (isAdmin() || resource.data.assigneeId == request.auth.uid || request.resource.data.assigneeId == request.auth.uid);
+    }
+    
+    // Documents can be read/written by any authenticated user for now.
+    match /documents/{documentId} {
+        allow read, write: if isSignedIn();
+    }
+
+    // --- Log & Event Collections (Append-Only or Read-Only) ---
 
     // The main audit log is append-only for any authenticated user.
     match /activityLogs/{logId} {
@@ -57,19 +94,12 @@ service cloud.firestore {
     // The user-facing activity feed is read-only for clients.
     match /activity_logs/{logId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow write: if false; // Should be written by backend triggers/server-side logic
     }
     
     // Raw webhook payloads are for server-side debugging only. No client access.
     match /whatsappEvents/{eventId} {
       allow read, write: if false;
-    }
-    
-    // --- General Catch-All for Data Collections ---
-    // Any other path that hasn't been matched can be read/written by any signed-in user.
-    // This covers leads, companies, contacts, orders, tasks, documents, etc.
-    match /{document=**} {
-      allow read, write: if isSignedIn();
     }
   }
 }
