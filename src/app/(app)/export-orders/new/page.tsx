@@ -140,6 +140,7 @@ export default function NewExportOrderPage() {
             assignedUserId: user.uid,
             stage: 'leadReceived',
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
             activityLog: [initialLog]
         };
         batch.set(orderRef, newOrderPayload);

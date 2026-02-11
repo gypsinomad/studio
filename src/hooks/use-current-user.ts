@@ -12,7 +12,7 @@ interface UseCurrentUserResult {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  role: 'admin' | 'user' | null;
+  role: UserRole | null;
   canCreate: boolean;
 }
 
@@ -65,11 +65,8 @@ export function useCurrentUser(): UseCurrentUserResult {
   
   const isLoading = authLoading || profileLoading || isCreatingProfile;
   const isAuthenticated = !!firebaseUser && !isLoading;
-  
-  const isAdmin = isAuthenticated && firebaseUser.email?.toLowerCase() === ADMIN_EMAIL;
-  
-  const role = isAdmin ? 'admin' : (isAuthenticated ? 'user' : null);
-  
+  const isAdmin = isAuthenticated && userProfile?.role === 'admin';
+  const role = userProfile?.role ?? null;
   const canCreate = isAuthenticated;
 
   return {
