@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { ExportOrder, ExportOrderStage, IceGateStatusUpdate } from '@/lib/types';
+import type { ExportOrder, IceGateStatusUpdate } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { MoreHorizontal } from 'lucide-react';
@@ -37,14 +38,6 @@ const stageColors: Record<string, string> = {
     shippedDelivered: 'bg-teal-100 text-teal-800',
     cancelled: 'bg-red-100 text-red-800',
     lostNoResponse: 'bg-gray-400 text-white',
-    // Legacy support
-    enquiry: 'bg-gray-200 text-gray-800',
-    proformaIssued: 'bg-cyan-100 text-cyan-800',
-    advanceReceived: 'bg-yellow-100 text-yellow-800',
-    production: 'bg-indigo-100 text-indigo-800',
-    readyToShip: 'bg-orange-100 text-orange-800',
-    shipped: 'bg-teal-100 text-teal-800',
-    closed: 'bg-green-100 text-green-800',
 };
 
 const iceGateStatusColors: Record<IceGateStatusUpdate, string> = {
@@ -66,14 +59,6 @@ const stageLabels: Record<string, string> = {
     shippedDelivered: 'Shipped & Delivered',
     cancelled: 'Cancelled',
     lostNoResponse: 'Lost',
-     // Legacy support
-    enquiry: "Enquiry",
-    proformaIssued: "Quotation Sent",
-    advanceReceived: "Order Confirmed",
-    production: "Production",
-    readyToShip: "Shipment Ready",
-    shipped: "Shipped & Delivered",
-    closed: "Closed",
 };
 
 

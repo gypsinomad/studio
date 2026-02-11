@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +13,7 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { useRouter } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
-import { PRODUCT_TYPES, INCOTERMS, PAYMENT_TERMS, CONTAINER_TYPES, CURRENCIES, UNITS, APEDA_STATUSES, ICEGATE_STATUSES as ICEGATE_STATUSES_UPDATED } from '@/lib/constants';
+import { PRODUCT_TYPES, INCOTERMS, PAYMENT_TERMS, CONTAINER_TYPES, CURRENCIES, UNITS, APEDA_STATUSES, ICEGATE_STATUSES } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -226,7 +227,7 @@ export default function NewExportOrderPage() {
                  <FormField control={form.control} name="hsCode" render={({ field }) => (<FormItem><FormLabel>Overall HS Code</FormLabel><FormControl><Input placeholder="8-digit code" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="fssaiNumber" render={({ field }) => (<FormItem><FormLabel>FSSAI License No.</FormLabel><FormControl><Input placeholder="14-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="apedaStatus" render={({ field }) => (<FormItem><FormLabel>APEDA Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{APEDA_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                <FormField control={form.control} name="iceGateStatus" render={({ field }) => (<FormItem><FormLabel>ICEGATE Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{ICEGATE_STATUSES_UPDATED.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                <FormField control={form.control} name="iceGateStatus" render={({ field }) => (<FormItem><FormLabel>ICEGATE Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{ICEGATE_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
                 <div className="space-y-4 pt-2">
                     <FormField control={form.control} name="phytosanitaryCert" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Phytosanitary Cert Required?</FormLabel></div></FormItem>)} />
                     <FormField control={form.control} name="certificateOfOrigin" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Certificate of Origin Required?</FormLabel></div></FormItem>)} />
