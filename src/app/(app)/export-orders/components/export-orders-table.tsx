@@ -25,6 +25,7 @@ import { MoreHorizontal } from 'lucide-react';
 interface ExportOrdersTableProps {
   data: ExportOrder[];
   onDelete: (orderId: string) => void;
+  onEdit: (orderId: string) => void;
 }
 
 const stageColors: Record<string, string> = {
@@ -66,7 +67,7 @@ const stageLabels: Record<string, string> = {
 };
 
 
-export function ExportOrdersTable({ data, onDelete }: ExportOrdersTableProps) {
+export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableProps) {
   if (data.length === 0) {
     return <p className="text-muted-foreground">You have no export orders assigned to you.</p>;
   }
@@ -112,7 +113,7 @@ export function ExportOrdersTable({ data, onDelete }: ExportOrdersTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => onEdit(order.id!)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onSelect={() => onDelete(order.id!)}

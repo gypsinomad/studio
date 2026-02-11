@@ -39,6 +39,10 @@ export default function ExportOrdersPage() {
 
   const isLoading = isUserLoading || areOrdersLoading;
 
+  const handleEditRequest = (orderId: string) => {
+    router.push(`/export-orders/${orderId}/edit`);
+  };
+
   const handleDeleteRequest = (orderId: string) => {
     setSelectedOrderId(orderId);
     setIsDeleteAlertOpen(true);
@@ -84,7 +88,7 @@ export default function ExportOrdersPage() {
         </div>
       )}
 
-      {!isLoading && orders && <ExportOrdersTable data={orders} onDelete={handleDeleteRequest}/>}
+      {!isLoading && orders && <ExportOrdersTable data={orders} onDelete={handleDeleteRequest} onEdit={handleEditRequest} />}
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
