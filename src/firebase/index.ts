@@ -9,45 +9,30 @@ import { getStorage } from 'firebase/storage';
 
 // This function will correctly handle the singleton pattern for Firebase services.
 function getFirebaseServices() {
-    // If an app is already initialized, return the existing services.
-    if (getApps().length) {
-        const app = getApp();
-        return {
-            firebaseApp: app,
-            auth: getAuth(app),
-            firestore: getFirestore(app),
-            storage: getStorage(app),
-        };
-    }
+    // Initialize the app, or get the existing one.
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const firestore = getFirestore(app);
 
-    // This block runs only once per application load.
-    // Initialize the app and then immediately enable persistence.
-    let firebaseApp;
+    // Try to enable persistence, but catch the error if it's already enabled.
+    // This is the key to preventing crashes during development hot-reloads.
     try {
-        // For Firebase App Hosting
-        firebaseApp = initializeApp();
-    } catch (e) {
-        if (process.env.NODE_ENV === "production") {
-            console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-        }
-        firebaseApp = initializeApp(firebaseConfig);
-    }
-    
-    const firestore = getFirestore(firebaseApp);
-    enableIndexedDbPersistence(firestore).catch((err) => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Multiple tabs open, persistence enabled in first tab only.');
-        } else if (err.code === 'unimplemented') {
+        enableIndexedDbPersistence(firestore);
+    } catch (error: any) {
+        if (error.code == 'failed-precondition') {
+            // This can happen if persistence is already enabled on another tab
+            // or in a previous hot-reload. It's safe to ignore.
+        } else if (error.code == 'unimplemented') {
+            // The browser doesn't support persistence.
             console.warn('Browser does not support offline persistence.');
         }
-    });
+    }
 
     // Return all initialized services.
     return {
-        firebaseApp,
-        auth: getAuth(firebaseApp),
+        firebaseApp: app,
+        auth: getAuth(app),
         firestore,
-        storage: getStorage(firebaseApp),
+        storage: getStorage(app),
     };
 }
 
