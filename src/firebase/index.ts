@@ -6,54 +6,57 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage';
 
-let persistenceEnabled = false;
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
+// This function will correctly handle the singleton pattern for Firebase services.
+function getFirebaseServices() {
+    // If an app is already initialized, return the existing services.
+    if (getApps().length) {
+        const app = getApp();
+        return {
+            firebaseApp: app,
+            auth: getAuth(app),
+            firestore: getFirestore(app),
+            storage: getStorage(app),
+        };
     }
 
-    return getSdks(firebaseApp);
-  }
+    // This block runs only once per application load.
+    // Initialize the app and then immediately enable persistence.
+    let firebaseApp;
+    try {
+        // For Firebase App Hosting
+        firebaseApp = initializeApp();
+    } catch (e) {
+        if (process.env.NODE_ENV === "production") {
+            console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+        }
+        firebaseApp = initializeApp(firebaseConfig);
+    }
+    
+    const firestore = getFirestore(firebaseApp);
+    enableIndexedDbPersistence(firestore).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn('Multiple tabs open, persistence enabled in first tab only.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('Browser does not support offline persistence.');
+        }
+    });
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+    // Return all initialized services.
+    return {
+        firebaseApp,
+        auth: getAuth(firebaseApp),
+        firestore,
+        storage: getStorage(firebaseApp),
+    };
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  const firestore = getFirestore(firebaseApp);
-  if (!persistenceEnabled) {
-    persistenceEnabled = true;
-    enableIndexedDbPersistence(firestore).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence enabled in first tab only.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Browser does not support offline persistence.');
-      }
-    });
-  }
-  
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: firestore,
-    storage: getStorage(firebaseApp),
-  };
+// The result is memoized at the module level, ensuring it's only called once.
+const firebaseServices = getFirebaseServices();
+
+// The main export now simply returns the memoized services.
+export function initializeFirebase() {
+    return firebaseServices;
 }
 
 export * from './provider';
