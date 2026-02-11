@@ -65,25 +65,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
     
-    // --- Explicit Rules for Core Data Collections ---
-    // Grants full read/write access to any authenticated user.
-    
-    match /companies/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /contacts/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /leads/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /exportOrders/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /tasks/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    match /documents/{document=**} {
+    // --- General Catch-All for Data Collections ---
+    // Any other path that hasn't been matched can be read/written by any signed-in user.
+    // This covers leads, companies, contacts, orders, tasks, documents, etc.
+    match /{document=**} {
       allow read, write: if isSignedIn();
     }
   }
