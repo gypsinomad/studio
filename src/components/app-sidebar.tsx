@@ -8,7 +8,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { NAV_ITEMS } from '@/lib/constants';
-import { Sprout } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/use-current-user';
@@ -24,26 +23,30 @@ export function AppSidebar() {
 
   return (
     <>
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 p-1">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
-            <Sprout className="h-6 w-6 text-primary" />
-          </div>
-          {state === 'expanded' && (
-            <h1 className="text-xl font-semibold font-headline text-sidebar-foreground">
-              SpiceRoute
-            </h1>
-          )}
+      <SidebarHeader className="border-b border-stone-200 p-0">
+        <div className="p-4 bg-gradient-to-br from-spice-50 to-cardamom-50">
+             <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-spice-500 to-spice-600 flex items-center justify-center shadow-md text-white">
+                    🌶️
+                </div>
+                {state === 'expanded' && (
+                <div>
+                    <h1 className="text-lg font-headline font-bold text-stone-900">SpiceRoute</h1>
+                    <p className="text-xs text-stone-500">Export CRM</p>
+                </div>
+                )}
+            </div>
         </div>
       </SidebarHeader>
 
-      <SidebarMenu className="flex-1 p-2">
+      <SidebarMenu className="flex-1 p-3">
         {visibleNavItems.map(item => (
           <SidebarMenuItem key={item.href}>
             <Link href={item.href} passHref>
               <SidebarMenuButton
                 isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
-                tooltip={{ children: item.title, className: "bg-sidebar-background text-sidebar-foreground border-sidebar-border" }}
+                tooltip={{ children: item.title, className: "bg-stone-900 text-white border-stone-700" }}
+                className="group-data-[[data-active=true]]:bg-gradient-to-r from-spice-500 to-spice-600 group-data-[[data-active=true]]:text-white group-data-[[data-active=true]]:shadow-md group-data-[[data-active=true]]:shadow-spice-200 text-stone-700 hover:bg-stone-100 hover:text-stone-900 font-medium"
               >
                 <item.icon />
                 <span>{item.title}</span>

@@ -1,4 +1,3 @@
-// This component is now implemented with live data.
 'use client';
 
 import {
@@ -8,7 +7,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
-import { Circle } from 'lucide-react';
 import type { AISettings, AIUsageStats } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
@@ -23,82 +21,46 @@ export function AiUsageIndicator({ settings, usage, isLoading }: AIUsageIndicato
   if (isLoading) {
     return <Skeleton className="h-8 w-24" />;
   }
-  
-  if (!settings) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-              <div className="flex items-center gap-2 cursor-help">
-                <span className="text-sm font-medium">AI Status</span>
-                <Circle className={cn("h-3 w-3 fill-current", "bg-gray-400")} />
-              </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" align="end" className="max-w-xs">
-             <p className="text-xs font-semibold">AI Settings Not Found</p>
-            <p className="text-xs text-muted-foreground">
-              Create a document at <code className="text-xs relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono">settings/ai</code> in Firestore to configure. Using safe defaults.
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
 
-  const { aiMode, monthlyAiBudgetInr } = settings;
+  const mode = settings?.aiMode || 'safe';
+  const budget = settings?.monthlyAiBudgetInr || 200;
   const spend = usage?.estimatedSpendThisMonthInr || 0;
-  const progress = Math.min((spend / monthlyAiBudgetInr) * 100, 100);
+  const progress = Math.min((spend / budget) * 100, 100);
 
   const modeColors = {
     off: "bg-red-500",
-    safe: "bg-green-500",
+    safe: "bg-emerald-500",
     unrestricted: "bg-amber-500",
+  } as const;
+
+  const textColors = {
+      off: "text-red-700",
+      safe: "text-cardamom-700",
+      unrestricted: "text-amber-700",
+  } as const;
+
+  const bgColors = {
+      off: "bg-red-50",
+      safe: "bg-cardamom-50",
+      unrestricted: "bg-amber-50",
+  } as const;
+
+  const borderColors = {
+      off: "border-red-200",
+      safe: "border-cardamom-200",
+      unrestricted: "border-amber-200",
   } as const;
 
   const modeText = {
     off: "AI is Off",
-    safe: "Safe Mode",
+    safe: "AI Active",
     unrestricted: "Unrestricted",
   } as const;
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 cursor-pointer">
-            <span className="text-sm font-medium">AI Status</span>
-            <Circle
-              className={cn("h-3 w-3 fill-current", modeColors[aiMode])}
-            />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="w-64 p-3" side="bottom" align="end">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <p className="font-semibold text-sm">{modeText[aiMode]}</p>
-              <p className="text-xs text-muted-foreground capitalize">
-                {aiMode}
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {aiMode === "off" && "All AI features are disabled."}
-              {aiMode === "safe" &&
-                "AI calls will be blocked if budget or daily limits are exceeded."}
-              {aiMode === "unrestricted" &&
-                "AI calls may incur charges beyond the set budget."}
-            </p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span>Monthly Budget</span>
-                <span>
-                  ₹{spend.toFixed(2)} / ₹{monthlyAiBudgetInr}
-                </span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+     <div className={cn("flex items-center space-x-2 px-3 py-1.5 rounded-full border", bgColors[mode], borderColors[mode])}>
+        <div className={cn("w-2 h-2 rounded-full", modeColors[mode], mode === 'safe' && 'animate-pulse')} />
+        <span className={cn("text-xs font-medium", textColors[mode])}>{modeText[mode]}</span>
+      </div>
   );
 }

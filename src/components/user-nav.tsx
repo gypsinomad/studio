@@ -9,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
 import { useAuth } from '@/firebase';
@@ -30,9 +29,7 @@ export function UserNav({ user }: UserNavProps) {
   };
   
   const getInitials = (name?: string | null) => {
-    if (!name?.trim()) {
-      return '??'; // Return a fallback if name is null, undefined, or whitespace
-    }
+    if (!name?.trim()) return '??';
     const names = name.trim().split(' ').filter(Boolean);
     if (names.length > 1) {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
@@ -43,12 +40,16 @@ export function UserNav({ user }: UserNavProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10 border-2 border-primary/50">
-            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.displayName} />}
-            <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-          </Avatar>
-        </Button>
+        <button className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-100 transition-colors">
+            <Avatar className="w-8 h-8 rounded-full ring-2 ring-spice-100">
+                {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.displayName} />}
+                <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+            </Avatar>
+             <div className="text-left hidden sm:block">
+                <p className="text-sm font-medium text-stone-900">{user.displayName}</p>
+                <p className="text-xs text-stone-500 capitalize">{user.role}</p>
+            </div>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
@@ -56,9 +57,6 @@ export function UserNav({ user }: UserNavProps) {
             <p className="text-sm font-medium leading-none">{user.displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
-            </p>
-             <p className="text-xs leading-none text-muted-foreground capitalize pt-1 font-semibold">
-              Role: {user.role}
             </p>
           </div>
         </DropdownMenuLabel>

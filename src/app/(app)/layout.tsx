@@ -12,14 +12,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // If auth state is determined and there's no user, redirect to login.
     if (!isUserLoading && !user) {
       router.replace('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // While checking auth or if there is no user (and redirect is imminent),
-  // show a loader within the main content area.
   if (isUserLoading || !user) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
@@ -28,22 +25,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is authenticated, render the page content.
   return <>{children}</>;
 }
 
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  // This layout now immediately renders the app shell, including sidebar and header.
-  // The AuthGuard will handle the loading/auth state for the main content area.
   return (
       <SidebarProvider>
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible="icon" className="bg-white/80 backdrop-blur-xl border-r border-stone-200">
           <AppSidebar />
         </Sidebar>
         <SidebarInset>
           <AppHeader />
-          <main className="p-4 lg:p-6 overflow-y-auto">
+          <main className="p-4 lg:p-8 overflow-y-auto animate-in fade-in duration-500">
             <AuthGuard>
                 {children}
             </AuthGuard>

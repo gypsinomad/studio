@@ -18,7 +18,6 @@ export function AppHeader() {
 
   const mergedUser = useMemo(() => {
     if (!user || !userProfile) return null;
-    // Combine the auth user and firestore profile into a single object
     const fullUser: User = {
         ...userProfile,
         authUid: user.uid,
@@ -31,52 +30,48 @@ export function AppHeader() {
 
   const isLoading = isUserLoading || (isAdmin && isAiLoading);
 
-  if (isLoading) {
+  const renderHeaderContent = () => {
+    if (isLoading) {
+      return (
+        <>
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </>
+      );
+    }
+
+    if (!mergedUser) {
+      return (
+        <>
+          <p className="text-sm text-destructive">Could not load user profile.</p>
+          <Button variant="outline" onClick={() => auth && signOut(auth)}>Logout</Button>
+        </>
+      );
+    }
+    
     return (
-       <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+      <>
+        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
+        <UserNav user={mergedUser} />
+      </>
+    );
+  };
+
+  return (
+    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-stone-200">
+      <div className="px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+        <div className="flex items-center gap-4">
             <div className="md:hidden">
                 <SidebarTrigger />
             </div>
-            <h1 className="hidden text-xl font-semibold font-headline md:block">
-                SpiceRoute CRM
-            </h1>
-            <div className="ml-auto flex items-center gap-4">
-                <Skeleton className="h-8 w-24" />
-                <Skeleton className="h-10 w-10 rounded-full" />
+            <div>
+                 <h2 className="text-xl font-headline font-semibold text-stone-900">Dashboard</h2>
+                 <p className="text-sm text-stone-500">Welcome back! Here's your business snapshot.</p>
             </div>
-        </header>
-    )
-  }
-
-  if (!mergedUser) {
-    return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-             <div className="md:hidden">
-                 <SidebarTrigger />
-             </div>
-             <h1 className="hidden text-xl font-semibold font-headline md:block">
-                 SpiceRoute CRM
-             </h1>
-             <div className="ml-auto flex items-center gap-4">
-                 <p className="text-sm text-destructive">Could not load user profile.</p>
-                 <Button variant="outline" onClick={() => auth && signOut(auth)}>Logout</Button>
-             </div>
-         </header>
-    )
-  }
-
-
-  return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <div className="md:hidden">
-        <SidebarTrigger />
-      </div>
-      <h1 className="hidden text-xl font-semibold font-headline md:block">
-        SpiceRoute CRM
-      </h1>
-      <div className="ml-auto flex items-center gap-4">
-        {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
-        <UserNav user={mergedUser} />
+        </div>
+        <div className="ml-auto flex items-center gap-4">
+          {renderHeaderContent()}
+        </div>
       </div>
     </header>
   );

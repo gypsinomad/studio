@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Lead, LeadSource, LeadStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, MoreHorizontal } from 'lucide-react';
+import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 interface LeadsTableProps {
   data: Lead[];
@@ -28,12 +28,12 @@ interface LeadsTableProps {
 }
 
 const statusColors: Record<LeadStatus, string> = {
-    new: 'bg-blue-100 text-blue-800',
-    contacted: 'bg-yellow-100 text-yellow-800',
-    qualified: 'bg-green-100 text-green-800',
-    quoted: 'bg-purple-100 text-purple-800',
-    converted: 'bg-teal-100 text-teal-800',
-    lost: 'bg-gray-100 text-gray-800'
+    new: 'bg-blue-100 text-blue-800 border-blue-200',
+    contacted: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    qualified: 'bg-green-100 text-green-800 border-green-200',
+    quoted: 'bg-purple-100 text-purple-800 border-purple-200',
+    converted: 'bg-teal-100 text-teal-800 border-teal-200',
+    lost: 'bg-gray-100 text-gray-800 border-gray-200'
 }
 
 const sourceIcons: { [key in LeadSource | string]: React.ReactElement } = {
@@ -61,7 +61,7 @@ const sourceLabels: { [key in LeadSource | string]: string } = {
 
 export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
   if (data.length === 0) {
-    return <p className="text-muted-foreground">No leads match the current filter.</p>;
+    return <p className="text-stone-500">No leads match the current filter.</p>;
   }
 
   const toDate = (timestamp: any): Date => {
@@ -72,7 +72,7 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
   }
 
   return (
-    <div className="border rounded-lg">
+    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -82,13 +82,13 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
             <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
             <TableHead>Created At</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
+            <TableHead className="w-[100px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((lead) => (
-            <TableRow key={lead.id} onClick={() => onRowClick(lead)} className="cursor-pointer">
-              <TableCell className="font-medium">{lead.fullName}</TableCell>
+            <TableRow key={lead.id} onClick={() => onRowClick(lead)} className="cursor-pointer group">
+              <TableCell className="font-medium text-stone-900">{lead.fullName}</TableCell>
               <TableCell>{lead.companyName}</TableCell>
               <TableCell>{lead.productInterest}</TableCell>
               <TableCell>
@@ -103,24 +103,15 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
                 </div>
               </TableCell>
               <TableCell>{format(toDate(lead.createdAt), 'PP')}</TableCell>
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
+              <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end space-x-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-stone-100" disabled>
+                        <Pencil className="h-4 w-4 text-stone-600" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem disabled>Edit</DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onSelect={() => onDelete(lead.id!)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50" onClick={() => onDelete(lead.id!)}>
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
