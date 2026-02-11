@@ -6,6 +6,8 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage';
 
+let persistenceEnabled = false;
+
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
   if (!getApps().length) {
@@ -35,13 +37,16 @@ export function initializeFirebase() {
 
 export function getSdks(firebaseApp: FirebaseApp) {
   const firestore = getFirestore(firebaseApp);
-  enableIndexedDbPersistence(firestore).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence enabled in first tab only.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Browser does not support offline persistence.');
-    }
-  });
+  if (!persistenceEnabled) {
+    persistenceEnabled = true;
+    enableIndexedDbPersistence(firestore).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Multiple tabs open, persistence enabled in first tab only.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Browser does not support offline persistence.');
+      }
+    });
+  }
   
   return {
     firebaseApp,
