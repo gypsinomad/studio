@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { ExportOrder, ExportOrderStage } from '@/lib/types';
+import type { ExportOrder, ExportOrderStage, IceGateStatusUpdate } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { MoreHorizontal } from 'lucide-react';
@@ -45,6 +45,16 @@ const stageColors: Record<string, string> = {
     readyToShip: 'bg-orange-100 text-orange-800',
     shipped: 'bg-teal-100 text-teal-800',
     closed: 'bg-green-100 text-green-800',
+};
+
+const iceGateStatusColors: Record<IceGateStatusUpdate, string> = {
+  'Not Started': 'bg-gray-100 text-gray-800',
+  'Submitted': 'bg-blue-100 text-blue-800',
+  'Under Review': 'bg-yellow-100 text-yellow-800',
+  'Approved': 'bg-green-100 text-green-800',
+  'Query Raised': 'bg-orange-100 text-orange-800',
+  'Rejected': 'bg-red-100 text-red-800',
+  'Clearance Completed': 'bg-teal-100 text-teal-800',
 };
 
 const stageLabels: Record<string, string> = {
@@ -86,8 +96,9 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
           <TableRow>
             <TableHead>Title</TableHead>
             <TableHead>Destination</TableHead>
-            <TableHead>Value (USD)</TableHead>
+            <TableHead>Value</TableHead>
             <TableHead>Stage</TableHead>
+            <TableHead>ICEGATE Status</TableHead>
             <TableHead>Created At</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -97,11 +108,18 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
             <TableRow key={order.id}>
               <TableCell className="font-medium">{order.title}</TableCell>
               <TableCell>{order.destinationCountry}</TableCell>
-              <TableCell>${order.totalValue.toLocaleString()}</TableCell>
+              <TableCell>{order.currency || 'USD'} {order.totalValue.toLocaleString()}</TableCell>
               <TableCell>
                 <Badge variant="outline" className={cn("capitalize", stageColors[order.stage])}>
                     {stageLabels[order.stage] || order.stage}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {order.iceGateStatus && (
+                  <Badge variant="outline" className={cn("capitalize", iceGateStatusColors[order.iceGateStatus])}>
+                      {order.iceGateStatus}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>{format(toDate(order.createdAt), 'PP')}</TableCell>
               <TableCell>

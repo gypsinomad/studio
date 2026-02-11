@@ -1,4 +1,4 @@
-import type { NavItem, ExportOrderStage, IndustryType, RelationshipStatus, PaymentTerms, ContainerType, CommunicationMethod } from '@/lib/types';
+import type { NavItem, ExportOrderStage, IndustryType, RelationshipStatus, PaymentTerms, ContainerType, CommunicationMethod, ApedaStatus, IceGateStatusUpdate, Currency, Unit } from '@/lib/types';
 import {
   LayoutDashboard,
   Sprout,
@@ -72,13 +72,21 @@ export const PRODUCT_TYPES = [ "Cardamom", "Black Pepper", "Turmeric", "Cumin Se
 
 export const DESTINATION_COUNTRIES = [ "United States", "United Kingdom", "Germany", "France", "Netherlands", "Belgium", "Italy", "Spain", "Canada", "Australia", "UAE", "Saudi Arabia", "Singapore", "Malaysia", "Japan", "South Korea", "China", "Russia", "Brazil", "South Africa" ];
 
-export const INCOTERMS = [ "FOB (Free On Board)", "CIF (Cost, Insurance & Freight)", "CFR (Cost & Freight)", "EXW (Ex Works)", "FCA (Free Carrier)", "CPT (Carriage Paid To)", "CIP (Carriage and Insurance Paid)", "DAP (Delivered At Place)", "DDP (Delivered Duty Paid)" ];
+export const INCOTERMS = ["FOB", "CIF", "EXW", "CFR", "DDP", "FCA", "CPT", "CIP", "DAP"];
 
-export const ICEGATE_STATUSES = [ "Not Started", "Documentation Submitted", "Under Review", "Approved", "Rejected", "Clearance Completed" ];
+export const APEDA_STATUSES: ApedaStatus[] = ["Not Applied", "Pending", "Approved", "Rejected"];
+
+export const ICEGATE_STATUSES: IceGateStatusUpdate[] = ["Not Started", "Submitted", "Under Review", "Approved", "Query Raised", "Rejected", "Clearance Completed"];
 
 export const CERTIFICATE_REQUIREMENTS = ["FSSAI", "Organic", "Phytosanitary", "COO"];
 
 export const PAYMENT_TERMS: PaymentTerms[] = ["Advance", "L/C", "D/P", "D/A", "CAD"];
+
+export const CURRENCIES: Currency[] = ["USD", "EUR", "GBP", "AED"];
+
+export const UNITS: Unit[] = ["KG", "MT", "Quintals"];
+
+export const SHIPPING_LINES = ["Maersk", "CMA CGM", "MSC", "Hapag-Lloyd", "ONE", "Evergreen", "Zim"];
 
 export const CONTAINER_TYPES: ContainerType[] = ["20ft", "40ft", "40ft HC", "LCL"];
 

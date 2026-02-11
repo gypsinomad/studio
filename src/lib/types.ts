@@ -41,10 +41,21 @@ export interface Lead {
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';
-export type IcegateStatus = 'Not Started' | 'Documentation Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Clearance Completed';
+export type ApedaStatus = "Not Applied" | "Pending" | "Approved" | "Rejected";
+export type IceGateStatusUpdate = "Not Started" | "Submitted" | "Under Review" | "Approved" | "Query Raised" | "Rejected" | "Clearance Completed";
+export type Incoterms = "FOB" | "CIF" | "EXW" | "CFR" | "DDP" | "FCA" | "CPT" | "CIP" | "DAP";
+export type Currency = "USD" | "EUR" | "GBP" | "AED";
+export type Unit = "KG" | "MT" | "Quintals";
 export type PaymentTerms = 'Advance' | 'L/C' | 'D/P' | 'D/A' | 'CAD';
 export type ContainerType = '20ft' | '40ft' | '40ft HC' | 'LCL';
 
+export interface OrderActivityLog {
+  action: string;
+  timestamp: any; // Firestore Timestamp
+  userId: string;
+  userEmail: string;
+  details?: string;
+}
 
 export interface ExportOrder {
   id?: string;
@@ -52,23 +63,43 @@ export interface ExportOrder {
   stage: ExportOrderStage;
   contactId: string;
   companyId: string;
-  destinationCountry: string;
-  destinationPort?: string;
-  incoterms: string;
-  totalValue: number;
-  paymentTerms: PaymentTerms | string;
   assignedUserId: string;
-  createdAt: any; // Date or Firestore Timestamp
-  aiValidation?: string;
-  expectedShipmentDate?: any;
-  portOfLoading?: string;
-  containerType?: ContainerType | string;
-  fssaiLicenseNumber?: string;
-  icegateStatus?: IcegateStatus;
-  certificateRequirements?: string[];
+  createdAt: any; // Firestore Timestamp
+  
+  // Product & Quantity
   productType?: string;
   hsCode?: string;
+  quantity?: number;
+  unit?: Unit;
+  totalValue: number;
+
+  // Trade Terms
+  incoterms: Incoterms | string;
+  currency?: Currency;
+  paymentTerms: PaymentTerms | string;
+  
+  // Indian Export Compliance
+  fssaiNumber?: string;
+  apedaStatus?: ApedaStatus;
+  iceGateStatus?: IceGateStatusUpdate;
+  phytosanitaryCert?: boolean;
+  certificateOfOrigin?: boolean;
+  certificateRequirements?: string[];
+  
+  // Logistics & Ports
+  destinationCountry: string;
+  destinationPort?: string;
+  portOfLoading?: string;
+  estimatedShipDate?: any; // Firestore Timestamp
+  actualShipDate?: any; // Firestore Timestamp
+  shippingLine?: string;
+  containerNumber?: string;
+  containerType?: ContainerType | string;
+
+  // Audit Trail
+  activityLog?: OrderActivityLog[];
 }
+
 
 export interface LineItem {
   id?: string;
