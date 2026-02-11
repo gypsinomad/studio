@@ -4,15 +4,13 @@ import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { ExportOrder, LineItem, Company, Contact } from '@/lib/types';
+import type { ExportOrder, LineItem, Company, Contact, Task, AuditLog, ActivityLog } from '@/lib/types';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, writeBatch, doc, serverTimestamp, setDoc, query } from 'firebase/firestore';
-import { format } from "date-fns"
+import { collection, writeBatch, doc, serverTimestamp, query } from 'firebase/firestore';
+import { format, addDays } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { useRouter } from 'next/navigation';
 
-import { logActivity } from '@/lib/logger';
-import { logUserActivity } from '@/lib/user-activity';
 import { cn } from '@/lib/utils';
 import { PRODUCT_TYPES, INCOTERMS, PAYMENT_TERMS, CONTAINER_TYPES, ICEGATE_STATUSES } from '@/lib/constants';
 
@@ -96,6 +94,9 @@ export default function NewExportOrderPage() {
     setIsSubmitting(true);
 
     try {
+        const batch = writeBatch(firestore);
+
+        // 1. Create Export Order
         const orderRef = doc(collection(firestore, 'exportOrders'));
         const newOrderPayload: Omit<ExportOrder, 'id'> = {
             ...values,
@@ -105,19 +106,59 @@ export default function NewExportOrderPage() {
             stage: 'leadReceived',
             createdAt: serverTimestamp(),
         };
-        
-        await setDoc(orderRef, newOrderPayload);
-        await logActivity(firestore, user, 'create', 'exportOrders', orderRef.id, null, newOrderPayload);
-        await logUserActivity(firestore, 'Sprout', 'New Export Inquiry', `Order for "${values.title}" created.`);
+        batch.set(orderRef, newOrderPayload);
 
-        const batch = writeBatch(firestore);
+        // 2. Create Line Items
         values.lineItems.forEach(item => {
             const lineItemRef = doc(collection(firestore, `exportOrders/${orderRef.id}/lineItems`));
             batch.set(lineItemRef, item as Omit<LineItem, 'id'>);
         });
+
+        // 3. Create Follow-up Task (Automation)
+        const taskRef = doc(collection(firestore, 'tasks'));
+        const taskPayload: Omit<Task, 'id'> = {
+            title: `Follow up on new inquiry: ${values.title}`,
+            status: 'open',
+            dueDate: addDays(new Date(), 2), // Due in 2 days
+            assigneeId: user.uid,
+            relatedOrderId: orderRef.id,
+            createdAt: serverTimestamp()
+        };
+        batch.set(taskRef, taskPayload);
+
+        // 4. Create Audit Log Entry
+        const auditLogRef = doc(collection(firestore, 'activityLogs'));
+        const afterPayload = JSON.parse(JSON.stringify(newOrderPayload, (key, value) => {
+            if (value && typeof value === 'object' && value.hasOwnProperty('seconds')) {
+                return new Date(value.seconds * 1000).toISOString();
+            }
+            return value;
+        }));
+        const auditLogPayload: Omit<AuditLog, 'id'> = {
+            userId: user.uid,
+            userEmail: user.email || 'unknown',
+            action: 'create',
+            collectionName: 'exportOrders',
+            docId: orderRef.id,
+            timestamp: serverTimestamp(),
+            after: afterPayload,
+        };
+        batch.set(auditLogRef, auditLogPayload);
+        
+        // 5. Create User-facing Activity Log
+        const activityLogRef = doc(collection(firestore, 'activity_logs'));
+        const activityLogPayload: Omit<ActivityLog, 'id'> = {
+            icon: 'Sprout',
+            title: 'New Export Inquiry',
+            description: `Order for "${values.title}" created.`,
+            timestamp: serverTimestamp()
+        };
+        batch.set(activityLogRef, activityLogPayload);
+
+        // 6. Commit all writes at once
         await batch.commit();
         
-        toast({ title: 'Success', description: 'New export order and all line items created.' });
+        toast({ title: 'Success', description: 'New export order, task, and logs created.' });
         router.push('/export-orders');
 
     } catch (error) {
