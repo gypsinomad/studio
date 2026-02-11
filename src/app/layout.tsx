@@ -28,6 +28,8 @@ export default function RootLayout({
       <head>
         <title>SpiceRoute CRM</title>
         <meta name="description" content="A CRM for spice export businesses." />
+        <meta name="theme-color" content="#D97706" />
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
