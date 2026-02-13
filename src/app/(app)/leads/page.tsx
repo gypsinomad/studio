@@ -7,7 +7,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { collection, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { LeadsTable } from './components/leads-table';
-import { Skeleton } from '@/components/ui/skeleton';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { NewLeadForm } from './components/new-lead-form';
@@ -106,13 +106,7 @@ export default function LeadsPage() {
         </div>
       </PageHeader>
       
-      {isLoading && (
-        <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-        </div>
-      )}
+      {isLoading && <TableSkeleton />}
 
       {!isLoading && leads && <LeadsTable data={leads} onRowClick={handleRowClick} onDelete={handleDeleteRequest} />}
 
