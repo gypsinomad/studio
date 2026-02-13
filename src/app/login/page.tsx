@@ -33,8 +33,8 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
-  const [email, setEmail] = useState('akhilvenugopal@gmail.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if user is already logged in

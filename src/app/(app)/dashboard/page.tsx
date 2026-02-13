@@ -23,14 +23,12 @@ const defaultDashboardStats: Omit<DashboardStats, 'id' | 'lastUpdatedAt'> = {
         lost: 0
     },
     exportOrdersByStage: {
-        enquiry: 0,
-        proformaIssued: 0,
-        advanceReceived: 0,
-        production: 0,
+        leadReceived: 0,
+        quotationSent: 0,
+        orderConfirmed: 0,
         exportDocumentation: 0,
-        readyToShip: 0,
-        shipped: 0,
-        closed: 0,
+        shipmentReady: 0,
+        shippedDelivered: 0,
         cancelled: 0,
         lostNoResponse: 0,
     }

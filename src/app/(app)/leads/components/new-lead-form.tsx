@@ -23,6 +23,7 @@ import { LoaderCircle } from 'lucide-react';
 import type { Lead, Task } from '@/lib/types';
 import { logActivity } from '@/lib/logger';
 import { logUserActivity } from '@/lib/user-activity';
+import { validateAndStandardizeLeadData, type ValidateAndStandardizeLeadDataInput } from '@/ai/flows/validate-and-standardize-lead-data';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -66,12 +67,35 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
     setIsSubmitting(true);
 
     try {
+        // AI Standardization Step
+        const aiInput: ValidateAndStandardizeLeadDataInput = {
+            ...values,
+            source: 'manual',
+            incotermsPreference: 'CIF', // Default for manual entry
+            whatsappNumber: undefined, // Not collected in this form
+        };
+
+        const result = await validateAndStandardizeLeadData(aiInput);
+        let leadDataToSave;
+        let aiMessage = 'Lead created successfully.';
+
+        if (result.aiUsed && result.aiData) {
+            leadDataToSave = { ...values, ...result.aiData }; // Merge AI data, keeping original form values as base
+            aiMessage = 'Lead created and standardized with AI.';
+            toast({ title: 'AI Enhancement', description: 'Lead data has been automatically standardized.' });
+        } else {
+            leadDataToSave = values;
+            if (result.aiReason !== 'ok' && result.aiReason !== 'aiDisabled') {
+               toast({ variant: 'destructive', title: 'AI Skipped', description: `Could not standardize lead: ${result.aiReason}` });
+            }
+        }
+
       const batch = writeBatch(firestore);
 
       // 1. Create the lead document
       const leadRef = doc(collection(firestore, 'leads'));
       const newLeadPayload: Omit<Lead, 'id'> = {
-        ...values,
+        ...leadDataToSave,
         status: 'new',
         source: 'manual',
         assignedUserId: user.uid,
@@ -84,7 +108,7 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
       // 2. Create the automated follow-up task
       const taskRef = doc(collection(firestore, 'tasks'));
       const taskPayload: Omit<Task, 'id'> = {
-        title: `Follow up with new lead: ${values.fullName}`,
+        title: `Follow up with new lead: ${newLeadPayload.fullName}`,
         status: 'open',
         dueDate: addDays(new Date(), 2), // Due in 2 days
         assigneeId: user.uid,
@@ -96,12 +120,12 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
       await batch.commit();
 
       // 3. Log user-facing activity
-      await logUserActivity(firestore, 'Sprout', 'New Lead Created', `Manually added: ${values.fullName} from ${values.companyName}`);
+      await logUserActivity(firestore, 'Sprout', 'New Lead Created', `Manually added: ${newLeadPayload.fullName} from ${newLeadPayload.companyName}`);
 
 
       toast({
         title: 'Lead Created',
-        description: `${values.fullName} has been added, and a follow-up task was created.`,
+        description: `${newLeadPayload.fullName} has been added, and a follow-up task was created.`,
       });
       onSuccess();
 
