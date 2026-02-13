@@ -1,6 +1,7 @@
 
 
 
+
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -41,6 +42,13 @@ export interface Lead {
   metaFormId?: string;
   metaPageId?: string;
   lastInboundChannel?: LeadChannel;
+  aiStandardization?: {
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    reason?: string;
+    startedAt?: any;
+    completedAt?: any;
+    failedAt?: any;
+  };
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';

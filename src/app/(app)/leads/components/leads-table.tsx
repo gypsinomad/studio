@@ -19,7 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import type { Lead, LeadSource, LeadStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, MoreHorizontal, Pencil, Trash2, BrainCircuit, LoaderCircle, AlertTriangle } from 'lucide-react';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface LeadsTableProps {
   data: Lead[];
@@ -73,6 +74,7 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
 
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+      <TooltipProvider>
       <Table>
         <TableHeader>
           <TableRow>
@@ -88,7 +90,14 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
         <TableBody>
           {data.map((lead) => (
             <TableRow key={lead.id} onClick={() => onRowClick(lead)} className="cursor-pointer group">
-              <TableCell className="font-medium text-stone-900">{lead.fullName}</TableCell>
+              <TableCell>
+                 <div className="flex items-center gap-2">
+                  <span className="font-medium text-stone-900">{lead.fullName}</span>
+                  {lead.aiStandardization?.status === 'processing' && <Tooltip><TooltipTrigger><LoaderCircle className="h-4 w-4 text-stone-400 animate-spin" /></TooltipTrigger><TooltipContent>AI standardization is in progress...</TooltipContent></Tooltip>}
+                  {lead.aiStandardization?.status === 'completed' && <Tooltip><TooltipTrigger><BrainCircuit className="h-4 w-4 text-green-600" /></TooltipTrigger><TooltipContent>This lead was enhanced by AI.</TooltipContent></Tooltip>}
+                  {lead.aiStandardization?.status === 'failed' && <Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-red-600" /></TooltipTrigger><TooltipContent>AI standardization failed: {lead.aiStandardization.reason}</TooltipContent></Tooltip>}
+                </div>
+              </TableCell>
               <TableCell>{lead.companyName}</TableCell>
               <TableCell>{lead.productInterest}</TableCell>
               <TableCell>
@@ -117,6 +126,7 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
           ))}
         </TableBody>
       </Table>
+      </TooltipProvider>
     </div>
   );
 }

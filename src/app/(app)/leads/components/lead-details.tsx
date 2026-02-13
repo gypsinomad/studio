@@ -3,10 +3,11 @@
 import type { Lead } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { LeadSource, LeadStatus } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface LeadDetailsProps {
     lead: Lead;
@@ -54,6 +55,17 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                     </Badge>
                 </div>
             </div>
+            
+            {lead.aiStandardization?.status && (
+                 <div className="grid grid-cols-3 gap-2 items-center">
+                    <p className="text-muted-foreground col-span-1">AI Status</p>
+                    <div className="col-span-2">
+                        <Badge variant={lead.aiStandardization.status === 'completed' ? 'success' : 'warning'}>
+                            {lead.aiStandardization.status}
+                        </Badge>
+                    </div>
+                </div>
+            )}
 
             <Separator />
             
@@ -88,6 +100,27 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                 <p className="text-muted-foreground col-span-1">Destination</p>
                 <p className="col-span-2">{lead.destinationCountry}</p>
             </div>
+            
+            {lead.aiStandardization?.status === 'completed' && (
+                 <Alert variant="success">
+                    <BrainCircuit className="h-4 w-4" />
+                    <AlertTitle>AI Enhanced</AlertTitle>
+                    <AlertDescription>
+                        This lead's data was successfully standardized by AI.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+             {lead.aiStandardization?.status === 'failed' && (
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>AI Processing Failed</AlertTitle>
+                    <AlertDescription>
+                        Reason: {lead.aiStandardization.reason || 'Unknown error'}. The lead was saved with its original data.
+                    </AlertDescription>
+                </Alert>
+            )}
+            
             {lead.whatsappThreadId && (
                 <div className="pt-4">
                     <Button variant="outline" className="w-full" asChild>

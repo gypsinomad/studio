@@ -142,6 +142,11 @@ export async function POST(request: NextRequest) {
             lastContactAt: FieldValue.serverTimestamp(),
             lastInboundChannel: 'whatsapp',
             whatsappThreadId: messageInfo.id,
+            aiStandardization: {
+                status: result.aiUsed ? 'completed' : 'failed',
+                reason: result.aiReason,
+                completedAt: FieldValue.serverTimestamp()
+            }
         };
         batch.set(leadRef, finalLeadPayload);
 

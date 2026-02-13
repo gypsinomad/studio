@@ -81,6 +81,11 @@ export async function POST(request: Request) {
       status: 'new',
       assignedUserId: assignment.userId,
       createdAt: FieldValue.serverTimestamp(),
+      aiStandardization: {
+        status: result.aiUsed ? 'completed' : 'failed',
+        reason: result.aiReason,
+        completedAt: FieldValue.serverTimestamp()
+      }
     };
     batch.set(leadRef, finalLeadPayload);
 
