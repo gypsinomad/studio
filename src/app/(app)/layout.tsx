@@ -6,6 +6,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { LoaderCircle } from 'lucide-react';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -38,7 +39,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppHeader />
           <main className="p-4 lg:p-8 overflow-y-auto animate-in fade-in duration-500">
             <AuthGuard>
-                {children}
+                <ErrorBoundary>
+                    {children}
+                </ErrorBoundary>
             </AuthGuard>
           </main>
         </SidebarInset>

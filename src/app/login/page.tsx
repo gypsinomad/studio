@@ -12,14 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sprout, LoaderCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { logUserActivity } from '@/lib/user-activity';
 
-// A helper component for the Google sign-in button
+
 const GoogleSignInButton = ({ onClick, disabled }: { onClick: () => void, disabled: boolean }) => (
     <Button variant="outline" className="w-full" onClick={onClick} disabled={disabled} id="google-sign-in-button">
         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 173.4 58.2l-67.4 66.2C322.2 99.8 287.4 82 248 82c-84.3 0-152.3 68.1-152.3 152.3s68 152.3 152.3 152.3c99.1 0 133.2-82.9 137.7-124.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
@@ -31,56 +33,78 @@ const GoogleSignInButton = ({ onClick, disabled }: { onClick: () => void, disabl
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if user is already logged in
   useEffect(() => {
     if (!isUserLoading && user) {
         router.replace('/dashboard');
     }
   }, [user, isUserLoading, router]);
 
-
-  const handleAuthError = (error: any) => {
-    let description = 'An unexpected error occurred.';
-    if (error instanceof FirebaseError) {
-        switch (error.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-                description = 'Invalid email or password.';
-                break;
-            case 'auth/popup-closed-by-user':
-                description = 'The sign-in window was closed. Please try again.';
-                break;
-            default:
-                description = error.message;
-                break;
-        }
-    }
-    toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description,
-    });
-    setIsSubmitting(false);
-  }
-
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore) {
+      setIsSubmitting(false);
+      toast({
+        variant: "destructive",
+        title: "System Error",
+        description: "Unable to initialize authentication. Please refresh the page.",
+      });
+      return;
+    }
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, email, password, handleAuthError);
+    
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      await logUserActivity(firestore, 'LogIn', 'User Logged In', `User ${credential.user.email} logged in successfully.`);
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessages: Record<string, string> = {
+        'auth/invalid-email': 'Invalid email address format',
+        'auth/user-disabled': 'This account has been disabled',
+        'auth/user-not-found': 'No account found with this email',
+        'auth/wrong-password': 'Incorrect password',
+        'auth/invalid-credential': 'Invalid email or password.',
+        'auth/network-request-failed': 'Network error. Please check your connection and try again',
+        'auth/popup-closed-by-user': 'The sign-in window was closed. Please try again.',
+      };
+      
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: errorMessages[error.code] || 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
-    if (!auth) return;
+  const handleGoogleLogin = async () => {
+    if (!auth || !firestore) return;
     setIsSubmitting(true);
-    initiateGoogleSignIn(auth, handleAuthError);
+    try {
+        const result = await signInWithPopup(auth, new GoogleAuthProvider());
+        await logUserActivity(firestore, 'LogIn', 'User Logged In', `User ${result.user.email} logged in via Google successfully.`);
+        router.push('/dashboard');
+    } catch (error: any) {
+        console.error('Google login error:', error);
+         const errorMessages: Record<string, string> = {
+            'auth/popup-closed-by-user': 'The sign-in window was closed. Please try again.',
+         };
+         toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: errorMessages[error.code] || 'An unexpected error occurred during Google sign-in.',
+         });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
 
@@ -130,9 +154,8 @@ export default function LoginPage() {
                     disabled={isSubmitting}
                 />
                 </div>
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting} id="email-login-button">
-                {isSubmitting && <LoaderCircle className="animate-spin mr-2" />}
-                Login
+                <Button type="submit" className="w-full" disabled={isSubmitting} id="email-login-button">
+                {isSubmitting ? 'Signing in...' : 'Sign In'}
                 </Button>
             </form>
 

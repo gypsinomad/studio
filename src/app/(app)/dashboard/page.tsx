@@ -1,8 +1,6 @@
 'use client';
 import { PageHeader } from '@/components/page-header';
 import { StatsCards } from './components/stats-cards';
-import { LeadsByStatusChart } from './components/leads-by-status-chart';
-import { OrdersByStageChart } from './components/orders-by-stage-chart';
 import { RecentActivity } from './components/recent-activity';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -10,6 +8,26 @@ import type { DashboardStats } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton';
+
+
+const OrdersByStageChart = dynamic(
+  () => import('@/app/(app)/dashboard/components/orders-by-stage-chart').then(mod => mod.OrdersByStageChart),
+  { 
+    loading: () => <Skeleton className="h-[400px] w-full" />,
+    ssr: false 
+  }
+);
+
+const LeadsByStatusChart = dynamic(
+  () => import('@/app/(app)/dashboard/components/leads-by-status-chart').then(mod => mod.LeadsByStatusChart),
+  { 
+    loading: () => <Skeleton className="h-[400px] w-full" />,
+    ssr: false 
+  }
+);
+
 
 const defaultDashboardStats: Omit<DashboardStats, 'id' | 'lastUpdatedAt'> = {
     totalLeads: 0,
@@ -73,6 +91,10 @@ export default function DashboardPage() {
 
   const isLoading = isLoadingDoc || isCreating;
 
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
   const leadsByStatus = dashboardData?.leadsByStatus ? Object.entries(dashboardData.leadsByStatus).map(([name, value]) => ({ name, value })) : [];
   const exportOrdersByStage = dashboardData?.exportOrdersByStage ? Object.entries(dashboardData.exportOrdersByStage).map(([name, value]) => ({ name, value })) : [];
 
@@ -91,11 +113,7 @@ export default function DashboardPage() {
         />
         
         <div className="grid gap-6 md:grid-cols-2">
-           {isLoading && <>
-             <Skeleton className="h-[400px] w-full" />
-             <Skeleton className="h-[400px] w-full" />
-           </>}
-           {!isLoading && (!dashboardData && error) && (
+           {!dashboardData && error ? (
              <Card className="md:col-span-2">
                 <CardHeader>
                     <CardTitle>Dashboard Data Not Available</CardTitle>
@@ -104,9 +122,12 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground">Could not load your dashboard statistics due to an error. Please check your Firestore permissions or the browser console for more details.</p>
                 </CardContent>
              </Card>
-           )}
-           {!isLoading && dashboardData && <LeadsByStatusChart data={leadsByStatus} />}
-           {!isLoading && dashboardData && <OrdersByStageChart data={exportOrdersByStage} />}
+           ) : dashboardData ? (
+            <>
+              <LeadsByStatusChart data={leadsByStatus} />
+              <OrdersByStageChart data={exportOrdersByStage} />
+            </>
+           ) : null}
         </div>
         
         <RecentActivity />
