@@ -18,6 +18,7 @@ interface FirebaseProviderProps {
 // Internal state for user authentication
 interface UserAuthState {
   user: User | null;
+  idToken: string | null;
   isUserLoading: boolean;
   userError: Error | null;
 }
@@ -31,6 +32,7 @@ export interface FirebaseContextState {
   storage: FirebaseStorage | null;
   // User authentication state
   user: User | null;
+  idToken: string | null;
   isUserLoading: boolean; // True during initial auth check
   userError: Error | null; // Error from auth listener
 }
@@ -42,6 +44,7 @@ export interface FirebaseServicesAndUser {
   auth: Auth;
   storage: FirebaseStorage;
   user: User | null;
+  idToken: string | null;
   isUserLoading: boolean;
   userError: Error | null;
 }
@@ -49,6 +52,7 @@ export interface FirebaseServicesAndUser {
 // Return type for useUser() - specific to user auth state
 export interface UserHookResult { // Renamed from UserAuthHookResult for consistency if desired, or keep as UserAuthHookResult
   user: User | null;
+  idToken: string | null;
   isUserLoading: boolean;
   userError: Error | null;
 }
@@ -68,6 +72,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: null,
+    idToken: null,
     isUserLoading: true, // Start loading until first auth event
     userError: null,
   });
@@ -75,20 +80,25 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) { // If no Auth service instance, cannot determine user state
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
+      setUserAuthState({ user: null, idToken: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
       return;
     }
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null }); // Reset on auth instance change
+    setUserAuthState({ user: null, idToken: null, isUserLoading: true, userError: null }); // Reset on auth instance change
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => { // Auth state determined
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+      async (firebaseUser) => { // Auth state determined
+        if (firebaseUser) {
+            const token = await firebaseUser.getIdToken();
+            setUserAuthState({ user: firebaseUser, idToken: token, isUserLoading: false, userError: null });
+        } else {
+            setUserAuthState({ user: null, idToken: null, isUserLoading: false, userError: null });
+        }
       },
       (error) => { // Auth listener error
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+        setUserAuthState({ user: null, idToken: null, isUserLoading: false, userError: error });
       }
     );
     return () => unsubscribe(); // Cleanup
@@ -104,6 +114,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth: servicesAvailable ? auth : null,
       storage: servicesAvailable ? storage : null,
       user: userAuthState.user,
+      idToken: userAuthState.idToken,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
@@ -138,6 +149,7 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     auth: context.auth,
     storage: context.storage,
     user: context.user,
+    idToken: context.idToken,
     isUserLoading: context.isUserLoading,
     userError: context.userError,
   };
@@ -184,6 +196,6 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
 export const useUser = (): UserHookResult => { // Renamed from useAuthUser
-  const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
-  return { user, isUserLoading, userError };
+  const { user, idToken, isUserLoading, userError } = useFirebase(); // Leverages the main hook
+  return { user, idToken, isUserLoading, userError };
 };

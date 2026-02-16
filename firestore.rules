@@ -17,10 +17,6 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-
-    function isSalesExecutive() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'salesExecutive';
-    }
     
     // Checks if the user is assigned to the record. Works for create (request.resource) and update/read (resource).
     function isAssignedTo(doc) {
@@ -33,85 +29,70 @@ service cloud.firestore {
 
     // --- Collection Rules ---
 
-    // USER & SETTINGS (Admin-focused)
     match /users/{userId} {
-      allow read: if isSignedIn(); // All team members can see other profiles
-      allow create: if isOwner(userId); // A user can create their own profile on first login
-      allow update: if isOwner(userId) || isAdmin(); // Can only update your own, or if admin
-      allow delete: if isAdmin(); // Only admins can delete users
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /settings/{docId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin(); // Only admins can change system settings
+      allow write: if isAdmin();
     }
     
     match /usageStats/{docId} {
-        allow read: if isAdmin(); // Only admins can read usage stats
+        allow read: if isAdmin();
         allow write: if false; // Only backend functions can write usage
     }
 
-    // LEADS
     match /leads/{leadId} {
-      allow read: if isAdmin() || isAssignedTo(resource.data);
-      allow create: if isSignedIn(); // Any auth'd user can create a lead, assignedUserId will be set
-      allow update: if isAdmin() || isAssignedTo(resource.data);
+      allow read, update: if isAdmin() || isAssignedTo(resource.data);
+      allow create: if isSignedIn();
       allow delete: if isAdmin();
     }
 
-    // EXPORT ORDERS & SUB-COLLECTIONS
     match /exportOrders/{orderId} {
-      allow read: if isAdmin() || isAssignedTo(resource.data);
+      allow read, update: if isAdmin() || isAssignedTo(resource.data);
       allow create: if isSignedIn();
-      allow update: if isAdmin() || isAssignedTo(resource.data);
       allow delete: if isAdmin();
 
-      // Line Items
       match /lineItems/{itemId} {
         allow read, write: if isAdmin() || isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(orderId)).data);
       }
       
-      // Document Checklist
       match /documentsChecklist/{docId} {
          allow read, write: if isAdmin() || isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(orderId)).data);
       }
     }
 
-    // COMPANIES & CONTACTS
     match /companies/{companyId} {
-      allow read, write: if isSignedIn(); // All team members can read/write companies for now
+      allow read, write: if isSignedIn();
     }
     match /contacts/{contactId} {
-      allow read, write: if isSignedIn(); // All team members can read/write contacts for now
+      allow read, write: if isSignedIn();
     }
 
-    // TASKS
     match /tasks/{taskId} {
       allow read, update, delete: if isAdmin() || isAssigneeOfTask(resource.data);
-      // Anyone can create a task, but the UI should default assignee to self.
       allow create: if isSignedIn(); 
     }
     
-    // INTERACTIONS (Communication Log)
     match /interactions/{interactionId} {
-      // Can only create an interaction if you are the one logging it
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // Can only read an interaction if you have access to the related lead/order
       allow read: if isAdmin() || 
                   (resource.data.leadId != null && isAssignedTo(get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data)) ||
                   (resource.data.orderId != null && isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(resource.data.orderId)).data));
-      allow update, delete: if false; // Interactions are immutable
+      allow update, delete: if false;
     }
 
-    // DOCUMENTS (Global Storage)
     match /documents/{documentId} {
-      allow read, write: if isSignedIn(); // Any authenticated user can upload/read for now
+      allow read, write: if isSignedIn();
     }
 
-    // LOGS (Append-only or Read-only for clients)
     match /activityLogs/{logId} { // System-wide audit trail
       allow read: if isAdmin();
-      allow create: if isSignedIn(); // Backend and client can write to audit log
+      allow create: if isSignedIn();
       allow update, delete: if false;
     }
     match /activity_logs/{logId} { // User-facing feed
@@ -123,7 +104,7 @@ service cloud.firestore {
     }
      match /dashboardStats/{userId} {
         allow read: if isOwner(userId);
-        allow write: if false; // only backend functions
+        allow write: if false;
     }
   }
 }

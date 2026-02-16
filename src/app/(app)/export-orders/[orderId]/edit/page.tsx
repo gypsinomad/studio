@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ExportOrder, LineItem, Company, Contact, Task, OrderActivityLog } from '@/lib/types';
@@ -47,6 +47,11 @@ const lineItemSchema = z.object({
   netWeightPerBox: z.coerce.number().positive('Net Wt must be > 0'),
 });
 
+const milestoneSchema = z.object({
+    date: z.date().optional(),
+    notes: z.string().optional(),
+});
+
 const formSchema = z.object({
   title: z.string().min(1, 'Order title is required.'),
   stage: z.string().min(1, 'Stage is required.'),
@@ -86,9 +91,33 @@ const formSchema = z.object({
   certificateRequirements: z.string().optional(), 
   
   lineItems: z.array(lineItemSchema).min(1, 'At least one product is required.'),
+
+  milestones: z.object({
+    piConfirmedAt: milestoneSchema.optional(),
+    productionCompleteAt: milestoneSchema.optional(),
+    chaAppointedAt: milestoneSchema.optional(),
+    containerBookingConfirmedAt: milestoneSchema.optional(),
+    cargoHandedOverAt: milestoneSchema.optional(),
+    onBoardAt: milestoneSchema.optional(),
+    blReceivedAt: milestoneSchema.optional(),
+    docsSubmittedToBankAt: milestoneSchema.optional(),
+    paymentReceivedAt: milestoneSchema.optional(),
+  }).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const milestoneLabels: { key: keyof FormValues['milestones'], label: string }[] = [
+    { key: 'piConfirmedAt', label: 'PI Confirmed' },
+    { key: 'productionCompleteAt', label: 'Production Complete' },
+    { key: 'chaAppointedAt', label: 'CHA Appointed' },
+    { key: 'containerBookingConfirmedAt', label: 'Container Booked' },
+    { key: 'cargoHandedOverAt', label: 'Cargo Handed Over' },
+    { key: 'onBoardAt', label: 'On Board' },
+    { key: 'blReceivedAt', label: 'B/L Received' },
+    { key: 'docsSubmittedToBankAt', label: 'Docs Submitted to Bank' },
+    { key: 'paymentReceivedAt', label: 'Payment Received' },
+];
 
 export default function EditExportOrderPage() {
     const params = useParams();
@@ -121,14 +150,20 @@ export default function EditExportOrderPage() {
 
     useEffect(() => {
         if (order) { // Check for order data
+            const milestonesWithDates = { ...order.milestones };
+            for (const key in milestonesWithDates) {
+                // @ts-ignore
+                if (milestonesWithDates[key]?.date?.toDate) {
+                    // @ts-ignore
+                    milestonesWithDates[key].date = milestonesWithDates[key].date.toDate();
+                }
+            }
             form.reset({
                 ...order,
+                milestones: milestonesWithDates,
                 certificateRequirements: Array.isArray(order.certificateRequirements) ? order.certificateRequirements.join(', ') : '',
-                // @ts-ignore
                 etd: order.etd?.toDate ? order.etd.toDate() : order.etd,
-                // @ts-ignore
                 eta: order.eta?.toDate ? order.eta.toDate() : order.eta,
-                 // @ts-ignore
                 paymentDueDate: order.paymentDueDate?.toDate ? order.paymentDueDate.toDate() : order.paymentDueDate,
             });
         }
@@ -165,20 +200,7 @@ export default function EditExportOrderPage() {
                     userEmail: user.email || 'unknown',
                 });
             }
-
-            const complianceFields: (keyof ExportOrder)[] = ['fssaiNumber', 'apedaStatus', 'iceGateStatus', 'phytosanitaryCert', 'certificateOfOrigin'];
-            complianceFields.forEach(field => {
-                if (order[field] !== values[field]) {
-                    newActivityLog.push({
-                        action: `Compliance Updated`,
-                        details: `${field} changed from "${order[field] || 'Not set'}" to "${values[field] || 'Not set'}".`,
-                        timestamp: serverTimestamp(),
-                        userId: user.uid,
-                        userEmail: user.email || 'unknown',
-                    });
-                }
-            });
-
+            
             const updatedPayload: Partial<ExportOrder> = {
                 ...values,
                 certificateRequirements: values.certificateRequirements?.split(',').map(s => s.trim()).filter(Boolean),
@@ -196,37 +218,6 @@ export default function EditExportOrderPage() {
                 const lineItemRef = doc(collection(firestore, `exportOrders/${orderRef.id}/lineItems`));
                 batch.set(lineItemRef, itemData);
             });
-            
-            if (values.stage !== order.stage) {
-                if (values.stage === 'exportDocumentation') {
-                    const taskRef = doc(collection(firestore, 'tasks'));
-                    const taskPayload: Omit<Task, 'id'> = {
-                        title: `Document Checklist for ${values.title}`,
-                        description: 'Please prepare and verify: Commercial Invoice, Packing List, Bill of Lading, Certificate of Origin, FSSAI License, Quality Certificates.',
-                        status: 'open',
-                        dueDate: addDays(new Date(), 3),
-                        assigneeId: user.uid,
-                        relatedOrderId: orderId,
-                        createdAt: serverTimestamp()
-                    };
-                    batch.set(taskRef, taskPayload);
-                    await logUserActivity(firestore, 'FileCheck', `Documentation started`, `Order "${values.title}" has moved to documentation.`);
-                }
-                if (values.stage === 'shippedDelivered') {
-                    const taskRef = doc(collection(firestore, 'tasks'));
-                    const taskPayload: Omit<Task, 'id'> = {
-                        title: `Send Tracking & Reminder for ${values.title}`,
-                        description: 'Notify the customer with shipment tracking details and remind them of the payment schedule.',
-                        status: 'open',
-                        dueDate: addDays(new Date(), 1),
-                        assigneeId: user.uid,
-                        relatedOrderId: orderId,
-                        createdAt: serverTimestamp()
-                    };
-                    batch.set(taskRef, taskPayload);
-                    await logUserActivity(firestore, 'Truck', `Order Shipped`, `Order "${values.title}" has been shipped.`);
-                }
-            }
             
             await logActivity(firestore, user, 'update', 'exportOrders', orderId, order, updatedPayload);
 
@@ -254,7 +245,7 @@ export default function EditExportOrderPage() {
             if (!response.ok) {
                 throw new Error(result.error || 'Failed to run AI check');
             }
-            toast({ variant: 'success', title: 'AI Check Complete', description: 'Compliance suggestions have been generated.'});
+            toast({ variant: 'default', title: 'AI Check Complete', description: 'Compliance suggestions have been generated.'});
         } catch (error) {
              console.error("AI Compliance Check failed:", error);
              toast({ variant: 'destructive', title: 'AI Check Failed', description: error instanceof Error ? error.message : 'An unknown error occurred.'});
@@ -328,16 +319,40 @@ export default function EditExportOrderPage() {
         <Card>
             <CardHeader><CardTitle>Shipment Timeline Milestones</CardTitle><CardDescription>Track key dates in the export process.</CardDescription></CardHeader>
             <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Placeholder for milestone inputs. This would be dynamically generated in a real app. */}
-                <div className="space-y-2"><Label>PI Confirmed</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>Production Complete</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>CHA Appointed</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>Container Booked</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>Cargo Handed Over</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>On Board</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>B/L Received</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>Docs Submitted to Bank</Label><Input type="date" /></div>
-                <div className="space-y-2"><Label>Payment Received</Label><Input type="date" /></div>
+                {milestoneLabels.map(({ key, label }) => (
+                    <FormField
+                        key={key}
+                        control={form.control}
+                        name={`milestones.${key}.date`}
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>{label}</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                            >
+                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                ))}
             </CardContent>
         </Card>
 
@@ -353,7 +368,7 @@ export default function EditExportOrderPage() {
             </CardHeader>
              <CardContent className="space-y-6">
                 {order.complianceNotes && (
-                    <Alert variant={order.complianceRiskLevel === 'high' ? 'destructive' : (order.complianceRiskLevel === 'medium' ? 'warning' : 'success')}>
+                    <Alert variant={order.complianceRiskLevel === 'high' ? 'destructive' : (order.complianceRiskLevel === 'medium' ? 'warning' : 'default')}>
                         <Info className="h-4 w-4" />
                         <AlertTitle>AI Compliance Suggestion (Risk: {order.complianceRiskLevel})</AlertTitle>
                         <AlertDescription>{order.complianceNotes}</AlertDescription>

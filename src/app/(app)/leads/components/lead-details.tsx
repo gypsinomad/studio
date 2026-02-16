@@ -3,12 +3,21 @@
 import type { Lead, LeadPriority } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, BrainCircuit, AlertTriangle, Flame, Zap, Snowflake, ArrowRight } from 'lucide-react';
+import { ExternalLink, BrainCircuit, AlertTriangle, Flame, Zap, Snowflake, ArrowRight, CalendarIcon, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { LeadSource, LeadStatus } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+import { InteractionsList } from './interactions-list';
+import { InteractionLogger } from './interaction-logger';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { LoaderCircle } from 'lucide-react';
+
 
 interface LeadDetailsProps {
     lead: Lead;
@@ -56,6 +65,67 @@ const getChannelName = (source: LeadSource | string) => {
         default:
             return 'Other';
     }
+}
+
+function FollowUpManager({ lead }: { lead: Lead }) {
+    const { toast } = useToast();
+    const [nextFollowUp, setNextFollowUp] = useState<Date | undefined>(lead.nextFollowUpAt?.toDate());
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSaveFollowUp = async () => {
+        setIsSaving(true);
+        try {
+            const response = await fetch(`/api/leads/${lead.id}/update-follow-up`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nextFollowUpAt: nextFollowUp }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update follow-up date.');
+            }
+            toast({ title: "Success", description: "Follow-up date updated." });
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: "Error", description: error instanceof Error ? error.message : "An unknown error occurred." });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+        <div className="space-y-4 rounded-lg border p-4">
+             <div className="space-y-1">
+                <p className="font-medium text-sm">Follow-Up</p>
+                <p className="text-xs text-muted-foreground">Manage contact schedule for this lead.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-center">
+                <p className="text-muted-foreground col-span-1">Last Contact</p>
+                <p className="font-medium col-span-2">{lead.lastContactAt ? format(lead.lastContactAt.toDate(), 'PPp') : 'N/A'}</p>
+            </div>
+             <div className="grid grid-cols-3 gap-2 items-center">
+                <p className="text-muted-foreground col-span-1">Next Follow-Up</p>
+                <div className="col-span-2">
+                     <Popover>
+                        <PopoverTrigger asChild>
+                           <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
+                               <CalendarIcon className="mr-2 h-4 w-4" />
+                               {nextFollowUp ? format(nextFollowUp, "PPP") : <span>Set a date</span>}
+                           </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                           <Calendar mode="single" selected={nextFollowUp} onSelect={setNextFollowUp} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            </div>
+             <Button size="sm" className="w-full" onClick={handleSaveFollowUp} disabled={isSaving}>
+                {isSaving && <LoaderCircle className="animate-spin mr-2"/>}
+                Save Follow-Up Date
+            </Button>
+        </div>
+    )
 }
 
 export function LeadDetails({ lead }: LeadDetailsProps) {
@@ -146,26 +216,15 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                 <p className="text-muted-foreground col-span-1">Destination</p>
                 <p className="col-span-2">{lead.destinationCountry}</p>
             </div>
-            
-            {lead.aiStandardization?.status === 'completed' && (
-                 <Alert variant="success">
-                    <BrainCircuit className="h-4 w-4" />
-                    <AlertTitle>AI Enhanced</AlertTitle>
-                    <AlertDescription>
-                        This lead's data was successfully standardized by AI.
-                    </AlertDescription>
-                </Alert>
-            )}
 
-             {lead.aiStandardization?.status === 'failed' && (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>AI Processing Failed</AlertTitle>
-                    <AlertDescription>
-                        Reason: {lead.aiStandardization.reason || 'Unknown error'}. The lead was saved with its original data.
-                    </AlertDescription>
-                </Alert>
-            )}
+            <Separator />
+
+            <FollowUpManager lead={lead} />
+
+            <Separator />
+
+            <InteractionLogger leadId={lead.id!} />
+            <InteractionsList leadId={lead.id!} />
             
             <div className="pt-4 space-y-2">
                  <Button className="w-full" onClick={handleConvertToOrder}>

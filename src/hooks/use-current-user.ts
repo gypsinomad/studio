@@ -8,6 +8,7 @@ import { User as FirebaseUser } from 'firebase/auth';
 
 interface UseCurrentUserResult {
   user: FirebaseUser | null;
+  idToken: string | null;
   userProfile: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -19,7 +20,7 @@ interface UseCurrentUserResult {
 const ADMIN_EMAIL = 'akhilvenugopal@gmail.com';
 
 export function useCurrentUser(): UseCurrentUserResult {
-  const { user: firebaseUser, isUserLoading: authLoading } = useUser();
+  const { user: firebaseUser, idToken, isUserLoading: authLoading } = useUser();
   const firestore = useFirestore();
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
@@ -71,6 +72,7 @@ export function useCurrentUser(): UseCurrentUserResult {
 
   return {
     user: firebaseUser,
+    idToken,
     userProfile,
     isLoading,
     isAuthenticated,

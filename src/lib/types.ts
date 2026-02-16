@@ -4,6 +4,7 @@
 
 
 
+
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -261,7 +262,7 @@ export interface Interaction {
     direction: InteractionDirection;
     summary: string;
     timestamp: any; // Firestore Timestamp
-    userId: string;
+    userId: string; // The user who logged the interaction
     leadId?: string;
     companyId?: string;
     contactId?: string;

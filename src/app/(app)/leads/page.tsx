@@ -25,7 +25,7 @@ export default function LeadsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const firestore = useFirestore();
-  const { user, userProfile, isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
+  const { user, userProfile, isAuthenticated, isLoading: isUserLoading, idToken } = useCurrentUser();
   const { toast } = useToast();
 
   const leadsQuery = useMemoFirebase(() => {
@@ -123,7 +123,7 @@ export default function LeadsPage() {
       </Dialog>
 
       <Sheet open={!!selectedLead} onOpenChange={(isOpen) => !isOpen && handleSheetClose()}>
-        <SheetContent>
+        <SheetContent className="sm:max-w-md">
             {selectedLead && (
                 <>
                 <SheetHeader>
