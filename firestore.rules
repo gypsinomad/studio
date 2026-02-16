@@ -15,13 +15,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Check for existence of the user document before accessing data.
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // Checks if the user is assigned to the record. Works for create (request.resource) and update/get (resource).
     function isAssignedTo(doc) {
       return doc.assignedUserId == request.auth.uid;
     }
@@ -33,9 +31,9 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     match /users/{userId} {
-      allow get, update: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId); // A user can create their own profile document.
+      allow create: if isOwner(userId);
       allow delete: if isAdmin();
     }
 
@@ -87,18 +85,15 @@ service cloud.firestore {
     }
     
     match /interactions/{interactionId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      
-      // GET: Allow if user is admin or is assigned to the parent lead/order.
-      allow get: if isAdmin() ||
-                   (resource.data.leadId != null && isAssignedTo(get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data)) ||
-                   (resource.data.orderId != null && isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(resource.data.orderId)).data));
+      function isAssignedToParent(docData) {
+        let leadAccess = docData.leadId != null && isAssignedTo(get(/databases/$(database)/documents/leads/$(docData.leadId)).data);
+        let orderAccess = docData.orderId != null && isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(docData.orderId)).data);
+        return leadAccess || orderAccess;
+      }
 
-      // LIST: Allow any signed-in user to perform LIST queries.
-      // Security is enforced by client-side queries filtering by a parent document ID
-      // (e.g., leadId) that the user already has access to.
+      allow get: if isAdmin() || isAssignedToParent(resource.data);
       allow list: if isSignedIn();
-
+      allow create: if isAdmin() || isAssignedToParent(request.resource.data);
       allow update, delete: if false;
     }
 

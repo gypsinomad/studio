@@ -32,7 +32,7 @@ interface InteractionsListProps {
 export function InteractionsList({ leadId }: InteractionsListProps) {
     const firestore = useFirestore();
     const interactionsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !leadId) return null;
         return query(
             collection(firestore, 'interactions'),
             where('leadId', '==', leadId),
