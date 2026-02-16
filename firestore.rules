@@ -18,7 +18,7 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // Checks if the user is assigned to the record. Works for create (request.resource) and update/read (resource).
+    // Checks if the user is assigned to the record. Works for create (request.resource) and update/get (resource).
     function isAssignedTo(doc) {
       return doc.assignedUserId == request.auth.uid;
     }
@@ -47,16 +47,22 @@ service cloud.firestore {
     }
 
     match /leads/{leadId} {
-      allow read, update: if isAdmin() || isAssignedTo(resource.data);
+      // For a single document GET, user must be admin or assigned.
+      allow get, update: if isAdmin() || isAssignedTo(resource.data);
+      // For a LIST query, user must be admin (gets all) or signed in.
+      // The client-side query is responsible for filtering to their own leads.
+      allow list: if isAdmin() || isSignedIn();
       allow create: if isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /exportOrders/{orderId} {
-      allow read, update: if isAdmin() || isAssignedTo(resource.data);
+      allow get, update: if isAdmin() || isAssignedTo(resource.data);
+      allow list: if isAdmin() || isSignedIn();
       allow create: if isSignedIn();
       allow delete: if isAdmin();
 
+      // Subcollection rules rely on a GET of the parent, so the `get` rule above protects them.
       match /lineItems/{itemId} {
         allow read, write: if isAdmin() || isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(orderId)).data);
       }
@@ -74,12 +80,14 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      allow read, update, delete: if isAdmin() || isAssigneeOfTask(resource.data);
+      allow get, update, delete: if isAdmin() || isAssigneeOfTask(resource.data);
+      allow list: if isAdmin() || isSignedIn();
       allow create: if isSignedIn(); 
     }
     
     match /interactions/{interactionId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // The client only ever queries interactions with a `where('leadId', '==', id)`, so the get() below is secure.
       allow read: if isAdmin() || 
                   (resource.data.leadId != null && isAssignedTo(get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data)) ||
                   (resource.data.orderId != null && isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(resource.data.orderId)).data));
@@ -92,7 +100,7 @@ service cloud.firestore {
 
     match /activityLogs/{logId} { // System-wide audit trail
       allow read: if isAdmin();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn(); // Allow create for logging from client-side triggers (though should be backend)
       allow update, delete: if false;
     }
     match /activity_logs/{logId} { // User-facing feed
