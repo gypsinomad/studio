@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Lead, LeadPriority } from '@/lib/types';
@@ -17,6 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 
 interface LeadDetailsProps {
@@ -69,15 +71,23 @@ const getChannelName = (source: LeadSource | string) => {
 
 function FollowUpManager({ lead }: { lead: Lead }) {
     const { toast } = useToast();
+    const { idToken } = useCurrentUser();
     const [nextFollowUp, setNextFollowUp] = useState<Date | undefined>(lead.nextFollowUpAt?.toDate());
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSaveFollowUp = async () => {
+        if (!idToken) {
+            toast({ variant: 'destructive', title: "Authentication Error", description: "Could not authenticate your request. Please log in again." });
+            return;
+        }
         setIsSaving(true);
         try {
             const response = await fetch(`/api/leads/${lead.id}/update-follow-up`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
                 body: JSON.stringify({ nextFollowUpAt: nextFollowUp }),
             });
 

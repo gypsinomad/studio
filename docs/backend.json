@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -32,6 +33,10 @@
           "type": "string",
           "description": "Timestamp of when the user account was created.",
           "format": "date-time"
+        },
+        "hasCompletedOnboarding": {
+            "type": "boolean",
+            "description": "Flag to indicate if the user has completed the initial onboarding tour."
         }
       },
       "required": [
@@ -128,6 +133,10 @@
           "description": "Timestamp of the next follow-up with the lead.",
           "format": "date-time"
         },
+         "potentialValue": {
+            "type": "number",
+            "description": "Estimated potential value of the lead in USD."
+        },
         "metaLeadId": {
           "type": "string",
           "description": "Optional ID from Meta for the lead."
@@ -214,6 +223,21 @@
           "type": "string",
           "description": "Timestamp of when the export order was created.",
           "format": "date-time"
+        },
+        "etd": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Estimated Time of Departure."
+        },
+        "eta": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Estimated Time of Arrival."
+        },
+        "paymentDueDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Final date for payment completion."
         },
         "aiValidation": {
           "type": "string",
@@ -312,6 +336,40 @@
         }
       },
       "required": ["productName", "quantity", "boxes", "grossWeightPerBox", "netWeightPerBox", "unitPrice", "hsCode"]
+    },
+     "Interaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Interaction",
+      "type": "object",
+      "description": "A log of a specific communication event with a lead, contact, or company.",
+      "properties": {
+        "type": { "type": "string", "enum": ["call", "whatsapp", "email", "meeting", "other"] },
+        "direction": { "type": "string", "enum": ["inbound", "outbound"] },
+        "summary": { "type": "string", "description": "A brief summary of the interaction." },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string", "description": "The user who logged this interaction." },
+        "leadId": { "type": "string", "description": "Reference to a Lead." },
+        "companyId": { "type": "string", "description": "Reference to a Company." },
+        "contactId": { "type": "string", "description": "Reference to a Contact." },
+        "orderId": { "type": "string", "description": "Reference to an ExportOrder." }
+      },
+      "required": ["type", "direction", "summary", "timestamp", "userId"]
+    },
+    "DocumentChecklistItem": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "DocumentChecklistItem",
+        "type": "object",
+        "description": "An item in the checklist for a specific export order's documentation requirements.",
+        "properties": {
+            "type": { "type": "string", "description": "The type of document required (e.g., 'packingList')." },
+            "required": { "type": "boolean", "description": "Whether this document is mandatory." },
+            "status": { "type": "string", "enum": ["notStarted", "inProgress", "completed"] },
+            "fileRef": { "type": "string", "description": "A reference/path to the file in Firebase Storage." },
+            "notes": { "type": "string", "description": "Any relevant notes about this document." },
+            "updatedAt": { "type": "string", "format": "date-time" },
+            "updatedBy": { "type": "string", "description": "UID of the user who last updated this item." }
+        },
+        "required": ["type", "required", "status", "updatedAt", "updatedBy"]
     },
     "Contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -738,6 +796,13 @@
           "description": "Stores contacts associated with buyers and partners."
         }
       },
+       {
+        "path": "/interactions/{interactionId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/Interaction" },
+          "description": "Stores communication logs related to other entities."
+        }
+      },
       {
         "path": "/leads/{leadId}",
         "definition": {
@@ -757,6 +822,13 @@
         "definition": {
           "schema": { "$ref": "#/entities/LineItem" },
           "description": "Stores the individual line items for an export order."
+        }
+      },
+      {
+        "path": "/exportOrders/{exportOrderId}/documentsChecklist/{docId}",
+        "definition": {
+          "schema": { "$ref": "#/entities/DocumentChecklistItem" },
+          "description": "Stores the checklist of required documents for an export order."
         }
       },
       {

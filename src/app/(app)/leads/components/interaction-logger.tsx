@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import type { InteractionType, InteractionDirection } from '@/lib/types';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 
 const interactionSchema = z.object({
@@ -24,6 +26,7 @@ interface InteractionLoggerProps {
 
 export function InteractionLogger({ leadId }: InteractionLoggerProps) {
   const { toast } = useToast();
+  const { idToken } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof interactionSchema>>({
     resolver: zodResolver(interactionSchema),
@@ -35,11 +38,18 @@ export function InteractionLogger({ leadId }: InteractionLoggerProps) {
   });
 
   async function onSubmit(values: z.infer<typeof interactionSchema>) {
+    if (!idToken) {
+        toast({ variant: 'destructive', title: "Authentication Error", description: "Could not authenticate your request. Please log in again." });
+        return;
+    }
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/interactions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({ ...values, leadId }),
       });
 
