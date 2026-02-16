@@ -209,7 +209,7 @@ export interface Task {
   createdAt: any; // Date or Firestore Timestamp
 }
 
-export type DocumentType = 'proformaInvoice' | 'contract' | 'packingList' | 'billOfLading' | 'coo' | 'fssai' | 'apeda' | 'phytoCertificate' | 'shippingBill' | 'other';
+export type DocumentType = 'proformaInvoice' | 'commercialInvoice' | 'contract' | 'packingList' | 'billOfLading' | 'coo' | 'fssai' | 'apeda' | 'phytoCertificate' | 'insuranceCertificate' | 'shippingBill' | 'other';
 export type DocumentStatus = 'pending' | 'uploaded' | 'verified';
 
 export interface Document {
@@ -232,10 +232,10 @@ export interface DocumentChecklistItem {
     type: DocumentType | string;
     required: boolean;
     status: DocumentChecklistStatus;
-    fileRef?: string; // Path in Firebase Storage
+    fileRef?: string; // Path in Firebase Storage or ID of doc in /documents
     notes?: string;
     updatedAt: any; // Firestore Timestamp
-    updatedBy: string;
+    updatedBy: string; // user.uid
 }
 
 export interface Product {

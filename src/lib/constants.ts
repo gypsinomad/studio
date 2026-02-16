@@ -1,4 +1,4 @@
-import type { NavItem, ExportOrderStage, IndustryType, RelationshipStatus, PaymentTerms, ContainerType, CommunicationMethod, ApedaStatus, IceGateStatusUpdate, Currency, Unit } from '@/lib/types';
+import type { NavItem, ExportOrderStage, IndustryType, RelationshipStatus, PaymentTerms, ContainerType, CommunicationMethod, ApedaStatus, IceGateStatusUpdate, Currency, Unit, DocumentChecklistItem, DocumentType } from '@/lib/types';
 import {
   LayoutDashboard,
   Sprout,
@@ -101,3 +101,16 @@ export const INDUSTRY_TYPES: IndustryType[] = ["Wholesaler", "Retailer", "Food P
 export const RELATIONSHIP_STATUSES: RelationshipStatus[] = ["New", "Active", "VIP", "Inactive"];
 
 export const COMMUNICATION_METHODS: CommunicationMethod[] = ["email", "phone", "whatsapp"];
+
+export const DOCUMENT_TYPES: DocumentType[] = ["proformaInvoice", "commercialInvoice", "contract", "packingList", "billOfLading", "coo", "fssai", "apeda", "phytoCertificate", "insuranceCertificate", "shippingBill", "other"];
+
+export const DEFAULT_DOCUMENT_CHECKLIST: Pick<DocumentChecklistItem, 'type' | 'required' | 'status'>[] = [
+    { type: 'proformaInvoice', required: true, status: 'notStarted' },
+    { type: 'commercialInvoice', required: true, status: 'notStarted' },
+    { type: 'packingList', required: true, status: 'notStarted' },
+    { type: 'billOfLading', required: true, status: 'notStarted' },
+    { type: 'certificateOfOrigin', required: true, status: 'notStarted' },
+    { type: 'phytoCertificate', required: false, status: 'notStarted' },
+    { type: 'insuranceCertificate', required: false, status: 'notStarted' },
+    { type: 'shippingBill', required: true, status: 'notStarted' },
+  ];

@@ -33,6 +33,7 @@ import { PageHeader } from '@/components/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { logActivity } from '@/lib/logger';
 import { logUserActivity } from '@/lib/user-activity';
+import { DocumentChecklist } from '../../components/document-checklist';
 
 const lineItemSchema = z.object({
   id: z.string().optional(),
@@ -386,6 +387,13 @@ export default function EditExportOrderPage() {
                     <FormField control={form.control} name="certificateRequirements" render={({ field }) => (<FormItem className="lg:col-span-3"><FormLabel>Other Certificate Requirements</FormLabel><FormControl><Textarea placeholder="e.g., Organic, Halal, Kosher" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
              </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader><CardTitle>Documents</CardTitle><CardDescription>Manage and track all documents required for this export order.</CardDescription></CardHeader>
+            <CardContent>
+                <DocumentChecklist orderId={orderId} />
+            </CardContent>
         </Card>
 
         <Card>
