@@ -2,6 +2,7 @@
 
 
 
+
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -18,6 +19,7 @@ export interface User {
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
 export type LeadSource = 'manual' | 'website' | 'whatsapp' | 'metaWhatsapp' | 'facebookLeadAds' | 'instagramDm' | 'tradeShow' | 'referral' | 'b2bPortal';
 export type LeadChannel = 'whatsapp' | 'facebook' | 'instagram' | 'other';
+export type LeadPriority = 'hot' | 'warm' | 'cold';
 
 
 export interface Lead {
@@ -49,6 +51,9 @@ export interface Lead {
     completedAt?: any;
     failedAt?: any;
   };
+  score?: number;
+  priority?: LeadPriority;
+  potentialValue?: number;
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';

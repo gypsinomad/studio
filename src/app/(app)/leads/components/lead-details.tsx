@@ -1,13 +1,14 @@
 'use client';
 
-import type { Lead } from '@/lib/types';
+import type { Lead, LeadPriority } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, BrainCircuit, AlertTriangle } from 'lucide-react';
+import { ExternalLink, BrainCircuit, AlertTriangle, Flame, Zap, Snowflake, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { LeadSource, LeadStatus } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useRouter } from 'next/navigation';
 
 interface LeadDetailsProps {
     lead: Lead;
@@ -21,6 +22,19 @@ const statusColors: Record<LeadStatus, string> = {
     converted: 'bg-teal-100 text-teal-800',
     lost: 'bg-gray-100 text-gray-800'
 };
+
+const priorityColors: Record<LeadPriority, string> = {
+    hot: 'bg-red-100 text-red-700',
+    warm: 'bg-amber-100 text-amber-700',
+    cold: 'bg-sky-100 text-sky-700',
+};
+
+const priorityIcons: Record<LeadPriority, React.ReactElement> = {
+    hot: <Flame className="h-4 w-4 mr-1.5" />,
+    warm: <Zap className="h-4 w-4 mr-1.5" />,
+    cold: <Snowflake className="h-4 w-4 mr-1.5" />,
+};
+
 
 const getChannelName = (source: LeadSource | string) => {
     switch (source) {
@@ -45,6 +59,23 @@ const getChannelName = (source: LeadSource | string) => {
 }
 
 export function LeadDetails({ lead }: LeadDetailsProps) {
+    const router = useRouter();
+
+    const handleConvertToOrder = () => {
+        const query = new URLSearchParams({
+            leadId: lead.id!,
+            companyName: lead.companyName,
+            contactName: lead.fullName,
+            contactEmail: lead.email,
+            contactPhone: lead.phone,
+            productInterest: lead.productInterest,
+            destinationCountry: lead.destinationCountry,
+            incoterms: lead.incotermsPreference,
+        }).toString();
+
+        router.push(`/export-orders/new?${query}`);
+    }
+
     return (
         <div className="space-y-4 text-sm">
             <div className="grid grid-cols-3 gap-2 items-center">
@@ -54,6 +85,21 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                         {lead.status}
                     </Badge>
                 </div>
+            </div>
+
+             <div className="grid grid-cols-3 gap-2 items-center">
+                <p className="text-muted-foreground col-span-1">Priority</p>
+                <div className="col-span-2">
+                    {lead.priority ? (
+                        <Badge variant="outline" className={cn("capitalize items-center", priorityColors[lead.priority])}>
+                           {priorityIcons[lead.priority]} {lead.priority}
+                        </Badge>
+                    ) : <span className="text-stone-400">-</span>}
+                </div>
+            </div>
+             <div className="grid grid-cols-3 gap-2">
+                <p className="text-muted-foreground col-span-1">Lead Score</p>
+                <p className="font-medium col-span-2">{lead.score ?? 'N/A'}</p>
             </div>
             
             {lead.aiStandardization?.status && (
@@ -121,18 +167,23 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                 </Alert>
             )}
             
-            {lead.whatsappThreadId && (
-                <div className="pt-4">
-                    <Button variant="outline" className="w-full" asChild>
-                        {/* The link is a placeholder, so no real href needed. */}
-                        <a href={`https://wa.me/${lead.whatsappNumber}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            View in WhatsApp
-                        </a>
-                    </Button>
-                     <p className="text-xs text-center text-muted-foreground mt-2">(Opens WhatsApp)</p>
-                </div>
-            )}
+            <div className="pt-4 space-y-2">
+                 <Button className="w-full" onClick={handleConvertToOrder}>
+                    Convert to Export Order
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                {lead.whatsappThreadId && (
+                    <>
+                        <Button variant="outline" className="w-full" asChild>
+                            <a href={`https://wa.me/${lead.whatsappNumber}`} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                View in WhatsApp
+                            </a>
+                        </Button>
+                        <p className="text-xs text-center text-muted-foreground">(Opens WhatsApp)</p>
+                    </>
+                )}
+            </div>
         </div>
     );
 }

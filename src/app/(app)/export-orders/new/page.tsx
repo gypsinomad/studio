@@ -7,10 +7,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ExportOrder, LineItem, Company, Contact, Task, OrderActivityLog } from '@/lib/types';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, writeBatch, doc, serverTimestamp, query } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp, query, updateDoc } from 'firebase/firestore';
 import { format, addDays } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
 import { PRODUCT_TYPES, INCOTERMS, PAYMENT_TERMS, CONTAINER_TYPES, CURRENCIES, UNITS, APEDA_STATUSES, ICEGATE_STATUSES } from '@/lib/constants';
@@ -87,6 +87,9 @@ export default function NewExportOrderPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const leadId = searchParams.get('leadId');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data fetching for selectors
@@ -98,9 +101,11 @@ export default function NewExportOrderPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
+      title: searchParams.get('productInterest') ? `${searchParams.get('productInterest')} to ${searchParams.get('destinationCountry')}` : '',
+      destinationCountry: searchParams.get('destinationCountry') || '',
+      incoterms: searchParams.get('incoterms') || '',
+      lineItems: searchParams.get('productInterest') ? [{ productName: searchParams.get('productInterest')!, hsCode: '', unitPrice: 0, quantity: 0, boxes: 0, grossWeightPerBox: 0, netWeightPerBox: 0 }] : [],
       portOfLoading: 'Cochin Port',
-      lineItems: [],
       phytosanitaryCert: false,
       certificateOfOrigin: false,
       currency: 'USD',
@@ -121,8 +126,6 @@ export default function NewExportOrderPage() {
 
     try {
         const batch = writeBatch(firestore);
-
-        // 1. Create Export Order
         const orderRef = doc(collection(firestore, 'exportOrders'));
         
         const initialLog: OrderActivityLog = {
@@ -145,31 +148,31 @@ export default function NewExportOrderPage() {
         };
         batch.set(orderRef, newOrderPayload);
 
-        // 2. Create Line Items
         values.lineItems.forEach(item => {
             const lineItemRef = doc(collection(firestore, `exportOrders/${orderRef.id}/lineItems`));
             batch.set(lineItemRef, item as Omit<LineItem, 'id'>);
         });
 
-        // 3. Create Follow-up Task (Automation)
         const taskRef = doc(collection(firestore, 'tasks'));
         const taskPayload: Omit<Task, 'id'> = {
             title: `Follow up on new inquiry: ${values.title}`,
             status: 'open',
-            dueDate: addDays(new Date(), 2), // Due in 2 days
+            dueDate: addDays(new Date(), 2),
             assigneeId: user.uid,
             relatedOrderId: orderRef.id,
             createdAt: serverTimestamp()
         };
         batch.set(taskRef, taskPayload);
 
-        // 4. Create Audit Log Entry
         await logActivity(firestore, user, 'create', 'exportOrders', orderRef.id, null, newOrderPayload);
-        
-        // 5. Create User-facing Activity Log
         await logUserActivity(firestore, 'Sprout', 'New Export Inquiry', `Order for "${values.title}" created.`);
+        
+        if (leadId) {
+            const leadRef = doc(firestore, 'leads', leadId);
+            batch.update(leadRef, { status: 'converted' });
+            await logUserActivity(firestore, 'Repeat', 'Lead Converted', `Lead converted to order "${values.title}".`);
+        }
 
-        // 6. Commit all writes at once
         await batch.commit();
         
         toast({ title: 'Success', description: 'New export order, task, and logs created.' });
@@ -252,7 +255,7 @@ export default function NewExportOrderPage() {
                                <TableCell><Input type="number" step="1" placeholder="200" {...form.register(`lineItems.${index}.boxes`)} /></TableCell>
                                <TableCell><Input type="number" step="0.1" placeholder="5.2" {...form.register(`lineItems.${index}.grossWeightPerBox`)} /></TableCell>
                                <TableCell><Input type="number" step="0.1" placeholder="5.0" {...form.register(`lineItems.${index}.netWeightPerBox`)} /></TableCell>
-                               <TableCell><Button variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="text-destructive" /></Button></TableCell>
+                               <TableCell><Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="text-destructive" /></Button></TableCell>
                             </TableRow>
                         ))}
                          {fields.length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">No products added yet.</TableCell></TableRow>)}

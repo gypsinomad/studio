@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Lead, LeadSource, LeadStatus } from '@/lib/types';
+import type { Lead, LeadSource, LeadStatus, LeadPriority } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Laptop, User, MessageSquare, Facebook, Instagram, Building, Handshake, MoreHorizontal, Pencil, Trash2, BrainCircuit, LoaderCircle, AlertTriangle } from 'lucide-react';
@@ -35,7 +35,14 @@ const statusColors: Record<LeadStatus, string> = {
     quoted: 'bg-purple-100 text-purple-800 border-purple-200',
     converted: 'bg-teal-100 text-teal-800 border-teal-200',
     lost: 'bg-gray-100 text-gray-800 border-gray-200'
-}
+};
+
+const priorityColors: Record<LeadPriority, string> = {
+    hot: 'bg-red-100 text-red-700 border-red-200',
+    warm: 'bg-amber-100 text-amber-700 border-amber-200',
+    cold: 'bg-sky-100 text-sky-700 border-sky-200',
+};
+
 
 const sourceIcons: { [key in LeadSource | string]: React.ReactElement } = {
   manual: <User className="h-5 w-5 text-gray-500" />,
@@ -80,7 +87,7 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
           <TableRow>
             <TableHead>Full Name</TableHead>
             <TableHead>Company</TableHead>
-            <TableHead>Product Interest</TableHead>
+            <TableHead>Priority</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
             <TableHead>Created At</TableHead>
@@ -99,7 +106,13 @@ export function LeadsTable({ data, onRowClick, onDelete }: LeadsTableProps) {
                 </div>
               </TableCell>
               <TableCell>{lead.companyName}</TableCell>
-              <TableCell>{lead.productInterest}</TableCell>
+               <TableCell>
+                {lead.priority ? (
+                    <Badge variant="outline" className={cn("capitalize", priorityColors[lead.priority])}>
+                        {lead.priority}
+                    </Badge>
+                ) : <span className="text-stone-400">-</span>}
+              </TableCell>
               <TableCell>
                 <Badge variant="outline" className={cn("capitalize", statusColors[lead.status])}>
                     {lead.status}

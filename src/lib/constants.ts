@@ -10,6 +10,7 @@ import {
   Settings,
   Building,
   History,
+  Kanban,
 } from 'lucide-react';
 
 export const NAV_ITEMS: NavItem[] = [
@@ -22,6 +23,11 @@ export const NAV_ITEMS: NavItem[] = [
     title: 'Leads',
     href: '/leads',
     icon: Sprout,
+  },
+   {
+    title: 'Lead Pipeline',
+    href: '/leads/pipeline',
+    icon: Kanban,
   },
   {
     title: 'Export Orders',
