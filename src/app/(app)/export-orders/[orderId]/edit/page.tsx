@@ -10,7 +10,7 @@ import type { ExportOrder, LineItem, Company, Contact, Task, OrderActivityLog } 
 import { useFirestore, useUser, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, writeBatch, doc, serverTimestamp, query, getDocs } from 'firebase/firestore';
 import { format, addDays } from "date-fns"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Bot, Info } from "lucide-react"
 import { useParams, useRouter } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoaderCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
@@ -67,11 +68,14 @@ const formSchema = z.object({
   destinationPort: z.string().optional(),
   portOfLoading: z.string().default('Cochin Port'),
   containerType: z.string().optional(),
-  estimatedShipDate: z.date().optional(),
-  actualShipDate: z.date().optional(),
+  etd: z.date().optional(),
+  eta: z.date().optional(),
   shippingLine: z.string().optional(),
   containerNumber: z.string().optional(),
   
+  // Financial
+  paymentDueDate: z.date().optional(),
+
   // Compliance
   hsCode: z.string().optional(),
   fssaiNumber: z.string().min(14, { message: "FSSAI must be 14 digits."}).max(14, { message: "FSSAI must be 14 digits."}),
@@ -95,6 +99,7 @@ export default function EditExportOrderPage() {
     
     const orderId = params.orderId as string;
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAiChecking, setIsAiChecking] = useState(false);
 
     // Data fetching for the order and its line items
     const orderRef = useMemoFirebase(() => (firestore && orderId ? doc(firestore, 'exportOrders', orderId) : null), [firestore, orderId]);
@@ -120,9 +125,11 @@ export default function EditExportOrderPage() {
                 ...order,
                 certificateRequirements: Array.isArray(order.certificateRequirements) ? order.certificateRequirements.join(', ') : '',
                 // @ts-ignore
-                estimatedShipDate: order.estimatedShipDate?.toDate ? order.estimatedShipDate.toDate() : order.estimatedShipDate,
+                etd: order.etd?.toDate ? order.etd.toDate() : order.etd,
                 // @ts-ignore
-                actualShipDate: order.actualShipDate?.toDate ? order.actualShipDate.toDate() : order.actualShipDate,
+                eta: order.eta?.toDate ? order.eta.toDate() : order.eta,
+                 // @ts-ignore
+                paymentDueDate: order.paymentDueDate?.toDate ? order.paymentDueDate.toDate() : order.paymentDueDate,
             });
         }
     }, [order, form.reset]);
@@ -236,6 +243,26 @@ export default function EditExportOrderPage() {
         }
     }
     
+    const runAiComplianceCheck = async () => {
+        setIsAiChecking(true);
+        toast({ title: 'AI Compliance Check', description: 'Analyzing your order against compliance rules...'});
+        try {
+            const response = await fetch(`/api/export-orders/${orderId}/check-compliance`, {
+                method: 'POST',
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to run AI check');
+            }
+            toast({ variant: 'success', title: 'AI Check Complete', description: 'Compliance suggestions have been generated.'});
+        } catch (error) {
+             console.error("AI Compliance Check failed:", error);
+             toast({ variant: 'destructive', title: 'AI Check Failed', description: error instanceof Error ? error.message : 'An unknown error occurred.'});
+        } finally {
+            setIsAiChecking(false);
+        }
+    }
+
     if (isLoadingOrder || isLoadingLineItems) {
         return (
             <div className="space-y-6">
@@ -281,6 +308,7 @@ export default function EditExportOrderPage() {
                 <FormField control={form.control} name="incoterms" render={({ field }) => (<FormItem><FormLabel>INCOTERMS</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select INCOTERMS..." /></SelectTrigger></FormControl><SelectContent>{INCOTERMS.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="paymentTerms" render={({ field }) => (<FormItem><FormLabel>Payment Terms</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select terms..." /></SelectTrigger></FormControl><SelectContent>{PAYMENT_TERMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select currency..." /></SelectTrigger></FormControl><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                 <FormField control={form.control} name="paymentDueDate" render={({ field }) => (<FormItem className="flex flex-col pt-2"><FormLabel>Payment Due Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
              </CardContent>
         </Card>
 
@@ -292,23 +320,56 @@ export default function EditExportOrderPage() {
                 <FormField control={form.control} name="portOfLoading" render={({ field }) => (<FormItem><FormLabel>Port of Loading</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="containerType" render={({ field }) => (<FormItem><FormLabel>Container Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select container..." /></SelectTrigger></FormControl><SelectContent>{CONTAINER_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="shippingLine" render={({ field }) => (<FormItem><FormLabel>Shipping Line</FormLabel><FormControl><Input placeholder="e.g. Maersk" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="estimatedShipDate" render={({ field }) => (<FormItem className="flex flex-col pt-2"><FormLabel>Estimated Shipment Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="actualShipDate" render={({ field }) => (<FormItem className="flex flex-col pt-2"><FormLabel>Actual Shipment Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="etd" render={({ field }) => (<FormItem className="flex flex-col pt-2"><FormLabel>Estimated Time of Departure (ETD)</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="eta" render={({ field }) => (<FormItem className="flex flex-col pt-2"><FormLabel>Estimated Time of Arrival (ETA)</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
              </CardContent>
+        </Card>
+        
+        <Card>
+            <CardHeader><CardTitle>Shipment Timeline Milestones</CardTitle><CardDescription>Track key dates in the export process.</CardDescription></CardHeader>
+            <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Placeholder for milestone inputs. This would be dynamically generated in a real app. */}
+                <div className="space-y-2"><Label>PI Confirmed</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>Production Complete</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>CHA Appointed</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>Container Booked</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>Cargo Handed Over</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>On Board</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>B/L Received</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>Docs Submitted to Bank</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>Payment Received</Label><Input type="date" /></div>
+            </CardContent>
         </Card>
 
         <Card>
-            <CardHeader><CardTitle>Indian Export Compliance</CardTitle></CardHeader>
-             <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 <FormField control={form.control} name="hsCode" render={({ field }) => (<FormItem><FormLabel>Overall HS Code</FormLabel><FormControl><Input placeholder="8-digit code" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="fssaiNumber" render={({ field }) => (<FormItem><FormLabel>FSSAI License No.</FormLabel><FormControl><Input placeholder="14-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="apedaStatus" render={({ field }) => (<FormItem><FormLabel>APEDA Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{APEDA_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                <FormField control={form.control} name="iceGateStatus" render={({ field }) => (<FormItem><FormLabel>ICEGATE Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{ICEGATE_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                <div className="space-y-4 pt-2">
-                    <FormField control={form.control} name="phytosanitaryCert" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Phytosanitary Cert Required?</FormLabel></div></FormItem>)} />
-                    <FormField control={form.control} name="certificateOfOrigin" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Certificate of Origin Required?</FormLabel></div></FormItem>)} />
+            <CardHeader>
+                <CardTitle>Indian Export Compliance</CardTitle>
+                <div className="flex items-center gap-4">
+                    <CardDescription>Manage compliance details and run AI-powered checks.</CardDescription>
+                    <Button type="button" variant="outline" size="sm" onClick={runAiComplianceCheck} disabled={isAiChecking}>
+                        {isAiChecking ? <LoaderCircle className="animate-spin" /> : <Bot className="mr-2" />} Run AI Check
+                    </Button>
                 </div>
-                <FormField control={form.control} name="certificateRequirements" render={({ field }) => (<FormItem className="lg:col-span-3"><FormLabel>Other Certificate Requirements</FormLabel><FormControl><Textarea placeholder="e.g., Organic, Halal, Kosher" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            </CardHeader>
+             <CardContent className="space-y-6">
+                {order.complianceNotes && (
+                    <Alert variant={order.complianceRiskLevel === 'high' ? 'destructive' : (order.complianceRiskLevel === 'medium' ? 'warning' : 'success')}>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>AI Compliance Suggestion (Risk: {order.complianceRiskLevel})</AlertTitle>
+                        <AlertDescription>{order.complianceNotes}</AlertDescription>
+                    </Alert>
+                )}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <FormField control={form.control} name="hsCode" render={({ field }) => (<FormItem><FormLabel>Overall HS Code</FormLabel><FormControl><Input placeholder="8-digit code" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="fssaiNumber" render={({ field }) => (<FormItem><FormLabel>FSSAI License No.</FormLabel><FormControl><Input placeholder="14-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="apedaStatus" render={({ field }) => (<FormItem><FormLabel>APEDA Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{APEDA_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                    <FormField control={form.control} name="iceGateStatus" render={({ field }) => (<FormItem><FormLabel>ICEGATE Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger></FormControl><SelectContent>{ICEGATE_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                    <div className="space-y-4 pt-2">
+                        <FormField control={form.control} name="phytosanitaryCert" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Phytosanitary Cert Required?</FormLabel></div></FormItem>)} />
+                        <FormField control={form.control} name="certificateOfOrigin" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Certificate of Origin Required?</FormLabel></div></FormItem>)} />
+                    </div>
+                    <FormField control={form.control} name="certificateRequirements" render={({ field }) => (<FormItem className="lg:col-span-3"><FormLabel>Other Certificate Requirements</FormLabel><FormControl><Textarea placeholder="e.g., Organic, Halal, Kosher" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
              </CardContent>
         </Card>
 

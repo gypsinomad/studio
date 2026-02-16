@@ -1,7 +1,10 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // --- Helper Functions ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -12,99 +15,115 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // --- User & Settings Collections (Most Specific Rules First) ---
-    
-    // Users can read all profiles, but can only update their own. Admins can update any.
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isOwner(userId); // Allows new users to create their own profile
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+    function isSalesExecutive() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'salesExecutive';
     }
     
-    // AI and other settings are readable by authenticated users, but only writable by admins.
+    // Checks if the user is assigned to the record. Works for create (request.resource) and update/read (resource).
+    function isAssignedTo(doc) {
+      return doc.assignedUserId == request.auth.uid;
+    }
+     function isAssigneeOfTask(doc) {
+      return doc.assigneeId == request.auth.uid;
+    }
+
+
+    // --- Collection Rules ---
+
+    // USER & SETTINGS (Admin-focused)
+    match /users/{userId} {
+      allow read: if isSignedIn(); // All team members can see other profiles
+      allow create: if isOwner(userId); // A user can create their own profile on first login
+      allow update: if isOwner(userId) || isAdmin(); // Can only update your own, or if admin
+      allow delete: if isAdmin(); // Only admins can delete users
+    }
+
     match /settings/{docId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    // AI usage stats are only readable by admins. Backend functions write to it.
-    match /usageStats/{monthKey} {
-      allow read: if isAdmin();
-      allow write: if false; // Only backend can write.
-    }
-
-    // Dashboard stats are specific to each user.
-    match /dashboardStats/{userId} {
-      allow read, create: if isOwner(userId) || isAdmin();
-      allow write: if false; // Should only be updated by backend jobs.
+      allow write: if isAdmin(); // Only admins can change system settings
     }
     
-    // --- Business Data Collections ---
+    match /usageStats/{docId} {
+        allow read: if isAdmin(); // Only admins can read usage stats
+        allow write: if false; // Only backend functions can write usage
+    }
 
-    // Leads can be read/updated by their assignee or an admin.
+    // LEADS
     match /leads/{leadId} {
-      allow read, update: if isSignedIn() && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.assignedUserId == request.auth.uid;
+      allow read: if isAdmin() || isAssignedTo(resource.data);
+      allow create: if isSignedIn(); // Any auth'd user can create a lead, assignedUserId will be set
+      allow update: if isAdmin() || isAssignedTo(resource.data);
       allow delete: if isAdmin();
     }
 
-    // Export Orders can be read/updated by their assignee or an admin.
+    // EXPORT ORDERS & SUB-COLLECTIONS
     match /exportOrders/{orderId} {
-      allow read, update: if isSignedIn() && (isAdmin() || resource.data.assignedUserId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.assignedUserId == request.auth.uid;
+      allow read: if isAdmin() || isAssignedTo(resource.data);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || isAssignedTo(resource.data);
       allow delete: if isAdmin();
 
-      // Sub-collections must also be secured.
-      match /lineItems/{lineItemId} {
-         allow read, write: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid);
+      // Line Items
+      match /lineItems/{itemId} {
+        allow read, write: if isAdmin() || isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(orderId)).data);
+      }
+      
+      // Document Checklist
+      match /documentsChecklist/{docId} {
+         allow read, write: if isAdmin() || isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(orderId)).data);
       }
     }
-    
-    // All authenticated users can view companies. Only Admins can modify them.
+
+    // COMPANIES & CONTACTS
     match /companies/{companyId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow read, write: if isSignedIn(); // All team members can read/write companies for now
     }
-
-    // All authenticated users can view and create contacts. Only Admins can modify them.
     match /contacts/{contactId} {
-       allow read, create: if isSignedIn();
-       allow update, delete: if isAdmin();
+      allow read, write: if isSignedIn(); // All team members can read/write contacts for now
     }
 
-    // Users can only manage tasks assigned to them. Admins can manage all tasks.
+    // TASKS
     match /tasks/{taskId} {
-        allow read, write: if isSignedIn() && (isAdmin() || resource.data.assigneeId == request.auth.uid || request.resource.data.assigneeId == request.auth.uid);
+      allow read, update, delete: if isAdmin() || isAssigneeOfTask(resource.data);
+      // Anyone can create a task, but the UI should default assignee to self.
+      allow create: if isSignedIn(); 
     }
     
-    // Documents can be read/written by any authenticated user for now.
-    match /documents/{documentId} {
-        allow read, write: if isSignedIn();
+    // INTERACTIONS (Communication Log)
+    match /interactions/{interactionId} {
+      // Can only create an interaction if you are the one logging it
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Can only read an interaction if you have access to the related lead/order
+      allow read: if isAdmin() || 
+                  (resource.data.leadId != null && isAssignedTo(get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data)) ||
+                  (resource.data.orderId != null && isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(resource.data.orderId)).data));
+      allow update, delete: if false; // Interactions are immutable
     }
 
-    // --- Log & Event Collections (Append-Only or Read-Only) ---
+    // DOCUMENTS (Global Storage)
+    match /documents/{documentId} {
+      allow read, write: if isSignedIn(); // Any authenticated user can upload/read for now
+    }
 
-    // The main audit log is append-only for any authenticated user.
-    match /activityLogs/{logId} {
-      allow read, create: if isSignedIn();
+    // LOGS (Append-only or Read-only for clients)
+    match /activityLogs/{logId} { // System-wide audit trail
+      allow read: if isAdmin();
+      allow create: if isSignedIn(); // Backend and client can write to audit log
       allow update, delete: if false;
     }
-    
-    // The user-facing activity feed is read-only for clients.
-    match /activity_logs/{logId} {
+    match /activity_logs/{logId} { // User-facing feed
       allow read: if isSignedIn();
-      allow write: if false; // Should be written by backend triggers/server-side logic
+      allow write: if false; // Only backend triggers
     }
-    
-    // Raw webhook payloads are for server-side debugging only. No client access.
     match /whatsappEvents/{eventId} {
-      allow read, write: if false;
+      allow read, write: if false; // Server-side debugging only
+    }
+     match /dashboardStats/{userId} {
+        allow read: if isOwner(userId);
+        allow write: if false; // only backend functions
     }
   }
 }

@@ -3,6 +3,7 @@
 
 
 
+
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -14,6 +15,7 @@ export interface User {
   isActive: boolean;
   createdAt: any; // Date or Firestore Timestamp
   avatarUrl?: string;
+  hasCompletedOnboarding?: boolean;
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'converted' | 'lost';
@@ -38,6 +40,7 @@ export interface Lead {
   createdAt: any; // Date or Firestore Timestamp
   lastContactAt?: any;
   nextFollowUpAt?: any;
+  potentialValue?: number;
   // Meta and WhatsApp integration fields
   metaLeadId?: string;
   whatsappThreadId?: string;
@@ -53,7 +56,6 @@ export interface Lead {
   };
   score?: number;
   priority?: LeadPriority;
-  potentialValue?: number;
 }
 
 export type ExportOrderStage = 'leadReceived' | 'quotationSent' | 'orderConfirmed' | 'exportDocumentation' | 'shipmentReady' | 'shippedDelivered' | 'cancelled' | 'lostNoResponse';
@@ -64,6 +66,27 @@ export type Currency = "USD" | "EUR" | "GBP" | "AED";
 export type Unit = "KG" | "MT" | "Quintals";
 export type PaymentTerms = 'Advance' | 'L/C' | 'D/P' | 'D/A' | 'CAD';
 export type ContainerType = '20ft' | '40ft' | '40ft HC' | 'LCL';
+export type ComplianceRiskLevel = 'low' | 'medium' | 'high';
+
+
+export interface Milestone {
+  date: any; // Firestore Timestamp
+  notes?: string;
+  setByUserId: string;
+}
+
+export interface ExportOrderMilestones {
+  piConfirmedAt?: Milestone;
+  productionCompleteAt?: Milestone;
+  chaAppointedAt?: Milestone;
+  containerBookingConfirmedAt?: Milestone;
+  cargoHandedOverAt?: Milestone;
+  onBoardAt?: Milestone;
+  blReceivedAt?: Milestone;
+  docsSubmittedToBankAt?: Milestone;
+  paymentReceivedAt?: Milestone;
+}
+
 
 export interface OrderActivityLog {
   action: string;
@@ -107,11 +130,22 @@ export interface ExportOrder {
   destinationCountry: string;
   destinationPort?: string;
   portOfLoading?: string;
-  estimatedShipDate?: any; // Firestore Timestamp
-  actualShipDate?: any; // Firestore Timestamp
+  etd?: any; // Estimated time of departure
+  eta?: any; // Estimated time of arrival
   shippingLine?: string;
   containerNumber?: string;
   containerType?: ContainerType | string;
+  
+  // Financial
+  paymentDueDate?: any;
+
+  // Milestones
+  milestones?: ExportOrderMilestones;
+
+  // AI Compliance
+  complianceRiskLevel?: ComplianceRiskLevel;
+  complianceNotes?: string;
+  aiValidation?: string; // Legacy or general validation notes
 
   // Audit Trail
   activityLog?: OrderActivityLog[];
@@ -196,6 +230,19 @@ export interface Document {
   uploadedAt: any; // Date or Firestore Timestamp
 }
 
+export type DocumentChecklistStatus = 'notStarted' | 'inProgress' | 'completed';
+
+export interface DocumentChecklistItem {
+    id?: string;
+    type: DocumentType | string;
+    required: boolean;
+    status: DocumentChecklistStatus;
+    fileRef?: string; // Path in Firebase Storage
+    notes?: string;
+    updatedAt: any; // Firestore Timestamp
+    updatedBy: string;
+}
+
 export interface Product {
     id?: string;
     name: string;
@@ -204,6 +251,23 @@ export interface Product {
     basePrice: number;
     imageUrl?: string;
 }
+
+export type InteractionType = 'call' | 'whatsapp' | 'email' | 'meeting' | 'other';
+export type InteractionDirection = 'inbound' | 'outbound';
+
+export interface Interaction {
+    id?: string;
+    type: InteractionType;
+    direction: InteractionDirection;
+    summary: string;
+    timestamp: any; // Firestore Timestamp
+    userId: string;
+    leadId?: string;
+    companyId?: string;
+    contactId?: string;
+    orderId?: string;
+}
+
 
 export interface Note {
     id?: string;
