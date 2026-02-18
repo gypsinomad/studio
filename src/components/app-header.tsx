@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { useAISettings } from '@/hooks/use-ai-settings';
+import { PWAInstallButton } from './pwa-install-button';
 
 export function AppHeader() {
   const auth = useAuth();
@@ -50,10 +51,11 @@ export function AppHeader() {
     }
     
     return (
-      <>
+      <div className="flex items-center gap-3">
+        <PWAInstallButton />
         {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
         <UserNav user={mergedUser} />
-      </>
+      </div>
     );
   };
 
@@ -65,11 +67,11 @@ export function AppHeader() {
                 <SidebarTrigger />
             </div>
             <div>
-                 <h2 className="text-xl font-headline font-semibold text-stone-900">Dashboard</h2>
-                 <p className="text-sm text-stone-500">Welcome back! Here's your business snapshot.</p>
+                 <h2 className="text-xl font-headline font-semibold text-stone-900">SpiceRoute</h2>
+                 <p className="text-sm text-stone-500 hidden sm:block">Export CRM & Logistics</p>
             </div>
         </div>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto">
           {renderHeaderContent()}
         </div>
       </div>
