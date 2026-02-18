@@ -1,3 +1,4 @@
+
 'use client';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -29,7 +30,11 @@ export default function RootLayout({
         <title>SpiceRoute CRM</title>
         <meta name="description" content="A CRM for spice export businesses." />
         <meta name="theme-color" content="#D97706" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="SpiceRoute" />
         <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="https://picsum.photos/seed/spice/180/180" />
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>

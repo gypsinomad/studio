@@ -1,6 +1,7 @@
+
 'use client';
 
-import { Download } from 'lucide-react';
+import { Download, MonitorSmartphone } from 'lucide-react';
 import { Button } from './ui/button';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 
@@ -10,17 +11,20 @@ import { usePWAInstall } from '@/hooks/use-pwa-install';
 export function PWAInstallButton() {
   const { isInstallable, handleInstallClick } = usePWAInstall();
 
-  if (!isInstallable) return null;
+  // If the browser hasn't triggered the install prompt yet, we don't show the button
+  if (!isInstallable) {
+    return null;
+  }
 
   return (
     <Button 
-      variant="outline" 
+      variant="default" 
       size="sm" 
       onClick={handleInstallClick} 
-      className="flex items-center gap-2 bg-spice-50 border-spice-200 text-spice-700 hover:bg-spice-100 animate-in fade-in slide-in-from-top-2"
+      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-md animate-in fade-in slide-in-from-top-2"
     >
-      <Download className="h-4 w-4" />
-      <span className="hidden lg:inline">Install CRM</span>
+      <MonitorSmartphone className="h-4 w-4" />
+      <span className="hidden lg:inline">Install CRM App</span>
       <span className="lg:hidden">Install</span>
     </Button>
   );

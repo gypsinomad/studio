@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 
@@ -11,6 +12,7 @@ export function usePWAInstall() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
+      console.log('PWA: beforeinstallprompt event fired');
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
@@ -23,6 +25,7 @@ export function usePWAInstall() {
 
     // Check if the app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('PWA: App is already running in standalone mode');
       setIsInstallable(false);
     }
 
@@ -32,13 +35,17 @@ export function usePWAInstall() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      console.warn('PWA: Install click triggered but deferredPrompt is null');
+      return;
+    }
     
     // Show the install prompt
     deferredPrompt.prompt();
     
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
+    console.log(`PWA: User response to install prompt: ${outcome}`);
     
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
