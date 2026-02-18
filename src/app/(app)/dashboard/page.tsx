@@ -7,28 +7,11 @@ import type { DashboardStats, Lead, ExportOrder, LeadStatus, ExportOrderStage } 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { OrdersByStageChart } from './components/orders-by-stage-chart';
+import { LeadsByStatusChart } from './components/leads-by-status-chart';
 import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-
-
-const OrdersByStageChart = dynamic(
-  () => import('@/app/(app)/dashboard/components/orders-by-stage-chart').then(mod => mod.OrdersByStageChart),
-  { 
-    loading: () => <Skeleton className="h-[400px] w-full" />,
-    ssr: false 
-  }
-);
-
-const LeadsByStatusChart = dynamic(
-  () => import('@/app/(app)/dashboard/components/leads-by-status-chart').then(mod => mod.LeadsByStatusChart),
-  { 
-    loading: () => <Skeleton className="h-[400px] w-full" />,
-    ssr: false 
-  }
-);
-
+import { collection, getDocs, query } from 'firebase/firestore';
 
 const defaultDashboardStats: Omit<DashboardStats, 'id' | 'lastUpdatedAt'> = {
     totalLeads: 0,
@@ -60,6 +43,12 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<Omit<DashboardStats, 'id' | 'lastUpdatedAt'>>(defaultDashboardStats);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent hydration issues with charts
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!firestore || !user) {
@@ -67,7 +56,7 @@ export default function DashboardPage() {
         return;
     }
 
-    let isMounted = true;
+    let mounted = true;
     
     async function fetchData() {
         setIsLoading(true);
@@ -85,7 +74,7 @@ export default function DashboardPage() {
                 getDocs(ordersQuery),
             ]);
 
-            if (!isMounted) return;
+            if (!mounted) return;
 
             const leads = leadsSnapshot.docs.map(doc => doc.data() as Lead);
             const orders = ordersSnapshot.docs.map(doc => doc.data() as ExportOrder);
@@ -118,7 +107,7 @@ export default function DashboardPage() {
             console.error("Dashboard fetch error:", err);
             setError(err.message || "An unexpected error occurred.");
         } finally {
-            if (isMounted) {
+            if (mounted) {
                 setIsLoading(false);
             }
         }
@@ -126,7 +115,7 @@ export default function DashboardPage() {
     
     fetchData();
 
-    return () => { isMounted = false; };
+    return () => { mounted = false; };
   }, [firestore, user, isAdmin, isUserLoading]);
 
 
@@ -163,8 +152,17 @@ export default function DashboardPage() {
              </Card>
            ) : (
             <>
-              <LeadsByStatusChart data={leadsByStatusChartData} />
-              <OrdersByStageChart data={exportOrdersByStageChartData} />
+              {isMounted ? (
+                <>
+                  <LeadsByStatusChart data={leadsByStatusChartData} />
+                  <OrdersByStageChart data={exportOrdersByStageChartData} />
+                </>
+              ) : (
+                <>
+                  <Skeleton className="h-[400px] w-full" />
+                  <Skeleton className="h-[400px] w-full" />
+                </>
+              )}
             </>
            )}
         </div>
