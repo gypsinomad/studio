@@ -1,37 +1,17 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to verify the user is signed in
-    function isSignedIn() {
-      return request.auth != null && request.auth.uid != null;
-    }
-
     /**
-     * LEADS COLLECTION
-     * Explicitly allowed for any authenticated user during development.
-     */
-    match /leads/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-
-    /**
-     * USERS COLLECTION
-     * Required for the useCurrentUser hook to load the user profile.
-     */
-    match /users/{document=**} {
-      allow read, write: if isSignedIn();
-    }
-
-    /**
-     * GLOBAL CATCH-ALL
-     * Allows authenticated access to all other CRM collections (companies, orders, etc.)
-     * Deployment Version: 1.0.6 - Forced deployment trigger
+     * ULTRA-SIMPLE AUTHENTICATED ACCESS
+     * This rule allows any authenticated user full read/write access to all collections.
+     * This is intended to resolve persistent 'Missing or insufficient permissions' errors
+     * by eliminating any potential rule evaluation complexity or document lookup failures.
+     * 
+     * Deployment Version: 1.0.8 - CRITICAL RESET
      */
     match /{allPaths=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if request.auth != null && request.auth.uid != null;
     }
   }
 }
