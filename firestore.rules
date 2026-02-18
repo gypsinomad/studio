@@ -4,57 +4,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     /**
      * PRODUCTION-READY CRM SECURITY RULES
-     * Deployment Version: 1.2.0 - Explicit List/Get Split
+     * Simplified for robust evaluation of list/get operations.
+     * Version: 1.5.0 - Root Wildcard Reset
      */
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // LEADS: Allow authenticated team members to manage leads
-    match /leads/{leadId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    // USERS: Allow authenticated users to see profiles
-    match /users/{userId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    // EXPORT ORDERS: Allow authenticated team members to manage orders
-    match /exportOrders/{orderId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-      
-      // Sub-collections (line items, documents checklist)
-      match /{allSubPaths=**} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    // CORE CRM COLLECTIONS: Unified authenticated access
-    match /companies/{companyId} { allow read, write: if isSignedIn(); }
-    match /contacts/{contactId} { allow read, write: if isSignedIn(); }
-    match /tasks/{taskId} { allow read, write: if isSignedIn(); }
-    match /interactions/{interactionId} { allow read, write: if isSignedIn(); }
-    match /documents/{documentId} { allow read, write: if isSignedIn(); }
-    match /activityLogs/{logId} { allow read, write: if isSignedIn(); }
-    match /activity_logs/{logId} { allow read, write: if isSignedIn(); }
-    match /whatsappEvents/{eventId} { allow read, write: if isSignedIn(); }
-
-    // SETTINGS & USAGE: Protected
-    match /settings/{settingId} { allow read, write: if isSignedIn(); }
-    match /usageStats/{statId} { allow read, write: if isSignedIn(); }
-
-    // CATCH-ALL: Default to authenticated access for development
+    // Primary rule: Allow any authenticated user full access to core CRM collections.
+    // This resolves issues where specific matches conflict with broad collection-level queries.
     match /{allPaths=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if request.auth != null;
     }
   }
 }
