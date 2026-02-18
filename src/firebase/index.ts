@@ -13,8 +13,9 @@ function getFirebaseServices() {
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     const firestore = getFirestore(app);
 
-    // Try to enable persistence, but catch the error if it's already enabled.
-    // This is the key to preventing crashes during development hot-reloads.
+    // TEMPORARILY DISABLED: Persistence is disabled to debug 'Missing or insufficient permissions' errors.
+    // Stale local cache can sometimes cause rule evaluation failures.
+    /*
     enableIndexedDbPersistence(firestore)
       .catch((error: any) => {
         if (error.code == 'failed-precondition') {
@@ -25,6 +26,7 @@ function getFirebaseServices() {
             console.warn('Browser does not support offline persistence.');
         }
     });
+    */
 
     // Return all initialized services.
     return {
