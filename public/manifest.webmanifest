@@ -1,23 +1,23 @@
 {
   "name": "SpiceRoute CRM",
   "short_name": "SpiceRoute",
-  "description": "Premium Spice Export CRM & Logistics Management",
+  "description": "Export CRM & Logistics for Spices",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#D97706",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=192&h=192&fit=crop",
+      "src": "https://picsum.photos/seed/spice/192/192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=512&h=512&fit=crop",
+      "src": "https://picsum.photos/seed/spice/512/512",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ]
 }
