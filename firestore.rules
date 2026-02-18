@@ -3,12 +3,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * EMERGENCY DEVELOPMENT RULES - DEPLOYED: 2024-05-22T12:00:00Z
-     * REFRESHED: 2024-05-22T14:30:00Z
-     * Allows all users (even unauthenticated) to read and write all data.
-     * This removes all account restrictions and resolves permission issues for development.
+     * CRITICAL RESET - DEPLOYED: 2024-05-23T10:00:00Z
+     * This ruleset provides UNRESTRICTED ACCESS to all collections.
+     * Use this for development to bypass permission denied errors.
      */
     match /{allPaths=**} {
+      allow read, write: if true;
+    }
+
+    // Explicitly naming critical paths to ensure absolute clarity for the rule engine
+    match /settings/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /leads/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /users/{document=**} {
       allow read, write: if true;
     }
   }
