@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -35,18 +34,11 @@
           "format": "date-time"
         },
         "hasCompletedOnboarding": {
-            "type": "boolean",
-            "description": "Flag to indicate if the user has completed the initial onboarding tour."
+          "type": "boolean",
+          "description": "Flag to indicate if the user has completed the initial onboarding tour."
         }
       },
-      "required": [
-        "authUid",
-        "email",
-        "displayName",
-        "role",
-        "isActive",
-        "createdAt"
-      ]
+      "required": ["authUid", "email", "displayName", "role", "isActive", "createdAt"]
     },
     "Lead": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -105,14 +97,7 @@
         "status": {
           "type": "string",
           "description": "Status of the lead.",
-          "enum": [
-            "new",
-            "contacted",
-            "qualified",
-            "quoted",
-            "converted",
-            "lost"
-          ]
+          "enum": ["new", "contacted", "qualified", "quoted", "converted", "lost"]
         },
         "assignedUserId": {
           "type": "string",
@@ -133,9 +118,9 @@
           "description": "Timestamp of the next follow-up with the lead.",
           "format": "date-time"
         },
-         "potentialValue": {
-            "type": "number",
-            "description": "Estimated potential value of the lead in USD."
+        "potentialValue": {
+          "type": "number",
+          "description": "Estimated potential value of the lead in USD."
         },
         "metaLeadId": {
           "type": "string",
@@ -185,7 +170,16 @@
         "stage": {
           "type": "string",
           "description": "Stage of the export order.",
-          "enum": ["leadReceived", "quotationSent", "orderConfirmed", "exportDocumentation", "shipmentReady", "shippedDelivered", "cancelled", "lostNoResponse"]
+          "enum": [
+            "leadReceived",
+            "quotationSent",
+            "orderConfirmed",
+            "exportDocumentation",
+            "shipmentReady",
+            "shippedDelivered",
+            "cancelled",
+            "lostNoResponse"
+          ]
         },
         "contactId": {
           "type": "string",
@@ -225,50 +219,57 @@
           "format": "date-time"
         },
         "etd": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Estimated Time of Departure."
+          "type": "string",
+          "format": "date-time",
+          "description": "Estimated Time of Departure."
         },
         "eta": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Estimated Time of Arrival."
+          "type": "string",
+          "format": "date-time",
+          "description": "Estimated Time of Arrival."
         },
         "paymentDueDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Final date for payment completion."
+          "type": "string",
+          "format": "date-time",
+          "description": "Final date for payment completion."
         },
         "aiValidation": {
           "type": "string",
           "description": "AI validation suggestions for the export order."
         },
         "expectedShipmentDate": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The expected date of shipment."
+          "type": "string",
+          "format": "date-time",
+          "description": "The expected date of shipment."
         },
         "portOfLoading": {
-            "type": "string",
-            "description": "The port where the goods will be loaded."
+          "type": "string",
+          "description": "The port where the goods will be loaded."
         },
         "containerType": {
-            "type": "string",
-            "description": "The type of container used (e.g., '20ft', '40ft HC')."
+          "type": "string",
+          "description": "The type of container used (e.g., '20ft', '40ft HC')."
         },
         "fssaiLicenseNumber": {
-            "type": "string",
-            "description": "FSSAI license number of the exporter."
+          "type": "string",
+          "description": "FSSAI license number of the exporter."
         },
         "icegateStatus": {
-            "type": "string",
-            "description": "Status from the ICEGATE portal.",
-            "enum": ["Not Started", "Documentation Submitted", "Under Review", "Approved", "Rejected", "Clearance Completed"]
+          "type": "string",
+          "description": "Status from the ICEGATE portal.",
+          "enum": [
+            "Not Started",
+            "Documentation Submitted",
+            "Under Review",
+            "Approved",
+            "Rejected",
+            "Clearance Completed"
+          ]
         },
         "certificateRequirements": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "List of required certificates for the export."
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of required certificates for the export."
         },
         "productType": {
           "type": "string",
@@ -307,12 +308,12 @@
           "description": "Category or type of the product."
         },
         "hsCode": {
-            "type": "string",
-            "description": "Harmonized System code for the product."
+          "type": "string",
+          "description": "Harmonized System code for the product."
         },
         "unitPrice": {
-            "type": "number",
-            "description": "Price per unit (e.g., per kg)."
+          "type": "number",
+          "description": "Price per unit (e.g., per kg)."
         },
         "quantity": {
           "type": "number",
@@ -335,9 +336,17 @@
           "description": "Net weight of the produce per box in kg."
         }
       },
-      "required": ["productName", "quantity", "boxes", "grossWeightPerBox", "netWeightPerBox", "unitPrice", "hsCode"]
+      "required": [
+        "productName",
+        "quantity",
+        "boxes",
+        "grossWeightPerBox",
+        "netWeightPerBox",
+        "unitPrice",
+        "hsCode"
+      ]
     },
-     "Interaction": {
+    "Interaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Interaction",
       "type": "object",
@@ -356,20 +365,20 @@
       "required": ["type", "direction", "summary", "timestamp", "userId"]
     },
     "DocumentChecklistItem": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "DocumentChecklistItem",
-        "type": "object",
-        "description": "An item in the checklist for a specific export order's documentation requirements.",
-        "properties": {
-            "type": { "type": "string", "description": "The type of document required (e.g., 'packingList')." },
-            "required": { "type": "boolean", "description": "Whether this document is mandatory." },
-            "status": { "type": "string", "enum": ["notStarted", "inProgress", "completed"] },
-            "fileRef": { "type": "string", "description": "A reference/path to the file in Firebase Storage." },
-            "notes": { "type": "string", "description": "Any relevant notes about this document." },
-            "updatedAt": { "type": "string", "format": "date-time" },
-            "updatedBy": { "type": "string", "description": "UID of the user who last updated this item." }
-        },
-        "required": ["type", "required", "status", "updatedAt", "updatedBy"]
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DocumentChecklistItem",
+      "type": "object",
+      "description": "An item in the checklist for a specific export order's documentation requirements.",
+      "properties": {
+        "type": { "type": "string", "description": "The type of document required (e.g., 'packingList')." },
+        "required": { "type": "boolean", "description": "Whether this document is mandatory." },
+        "status": { "type": "string", "enum": ["notStarted", "inProgress", "completed"] },
+        "fileRef": { "type": "string", "description": "A reference/path to the file in Firebase Storage." },
+        "notes": { "type": "string", "description": "Any relevant notes about this document." },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string", "description": "UID of the user who last updated this item." }
+      },
+      "required": ["type", "required", "status", "updatedAt", "updatedBy"]
     },
     "Contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -407,13 +416,13 @@
           "description": "The role of the contact in the buying process (e.g., Decision Maker)."
         },
         "preferredCommunicationMethod": {
-            "type": "string",
-            "description": "The preferred method of communication.",
-            "enum": ["email", "phone", "whatsapp"]
+          "type": "string",
+          "description": "The preferred method of communication.",
+          "enum": ["email", "phone", "whatsapp"]
         },
         "companyId": {
-            "type": "string",
-            "description": "Reference to the Company this contact belongs to."
+          "type": "string",
+          "description": "Reference to the Company this contact belongs to."
         },
         "createdAt": {
           "type": "string",
@@ -429,35 +438,41 @@
           "description": "Where this contact originated from."
         }
       },
-      "required": [
-        "firstName",
-        "lastName",
-        "email",
-        "phone",
-        "createdAt"
-      ]
+      "required": ["firstName", "lastName", "email", "phone", "createdAt"]
     },
     "Company": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Company",
-        "type": "object",
-        "description": "Represents a customer company.",
-        "properties": {
-            "name": { "type": "string", "description": "Name of the customer company." },
-            "country": { "type": "string", "description": "Country where the company is located." },
-            "website": { "type": "string", "description": "Company's official website." },
-            "industryType": { "type": "string", "description": "The industry the company operates in.", "enum": ["Wholesaler", "Retailer", "Food Processor", "Restaurant Chain"] },
-            "paymentTerms": { "type": "string", "description": "Standard payment terms with this company.", "enum": ["Advance", "L/C", "D/P", "D/A", "CAD"] },
-            "relationshipStatus": { "type": "string", "description": "The status of the business relationship.", "enum": ["New", "Active", "VIP", "Inactive"] },
-            "createdAt": { "type": "string", "format": "date-time" },
-            "taxId": { "type": "string", "description": "Company's Tax ID or VAT number." },
-            "importLicense": { "type": "string", "description": "Company's Import License number." },
-            "preferredIncoterms": {
-                "type": "string",
-                "description": "The company's preferred incoterms."
-            }
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Company",
+      "type": "object",
+      "description": "Represents a customer company.",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the customer company." },
+        "country": { "type": "string", "description": "Country where the company is located." },
+        "website": { "type": "string", "description": "Company's official website." },
+        "industryType": {
+          "type": "string",
+          "description": "The industry the company operates in.",
+          "enum": ["Wholesaler", "Retailer", "Food Processor", "Restaurant Chain"]
         },
-        "required": ["name", "country", "createdAt"]
+        "paymentTerms": {
+          "type": "string",
+          "description": "Standard payment terms with this company.",
+          "enum": ["Advance", "L/C", "D/P", "D/A", "CAD"]
+        },
+        "relationshipStatus": {
+          "type": "string",
+          "description": "The status of the business relationship.",
+          "enum": ["New", "Active", "VIP", "Inactive"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "taxId": { "type": "string", "description": "Company's Tax ID or VAT number." },
+        "importLicense": { "type": "string", "description": "Company's Import License number." },
+        "preferredIncoterms": {
+          "type": "string",
+          "description": "The company's preferred incoterms."
+        }
+      },
+      "required": ["name", "country", "createdAt"]
     },
     "Task": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -501,13 +516,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "title",
-        "status",
-        "dueDate",
-        "assigneeId",
-        "createdAt"
-      ]
+      "required": ["title", "status", "dueDate", "assigneeId", "createdAt"]
     },
     "Document": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -522,7 +531,18 @@
         "type": {
           "type": "string",
           "description": "Type of document.",
-          "enum": ["proformaInvoice", "contract", "packingList", "billOfLading", "coo", "fssai", "apeda", "phytoCertificate", "shippingBill", "other"]
+          "enum": [
+            "proformaInvoice",
+            "contract",
+            "packingList",
+            "billOfLading",
+            "coo",
+            "fssai",
+            "apeda",
+            "phytoCertificate",
+            "shippingBill",
+            "other"
+          ]
         },
         "relatedLeadId": {
           "type": "string",
@@ -557,14 +577,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "name",
-        "type",
-        "fileUrl",
-        "status",
-        "uploadedBy",
-        "uploadedAt"
-      ]
+      "required": ["name", "type", "fileUrl", "status", "uploadedBy", "uploadedAt"]
     },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -594,11 +607,7 @@
           "format": "uri"
         }
       },
-      "required": [
-        "name",
-        "hsCode",
-        "basePrice"
-      ]
+      "required": ["name", "hsCode", "basePrice"]
     },
     "Note": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -628,13 +637,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "content",
-        "relatedEntityType",
-        "relatedEntityId",
-        "createdBy",
-        "createdAt"
-      ]
+      "required": ["content", "relatedEntityType", "relatedEntityId", "createdBy", "createdAt"]
     },
     "ActivityLog": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -660,12 +663,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "icon",
-        "title",
-        "description",
-        "timestamp"
-      ]
+      "required": ["icon", "title", "description", "timestamp"]
     },
     "AuditLog": {
       "title": "AuditLog",
@@ -692,32 +690,38 @@
         "totalLeads": { "type": "number" },
         "activeExportOrders": { "type": "number" },
         "leadsByStatus": {
-            "type": "object",
-            "properties": {
-                "new": { "type": "number" },
-                "contacted": { "type": "number" },
-                "qualified": { "type": "number" },
-                "quoted": { "type": "number" },
-                "converted": { "type": "number" },
-                "lost": { "type": "number" }
-            }
+          "type": "object",
+          "properties": {
+            "new": { "type": "number" },
+            "contacted": { "type": "number" },
+            "qualified": { "type": "number" },
+            "quoted": { "type": "number" },
+            "converted": { "type": "number" },
+            "lost": { "type": "number" }
+          }
         },
         "exportOrdersByStage": {
-            "type": "object",
-            "properties": {
-                "leadReceived": { "type": "number" },
-                "quotationSent": { "type": "number" },
-                "orderConfirmed": { "type": "number" },
-                "exportDocumentation": { "type": "number" },
-                "shipmentReady": { "type": "number" },
-                "shippedDelivered": { "type": "number" },
-                "cancelled": { "type": "number" },
-                "lostNoResponse": { "type": "number" }
-            }
+          "type": "object",
+          "properties": {
+            "leadReceived": { "type": "number" },
+            "quotationSent": { "type": "number" },
+            "orderConfirmed": { "type": "number" },
+            "exportDocumentation": { "type": "number" },
+            "shipmentReady": { "type": "number" },
+            "shippedDelivered": { "type": "number" },
+            "cancelled": { "type": "number" },
+            "lostNoResponse": { "type": "number" }
+          }
         },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["totalLeads", "activeExportOrders", "leadsByStatus", "exportOrdersByStage", "lastUpdatedAt"]
+      "required": [
+        "totalLeads",
+        "activeExportOrders",
+        "leadsByStatus",
+        "exportOrdersByStage",
+        "lastUpdatedAt"
+      ]
     },
     "WhatsappEvent": {
       "title": "WhatsappEvent",
@@ -751,129 +755,105 @@
         }
       },
       "required": ["rawPayload", "processedAt"]
+    },
+    "AISettings": {
+      "title": "AISettings",
+      "type": "object",
+      "properties": {
+        "aiMode": { "type": "string", "enum": ["off", "safe", "unrestricted"] },
+        "monthlyAiBudgetInr": { "type": "number" },
+        "maxDailyAiCalls": { "type": "number" }
+      },
+      "required": ["aiMode", "monthlyAiBudgetInr", "maxDailyAiCalls"]
+    },
+    "AIUsageStats": {
+      "title": "AIUsageStats",
+      "type": "object",
+      "properties": {
+        "monthKey": { "type": "string" },
+        "totalCallsMonth": { "type": "number" },
+        "estimatedSpendThisMonthInr": { "type": "number" },
+        "dailyCalls": { "type": "object" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["monthKey", "totalCallsMonth", "estimatedSpendThisMonthInr", "dailyCalls"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "google.com"
-    ]
+    "providers": ["password", "google.com"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/User" },
-          "description": "Stores user profiles for the internal team. The document ID (`userId`) MUST MATCH the Firebase Authentication UID (`authUid`)."
-        }
-      },
-      {
-        "path": "/dashboardStats/{userId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/DashboardStats" },
-          "description": "Stores pre-aggregated dashboard data for each user. The document ID is the user's UID."
-        }
-      },
-       {
-        "path": "/whatsappEvents/{eventId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/WhatsappEvent" },
-          "description": "Stores raw webhook events from WhatsApp Cloud API for debugging purposes."
-        }
-      },
-      {
-        "path": "/companies/{companyId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Company" },
-          "description": "Stores customer companies."
-        }
-      },
-      {
-        "path": "/contacts/{contactId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Contact" },
-          "description": "Stores contacts associated with buyers and partners."
-        }
-      },
-       {
-        "path": "/interactions/{interactionId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Interaction" },
-          "description": "Stores communication logs related to other entities."
-        }
-      },
-      {
-        "path": "/leads/{leadId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Lead" },
-          "description": "Stores all leads for the company."
-        }
-      },
-      {
-        "path": "/exportOrders/{exportOrderId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/ExportOrder" },
-          "description": "Stores all export orders for the company."
-        }
-      },
-      {
-        "path": "/exportOrders/{exportOrderId}/lineItems/{lineItemId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/LineItem" },
-          "description": "Stores the individual line items for an export order."
-        }
-      },
-      {
-        "path": "/exportOrders/{exportOrderId}/documentsChecklist/{docId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/DocumentChecklistItem" },
-          "description": "Stores the checklist of required documents for an export order."
-        }
-      },
-      {
-        "path": "/products/{productId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Product" },
-          "description": "Stores products offered by the company."
-        }
-      },
-      {
-        "path": "/notes/{noteId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Note" },
-          "description": "Stores notes associated with various entities."
-        }
-      },
-      {
-        "path": "/documents/{documentId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Document" },
-          "description": "Stores all documents for the company."
-        }
-      },
-      {
-        "path": "/tasks/{taskId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/Task" },
-          "description": "Stores all tasks for the team."
-        }
-      },
-      {
-        "path": "/activityLogs/{logId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/AuditLog" },
-          "description": "Stores an audit trail of all create, update, and delete operations."
-        }
-      },
-       {
-        "path": "/activity_logs/{logId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/ActivityLog" },
-          "description": "Stores a timeline of activities for the company."
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is now flat and optimized for a single company's internal use. All primary business data collections are at the root level. This simplifies queries and application logic, removing the need for multi-tenant checks. User profiles are kept in a top-level collection for authentication and role management purposes."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "Stores user profiles for the internal team."
+    },
+    "/dashboardStats/{userId}": {
+      "schema": { "$ref": "#/backend/entities/DashboardStats" },
+      "description": "Stores pre-aggregated dashboard data for each user."
+    },
+    "/whatsappEvents/{eventId}": {
+      "schema": { "$ref": "#/backend/entities/WhatsappEvent" },
+      "description": "Stores raw webhook events from WhatsApp Cloud API."
+    },
+    "/companies/{companyId}": {
+      "schema": { "$ref": "#/backend/entities/Company" },
+      "description": "Stores customer companies."
+    },
+    "/contacts/{contactId}": {
+      "schema": { "$ref": "#/backend/entities/Contact" },
+      "description": "Stores contacts associated with buyers and partners."
+    },
+    "/interactions/{interactionId}": {
+      "schema": { "$ref": "#/backend/entities/Interaction" },
+      "description": "Stores communication logs related to other entities."
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/backend/entities/Lead" },
+      "description": "Stores all leads for the company."
+    },
+    "/exportOrders/{exportOrderId}": {
+      "schema": { "$ref": "#/backend/entities/ExportOrder" },
+      "description": "Stores all export orders for the company."
+    },
+    "/exportOrders/{exportOrderId}/lineItems/{lineItemId}": {
+      "schema": { "$ref": "#/backend/entities/LineItem" },
+      "description": "Stores the individual line items for an export order."
+    },
+    "/exportOrders/{exportOrderId}/documentsChecklist/{docId}": {
+      "schema": { "$ref": "#/backend/entities/DocumentChecklistItem" },
+      "description": "Stores the checklist of required documents for an export order."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/backend/entities/Product" },
+      "description": "Stores products offered by the company."
+    },
+    "/notes/{noteId}": {
+      "schema": { "$ref": "#/backend/entities/Note" },
+      "description": "Stores notes associated with various entities."
+    },
+    "/documents/{documentId}": {
+      "schema": { "$ref": "#/backend/entities/Document" },
+      "description": "Stores all documents for the company."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/backend/entities/Task" },
+      "description": "Stores all tasks for the team."
+    },
+    "/activityLogs/{logId}": {
+      "schema": { "$ref": "#/backend/entities/AuditLog" },
+      "description": "Stores an audit trail of all create, update, and delete operations."
+    },
+    "/activity_logs/{logId}": {
+      "schema": { "$ref": "#/backend/entities/ActivityLog" },
+      "description": "Stores a timeline of activities for the company."
+    },
+    "/settings/ai": {
+      "schema": { "$ref": "#/backend/entities/AISettings" },
+      "description": "Global AI configuration settings."
+    },
+    "/usageStats/{monthKey}": {
+      "schema": { "$ref": "#/backend/entities/AIUsageStats" },
+      "description": "Tracks AI usage and costs per month."
+    }
   }
 }
