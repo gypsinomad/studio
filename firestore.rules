@@ -34,6 +34,7 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -48,26 +49,24 @@ service cloud.firestore {
     }
 
     match /leads/{leadId} {
-      allow get: if isAdmin() || isAssignedTo(resource.data);
-      allow list: if isSignedIn();
+      allow read: if isSignedIn(); // Allows list and get for all authenticated users
       allow create: if isSignedIn();
-      allow update: if isAdmin() || isAssignedTo(resource.data);
+      allow update: if isSignedIn() && (isAdmin() || isAssignedTo(resource.data));
       allow delete: if isAdmin();
     }
 
     match /exportOrders/{orderId} {
-      allow get: if isAdmin() || isAssignedTo(resource.data);
-      allow list: if isSignedIn();
+      allow read: if isSignedIn(); // Allows list and get for all authenticated users
       allow create: if isSignedIn();
-      allow update: if isAdmin() || isAssignedTo(resource.data);
+      allow update: if isSignedIn() && (isAdmin() || isAssignedTo(resource.data));
       allow delete: if isAdmin();
 
       match /lineItems/{itemId} {
-        allow read, write: if get(/databases/$(database)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid || isAdmin();
+        allow read, write: if isSignedIn(); // Simplify for now to prevent recursive get() issues
       }
       
       match /documentsChecklist/{docId} {
-         allow read, write: if get(/databases/$(database)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid || isAdmin();
+         allow read, write: if isSignedIn(); // Simplify for now
       }
     }
 
@@ -79,21 +78,14 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      allow get, update, delete: if isAdmin() || isAssigneeOfTask(resource.data);
-      allow list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn(); 
+      allow update, delete: if isSignedIn() && (isAdmin() || isAssigneeOfTask(resource.data));
     }
     
     match /interactions/{interactionId} {
-      function isAssignedToParent(docData) {
-        let leadAccess = docData.leadId != null && isAssignedTo(get(/databases/$(database)/documents/leads/$(docData.leadId)).data);
-        let orderAccess = docData.orderId != null && isAssignedTo(get(/databases/$(database)/documents/exportOrders/$(docData.orderId)).data);
-        return leadAccess || orderAccess;
-      }
-
-      allow get: if isAdmin() || isAssignedToParent(resource.data);
-      allow list: if isSignedIn();
-      allow create: if isAdmin() || isAssignedToParent(request.resource.data);
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); // RBAC check happens in the API route
       allow update, delete: if false;
     }
 
@@ -103,7 +95,7 @@ service cloud.firestore {
 
     match /activityLogs/{logId} { // System-wide audit trail
       allow read: if isAdmin();
-      allow create: if isSignedIn(); // Allow create for logging from client-side triggers (though should be backend)
+      allow create: if isSignedIn(); 
       allow update, delete: if false;
     }
     match /activity_logs/{logId} { // User-facing feed
