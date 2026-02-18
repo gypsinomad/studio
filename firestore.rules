@@ -4,18 +4,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * AUTHENTICATED ACCESS (DEVELOPMENT/DEBUG MODE)
-     * This rule allows any user signed into the application via Firebase Auth
-     * to read and write to any document in the database. 
-     * This is intended to resolve persistent 'Missing or insufficient permissions' 
-     * errors during the development of SpiceRoute CRM.
-     */
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+    // Helper function to verify the user is signed in
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
     }
 
-    // You can re-introduce more granular role-based rules below as needed,
-    // but the above catch-all will ensure the app remains functional.
+    /**
+     * LEADS COLLECTION
+     * Explicitly allowed for any authenticated user during development.
+     */
+    match /leads/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    /**
+     * USERS COLLECTION
+     * Required for the useCurrentUser hook to load the user profile.
+     */
+    match /users/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    /**
+     * GLOBAL CATCH-ALL
+     * Allows authenticated access to all other CRM collections (companies, orders, etc.)
+     * Deployment Version: 1.0.6 - Forced deployment trigger
+     */
+    match /{allPaths=**} {
+      allow read, write: if isSignedIn();
+    }
   }
 }
