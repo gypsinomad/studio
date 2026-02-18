@@ -29,10 +29,8 @@ export default function ExportOrdersPage() {
     
     const ordersCollection = collection(firestore, 'exportOrders');
 
-    if (isAdmin) {
-      return query(ordersCollection);
-    } 
-    return query(ordersCollection, where('assignedUserId', '==', user.uid));
+    // RESTRICTION REMOVED: Fetch all orders for everyone.
+    return query(ordersCollection);
   }, [firestore, userProfile, user, isAdmin]);
 
   const { data: orders, isLoading: areOrdersLoading } = useCollection<ExportOrder>(ordersQuery);

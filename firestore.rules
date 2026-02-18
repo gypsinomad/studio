@@ -3,15 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * PRODUCTION-READY CRM SECURITY RULES
-     * Simplified for robust evaluation of list/get operations.
-     * Version: 1.5.0 - Root Wildcard Reset
+     * EMERGENCY DEVELOPMENT RULES
+     * Allows all users (even unauthenticated) to read and write all data.
+     * Use this ONLY for debugging permission issues.
      */
-
-    // Primary rule: Allow any authenticated user full access to core CRM collections.
-    // This resolves issues where specific matches conflict with broad collection-level queries.
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }

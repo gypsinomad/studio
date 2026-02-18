@@ -76,13 +76,9 @@ export default function DashboardPage() {
             const leadsCollection = collection(firestore, 'leads');
             const ordersCollection = collection(firestore, 'exportOrders');
 
+            // RESTRICTION REMOVED: Fetch all leads and orders for everyone.
             let leadsQuery = query(leadsCollection);
             let ordersQuery = query(ordersCollection);
-
-            if (!isAdmin) {
-                leadsQuery = query(leadsCollection, where('assignedUserId', '==', user.uid));
-                ordersQuery = query(ordersCollection, where('assignedUserId', '==', user.uid));
-            }
             
             const [leadsSnapshot, ordersSnapshot] = await Promise.all([
                 getDocs(leadsQuery),

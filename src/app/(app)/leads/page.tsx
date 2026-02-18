@@ -34,9 +34,8 @@ export default function LeadsPage() {
     let leadsCollectionRef = collection(firestore, 'leads');
     
     const filters = [];
-    if (userProfile.role !== 'admin') {
-      filters.push(where('assignedUserId', '==', user.uid));
-    }
+    
+    // RESTRICTION REMOVED: Do not filter by assignedUserId.
     if (sourceFilter) {
       filters.push(where('source', '==', sourceFilter));
     }

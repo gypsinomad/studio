@@ -17,8 +17,6 @@ interface UseCurrentUserResult {
   canCreate: boolean;
 }
 
-const ADMIN_EMAIL = 'akhilvenugopal@gmail.com';
-
 export function useCurrentUser(): UseCurrentUserResult {
   const { user: firebaseUser, idToken, isUserLoading: authLoading } = useUser();
   const firestore = useFirestore();
@@ -39,8 +37,8 @@ export function useCurrentUser(): UseCurrentUserResult {
         setIsCreatingProfile(true);
         if (!userDocRef) return;
 
-        const isHardcodedAdmin = firebaseUser.email?.toLowerCase() === ADMIN_EMAIL;
-        const initialRole: UserRole = isHardcodedAdmin ? 'admin' : 'salesExecutive';
+        // RESTRICTION REMOVED: Everyone is an admin now.
+        const initialRole: UserRole = 'admin';
 
         const newUserProfileData: Omit<User, 'id'> = {
           authUid: firebaseUser.uid,
@@ -66,8 +64,10 @@ export function useCurrentUser(): UseCurrentUserResult {
   
   const isLoading = authLoading || profileLoading || isCreatingProfile;
   const isAuthenticated = !!firebaseUser && !isLoading;
-  const isAdmin = isAuthenticated && userProfile?.role === 'admin';
-  const role = userProfile?.role ?? null;
+  
+  // RESTRICTION REMOVED: isAdmin is always true if authenticated.
+  const isAdmin = isAuthenticated;
+  const role = userProfile?.role ?? (isAuthenticated ? 'admin' : null);
   const canCreate = isAuthenticated;
 
   return {
