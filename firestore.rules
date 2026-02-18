@@ -10,23 +10,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             getUserData().role == 'admin';
     }
     
-    function isAssignedTo(doc) {
-      return doc.assignedUserId == request.auth.uid;
-    }
-     function isAssigneeOfTask(doc) {
-      return doc.assigneeId == request.auth.uid;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAssignedTo(docData) {
+      return isSignedIn() && docData.assignedUserId == request.auth.uid;
+    }
+
+    function isAssigneeOfTask(docData) {
+      return isSignedIn() && docData.assigneeId == request.auth.uid;
+    }
 
     // --- Collection Rules ---
 
@@ -38,54 +42,54 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /settings/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /usageStats/{docId} {
-        allow read: if isAdmin();
-        allow write: if false; // Only backend functions can write usage
-    }
-
     match /leads/{leadId} {
-      allow read: if isSignedIn(); // Allows list and get for all authenticated users
+      // Allow any signed-in user to list and get leads.
+      // Business logic in the app handles filtering for non-admins.
+      allow list, get: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (isAdmin() || isAssignedTo(resource.data));
       allow delete: if isAdmin();
     }
 
     match /exportOrders/{orderId} {
-      allow read: if isSignedIn(); // Allows list and get for all authenticated users
+      allow list, get: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (isAdmin() || isAssignedTo(resource.data));
       allow delete: if isAdmin();
 
       match /lineItems/{itemId} {
-        allow read, write: if isSignedIn(); // Simplify for now to prevent recursive get() issues
+        allow read, write: if isSignedIn();
       }
       
       match /documentsChecklist/{docId} {
-         allow read, write: if isSignedIn(); // Simplify for now
+         allow read, write: if isSignedIn();
       }
     }
 
     match /companies/{companyId} {
       allow read, write: if isSignedIn();
     }
+
     match /contacts/{contactId} {
       allow read, write: if isSignedIn();
     }
 
     match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn(); 
+      allow list, get: if isSignedIn();
+      allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (isAdmin() || isAssigneeOfTask(resource.data));
     }
     
     match /interactions/{interactionId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn(); // RBAC check happens in the API route
+      // Helper to check if the user has access to the parent entity of an interaction
+      function canAccessParent(data) {
+        return (data.leadId != null && exists(/databases/$(database)/documents/leads/$(data.leadId))) ||
+               (data.orderId != null && exists(/databases/$(database)/documents/exportOrders/$(data.orderId)));
+      }
+
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow create: if isSignedIn();
       allow update, delete: if false;
     }
 
@@ -93,21 +97,30 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
-    match /activityLogs/{logId} { // System-wide audit trail
+    match /activityLogs/{logId} {
       allow read: if isAdmin();
-      allow create: if isSignedIn(); 
+      allow create: if isSignedIn();
       allow update, delete: if false;
     }
-    match /activity_logs/{logId} { // User-facing feed
+
+    match /activity_logs/{logId} {
       allow read: if isSignedIn();
-      allow write: if false; // Only backend triggers
+      allow write: if false;
     }
-    match /whatsappEvents/{eventId} {
-      allow read, write: if false; // Server-side debugging only
+
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
-     match /dashboardStats/{userId} {
-        allow read: if isOwner(userId);
-        allow write: if false;
+
+    match /usageStats/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /dashboardStats/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if false;
     }
   }
 }
