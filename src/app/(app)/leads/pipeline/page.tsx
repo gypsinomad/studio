@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,14 +38,12 @@ export default function LeadPipelinePage() {
     });
 
     const leadsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         const leadsCollectionRef = collection(firestore, 'leads');
-        const filters = [];
-        if (!isAdmin) {
-            filters.push(where('assignedUserId', '==', user.uid));
-        }
-        return query(leadsCollectionRef, ...filters, orderBy('createdAt', 'desc'));
-    }, [firestore, user, isAdmin]);
+        
+        // RESTRICTION REMOVED: Fetch all leads for everyone in the pipeline view.
+        return query(leadsCollectionRef, orderBy('createdAt', 'desc'));
+    }, [firestore]);
 
     const { data: leads, isLoading: areLeadsLoading } = useCollection<Lead>(leadsQuery);
 
@@ -58,7 +55,7 @@ export default function LeadPipelinePage() {
                 }
                 acc[lead.status].push(lead);
                 return acc;
-            }, { new: [], contacted: [], qualified: [], quoted: [], converted: [], lost: [] }); 
+            }, { new: [], contacted: [], qualified: [], quoted: [], converted: [], lost: [] } as Record<LeadStatus, Lead[]>); 
             setLeadsByStatus(grouped);
         }
     }, [leads]);
@@ -69,7 +66,7 @@ export default function LeadPipelinePage() {
         <>
             <PageHeader
                 title="Lead Pipeline"
-                description="Visualize and manage your leads through the sales process."
+                description="Visualize and manage all company leads through the sales process."
             />
             <div className="flex-1 flex overflow-x-auto space-x-4 p-1 -mx-1">
                 {KANBAN_COLUMNS.map(col => (

@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TasksTable } from './components/tasks-table';
 import { useCurrentUser } from '@/hooks/use-current-user';
@@ -26,13 +26,13 @@ export default function TasksPage() {
   const { isAuthenticated, isLoading: isUserLoading } = useCurrentUser();
 
   const tasksQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
+    // RESTRICTION REMOVED: Fetch all tasks for everyone.
     return query(
       collection(firestore, 'tasks'), 
-      where('assigneeId', '==', user.uid),
       orderBy('dueDate', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: tasks, isLoading: areTasksLoading } = useCollection(tasksQuery);
 
@@ -67,8 +67,8 @@ export default function TasksPage() {
   return (
     <>
       <PageHeader
-        title="My Tasks"
-        description="Organize your work and track important to-dos."
+        title="All Tasks"
+        description="View and manage all tasks across the company."
       >
         <Button onClick={() => setIsNewTaskOpen(true)} disabled={!isAuthenticated || isLoading}>
           <PlusCircle className="mr-2" />
@@ -91,7 +91,7 @@ export default function TasksPage() {
             <DialogHeader>
                 <DialogTitle>Create a New Task</DialogTitle>
                 <DialogDescription>
-                    This task will be assigned to you.
+                    The task will be visible to all team members.
                 </DialogDescription>
             </DialogHeader>
             <NewTaskForm onSuccess={() => setIsNewTaskOpen(false)} />
