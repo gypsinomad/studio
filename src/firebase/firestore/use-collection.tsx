@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Query,
   onSnapshot,
@@ -41,11 +42,6 @@ export interface InternalQuery extends Query<DocumentData> {
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Handles nullable references/queries.
  * 
- *
- * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
- * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
- * references
- *  
  * @template T Optional type for document data. Defaults to any.
  * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
  * The Firestore CollectionReference or Query. Waits if null/undefined.
@@ -60,6 +56,9 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  
+  // Use a ref to track the last failed query to prevent assertion spam in SDK
+  const lastFailedQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -69,10 +68,19 @@ export function useCollection<T = any>(
       return;
     }
 
+    const currentQueryId = memoizedTargetRefOrQuery.type === 'collection'
+      ? (memoizedTargetRefOrQuery as CollectionReference).path
+      : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+
+    // Skip if this specific query has already failed to avoid infinite SDK assertion loops
+    if (lastFailedQueryRef.current === currentQueryId) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
-    // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -83,9 +91,9 @@ export function useCollection<T = any>(
         setData(results);
         setError(null);
         setIsLoading(false);
+        lastFailedQueryRef.current = null; // Clear failure on success
       },
-      (error: FirestoreError) => {
-        // This logic extracts the path from either a ref or a query
+      (firestoreError: FirestoreError) => {
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
@@ -96,6 +104,9 @@ export function useCollection<T = any>(
           path,
         })
 
+        // Mark as failed to prevent the SDK from getting stuck in an error loop
+        lastFailedQueryRef.current = path;
+        
         setError(contextualError)
         setData(null)
         setIsLoading(false)
@@ -106,9 +117,11 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, [memoizedTargetRefOrQuery]);
+
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
+    throw new Error('Firestore query/reference was not properly memoized using useMemoFirebase. This causes infinite render loops.');
   }
+  
   return { data, isLoading, error };
 }
