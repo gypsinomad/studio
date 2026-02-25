@@ -10,20 +10,20 @@ interface StatsCardsProps {
 
 function StatCard({ title, value, icon: Icon, description, isLoading }: { title: string, value: string | number, icon: React.ElementType, description: string, isLoading: boolean }) {
     if (isLoading) {
-        return <Skeleton className="h-40 w-full" />
+        return <Skeleton className="h-40 w-full rounded-2xl" />
     }
     
     return (
-        <div className="group relative overflow-hidden rounded-2xl bg-white border border-stone-200 p-6 hover:shadow-xl hover:border-spice-200 transition-all duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-spice-500 to-spice-600" />
+        <div className="group relative overflow-hidden rounded-2xl bg-white border border-stone-200 p-6 shadow-sm hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-spice-500 to-spice-600" />
             <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-spice-50 to-spice-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-spice-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Icon className="w-6 h-6 text-spice-600" />
                 </div>
             </div>
-            <h3 className="text-sm font-medium text-stone-600 mb-1">{title}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">{title}</h3>
             <p className="text-4xl font-headline font-bold text-stone-900">{value}</p>
-            <p className="text-xs text-stone-500 mt-2">{description}</p>
+            <p className="text-xs text-stone-500 mt-2 font-medium">{description}</p>
         </div>
     )
 }

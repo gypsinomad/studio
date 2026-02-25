@@ -51,24 +51,25 @@ export function AppHeader() {
     }
     
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <PWAInstallButton />
         {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
+        <div className="h-8 w-[1px] bg-stone-200 hidden sm:block" />
         <UserNav user={mergedUser} />
       </div>
     );
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-stone-200">
-      <div className="px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-stone-200/60 shadow-sm">
+      <div className="px-4 sm:px-8 flex h-20 items-center justify-between">
         <div className="flex items-center gap-4">
             <div className="md:hidden">
                 <SidebarTrigger />
             </div>
-            <div>
-                 <h2 className="text-xl font-headline font-semibold text-stone-900">SpiceRoute</h2>
-                 <p className="text-sm text-stone-500 hidden sm:block">Export CRM & Logistics</p>
+            <div className="hidden sm:block">
+                 <h2 className="text-xl font-headline font-bold text-stone-900 leading-tight">SpiceRoute</h2>
+                 <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">Global Mercantile</p>
             </div>
         </div>
         <div className="ml-auto">

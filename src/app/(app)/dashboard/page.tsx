@@ -65,7 +65,6 @@ export default function DashboardPage() {
             const leadsCollection = collection(firestore, 'leads');
             const ordersCollection = collection(firestore, 'exportOrders');
 
-            // RESTRICTION REMOVED: Fetch all leads and orders for everyone.
             let leadsQuery = query(leadsCollection);
             let ordersQuery = query(ordersCollection);
             
@@ -129,25 +128,25 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        description="Welcome back! Here's a snapshot of your business."
+        title="Global Dashboard"
+        description="Monitor your mercantile empire with real-time analytics and trade metrics."
       />
 
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <StatsCards 
             isLoading={isLoading}
             totalLeads={dashboardData?.totalLeads} 
             activeExportOrders={dashboardData?.activeExportOrders} 
         />
         
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-8 md:grid-cols-2">
            {error ? (
-             <Card className="md:col-span-2">
+             <Card className="md:col-span-2 border-destructive/20 bg-destructive/5">
                 <CardHeader>
-                    <CardTitle className="text-destructive">Dashboard Data Not Available</CardTitle>
+                    <CardTitle className="text-destructive">System Error</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">Could not load your dashboard statistics due to an error: {error}</p>
+                    <p className="text-muted-foreground font-medium">Could not load statistics: {error}</p>
                 </CardContent>
              </Card>
            ) : (
@@ -159,8 +158,8 @@ export default function DashboardPage() {
                 </>
               ) : (
                 <>
-                  <Skeleton className="h-[400px] w-full" />
-                  <Skeleton className="h-[400px] w-full" />
+                  <Skeleton className="h-[400px] w-full rounded-2xl" />
+                  <Skeleton className="h-[400px] w-full rounded-2xl" />
                 </>
               )}
             </>
