@@ -1,11 +1,11 @@
 {
   "name": "SpiceRoute CRM",
   "short_name": "SpiceRoute",
-  "description": "A CRM for spice export businesses.",
-  "start_url": "/",
+  "description": "Logistics & CRM for Calicut Spice Traders",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#D97706",
+  "theme_color": "#10B981",
   "icons": [
     {
       "src": "https://picsum.photos/seed/spice/192/192",

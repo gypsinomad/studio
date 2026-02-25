@@ -24,18 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${playfair.variable} h-full`}>
       <head>
         <title>SpiceRoute CRM</title>
         <meta name="description" content="A CRM for spice export businesses." />
-        <meta name="theme-color" content="#D97706" />
+        <meta name="theme-color" content="#10B981" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="SpiceRoute" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="https://picsum.photos/seed/spice/180/180" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased bg-stone-50 h-full overflow-hidden">
         <FirebaseClientProvider>
             {children}
             <Toaster />

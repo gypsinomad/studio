@@ -20,7 +20,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isUserLoading || !user) {
     return (
-      <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -35,9 +35,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Sidebar collapsible="icon" className="bg-white/80 backdrop-blur-xl border-r border-stone-200">
           <AppSidebar />
         </Sidebar>
-        <SidebarInset>
+        <SidebarInset className="flex flex-col h-screen overflow-hidden">
           <AppHeader />
-          <main className="p-4 lg:p-8 overflow-y-auto animate-in fade-in duration-500">
+          <main className="flex-1 overflow-y-auto p-4 lg:p-8 animate-in fade-in duration-500">
             <AuthGuard>
                 <ErrorBoundary>
                     {children}

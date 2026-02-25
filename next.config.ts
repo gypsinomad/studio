@@ -5,11 +5,10 @@ const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: false, // Enabled in development so the install button appears
+  disable: false, // Force enable for debugging the install button
 })
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
