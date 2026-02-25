@@ -15,9 +15,21 @@ import {
   Calculator,
   CreditCard,
   Building2,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
+  {
+    title: 'My Day',
+    href: '/my-day',
+    icon: Sparkles,
+  },
+  {
+    title: 'Workspace',
+    href: '/chat',
+    icon: MessageSquare,
+  },
   {
     title: 'Dashboard',
     href: '/dashboard',
@@ -78,11 +90,6 @@ export const NAV_ITEMS = [
     icon: History,
   },
   {
-    title: 'Reports',
-    href: '/reports',
-    icon: BarChart3,
-  },
-  {
     title: 'Settings',
     icon: Settings,
     isGroup: true,
@@ -115,24 +122,4 @@ export const DEFAULT_DOCUMENT_CHECKLIST = [
   { type: 'phytoCertificate', required: false, status: 'notStarted' },
   { type: 'insuranceCertificate', required: false, status: 'notStarted' },
   { type: 'shippingBill', required: true, status: 'notStarted' },
-];
-
-export const CATEGORIES = ["Whole Spices", "Ground Spices", "Rice & Grains", "Sweeteners", "Organic Vegetables"];
-export const SUBCATEGORIES: Record<string, string[]> = {
-  "Whole Spices": ["Pepper", "Cardamom", "Cloves", "Cinnamon"],
-  "Ground Spices": ["Turmeric Powder", "Chili Powder", "Ginger Powder"],
-  "Rice & Grains": ["Basmati Rice", "Ponni Rice", "GI Rice"],
-  "Sweeteners": ["Jaggery", "Honey", "Sugar"],
-  "Organic Vegetables": ["Ginger", "Turmeric", "Onion"]
-};
-
-export const HSN_CODES = [
-  { code: '0904', label: 'Pepper' },
-  { code: '0908', label: 'Cardamom' },
-  { code: '0910', label: 'Turmeric/Ginger/Spices' },
-  { code: '0901', label: 'Coffee' },
-  { code: '0902', label: 'Tea' },
-  { code: '1006', label: 'Rice' },
-  { code: '1701', label: 'Jaggery/Sugar' },
-  { code: '0409', label: 'Honey' },
 ];

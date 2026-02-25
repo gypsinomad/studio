@@ -10,42 +10,63 @@
         "displayName": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "salesExecutive", "viewer"] },
         "isActive": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "avatarUrl": { "type": "string" }
       }
     },
-    "Lead": {
-      "title": "Lead",
-      "type": "object",
-      "properties": {
-        "fullName": { "type": "string" },
-        "companyName": { "type": "string" },
-        "email": { "type": "string" },
-        "phone": { "type": "string" },
-        "status": { "type": "string" },
-        "source": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "ExportOrder": {
-      "title": "ExportOrder",
+    "Conversation": {
+      "title": "Conversation",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "stage": { "type": "string" },
-        "totalValue": { "type": "number" },
-        "destinationCountry": { "type": "string" },
+        "type": { "type": "string", "enum": ["channel", "shipment", "customer", "direct"] },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "linkedId": { "type": "string", "description": "ID of related shipment or customer" },
+        "lastMessage": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "properties": {
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "attachments": { "type": "array" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "isSystem": { "type": "boolean" },
+        "taskId": { "type": "string" },
+        "meetingId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "AIUsageStats": {
-      "title": "AIUsageStats",
+    "Meeting": {
+      "title": "Meeting",
       "type": "object",
       "properties": {
-        "monthKey": { "type": "string" },
-        "totalCallsMonth": { "type": "number" },
-        "estimatedSpendThisMonthInr": { "type": "number" },
-        "dailyCalls": { "type": "object" },
-        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "organizerId": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "startAt": { "type": "string", "format": "date-time" },
+        "endAt": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "relatedId": { "type": "string" },
+        "readAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -57,33 +78,33 @@
       "schema": { "$ref": "#/backend/entities/User" },
       "description": "User profiles"
     },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/backend/entities/Conversation" },
+      "description": "Chat conversations"
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/backend/entities/Message" },
+      "description": "Chat messages"
+    },
+    "/meetings/{meetingId}": {
+      "schema": { "$ref": "#/backend/entities/Meeting" },
+      "description": "Scheduled meetings"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/backend/entities/Notification" },
+      "description": "User notifications"
+    },
     "/leads/{leadId}": {
-      "schema": { "$ref": "#/backend/entities/Lead" },
+      "schema": { "type": "object" },
       "description": "Sales leads"
     },
     "/exportOrders/{orderId}": {
-      "schema": { "$ref": "#/backend/entities/ExportOrder" },
-      "description": "Export orders"
-    },
-    "/activity_logs/{logId}": {
       "schema": { "type": "object" },
-      "description": "Activity audit logs"
+      "description": "Export orders"
     },
     "/tasks/{taskId}": {
       "schema": { "type": "object" },
       "description": "Tasks"
-    },
-    "/settings/ai": {
-      "schema": { "type": "object" },
-      "description": "AI configuration"
-    },
-    "/usageStats/{monthId}": {
-      "schema": { "$ref": "#/backend/entities/AIUsageStats" },
-      "description": "Monthly AI usage tracking"
-    },
-    "/whatsappEvents/{eventId}": {
-      "schema": { "type": "object" },
-      "description": "Incoming WhatsApp webhook events"
     }
   }
 }
