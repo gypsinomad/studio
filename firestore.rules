@@ -3,31 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * CRITICAL RESET - DEPLOYED: 2024-05-23T11:30:00Z
-     * This ruleset provides UNRESTRICTED ACCESS to all collections.
-     * Use this for development to bypass permission denied errors.
+     * GLOBAL UNRESTRICTED ACCESS
+     * Permitting all reads and writes to resolve persistent permission errors.
      */
     match /{allPaths=**} {
       allow read, write: if true;
     }
-
-    // Explicitly naming every collection to ensure absolute clarity for the rule engine
-    // and prevent any shadowing issues during list/get operations.
-    match /users/{document=**} { allow read, write: if true; }
-    match /leads/{document=**} { allow read, write: if true; }
-    match /tasks/{document=**} { allow read, write: if true; }
-    match /activity_logs/{document=**} { allow read, write: if true; }
-    match /activityLogs/{document=**} { allow read, write: if true; }
-    match /exportOrders/{document=**} { allow read, write: if true; }
-    match /companies/{document=**} { allow read, write: if true; }
-    match /contacts/{document=**} { allow read, write: if true; }
-    match /interactions/{document=**} { allow read, write: if true; }
-    match /documents/{document=**} { allow read, write: if true; }
-    match /products/{document=**} { allow read, write: if true; }
-    match /notes/{document=**} { allow read, write: if true; }
-    match /settings/{document=**} { allow read, write: if true; }
-    match /usageStats/{document=**} { allow read, write: if true; }
-    match /dashboardStats/{document=**} { allow read, write: if true; }
-    match /whatsappEvents/{document=**} { allow read, write: if true; }
   }
 }

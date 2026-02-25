@@ -52,11 +52,11 @@ export function AppSidebar() {
         {visibleNavItems.map(item => {
           if (item.isGroup) {
             return (
-              <Collapsible key={item.title} defaultOpen className="group/collapsible">
+              <Collapsible key={item.title} defaultOpen className="group/collapsible mb-2">
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={item.title} className="text-sidebar-foreground hover:bg-sidebar-accent">
-                      <item.icon />
+                    <SidebarMenuButton tooltip={item.title} className="text-sidebar-foreground hover:bg-sidebar-accent font-bold">
+                      <item.icon className="size-5" />
                       <span>{item.title}</span>
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
@@ -68,7 +68,7 @@ export function AppSidebar() {
                           <Link href={subItem.href} passHref>
                             <SidebarMenuButton
                               isActive={pathname === subItem.href}
-                              className="text-sidebar-foreground/80 hover:bg-sidebar-accent h-8"
+                              className="text-sidebar-foreground/80 hover:bg-sidebar-accent h-9 rounded-lg"
                             >
                               <subItem.icon className="size-4" />
                               <span>{subItem.title}</span>
@@ -84,14 +84,14 @@ export function AppSidebar() {
           }
 
           return (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.href} className="mb-1">
               <Link href={item.href!} passHref>
                 <SidebarMenuButton
                   isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href!))}
                   tooltip={item.title}
-                  className="text-sidebar-foreground hover:bg-sidebar-accent data-[active=true]:bg-accent data-[active=true]:text-white"
+                  className="text-sidebar-foreground hover:bg-sidebar-accent data-[active=true]:bg-accent data-[active=true]:text-white h-10 rounded-xl"
                 >
-                  <item.icon />
+                  <item.icon className="size-5" />
                   <span>{item.title}</span>
                 </SidebarMenuButton>
               </Link>
