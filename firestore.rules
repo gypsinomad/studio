@@ -30,11 +30,13 @@ service cloud.firestore {
       allow create: if isSignedIn();
       
       // 2. Read/Delete: Recipient or Admin only
-      // Split read into get and list for better rule clarity
       allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Explicit list permission to help the query optimizer
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // EXPLICIT LIST PERMISSION FOR QUERY OPTIMIZATION
+      // We must separate the static check (userId == uid) from the dynamic one (isAdmin).
+      // This allows the Firestore query engine to prove the query is safe for non-admins.
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isAdmin();
       
       // 3. Update: Read-receipts allowed, but recipient ID is immutable
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && 
@@ -43,7 +45,12 @@ service cloud.firestore {
 
     match /reminders/{reminderId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, delete: if isOwner(resource.data) || isAdmin();
+      allow get, delete: if isOwner(resource.data) || isAdmin();
+      
+      // Explicit list proof
+      allow list: if isOwner(resource.data);
+      allow list: if isAdmin();
+      
       allow update: if (isOwner(resource.data) || isAdmin()) && 
                     request.resource.data.userId == resource.data.userId;
     }
