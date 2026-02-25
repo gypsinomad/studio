@@ -42,20 +42,20 @@
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": { "$ref": "#/entities/User" },
+      "schema": { "$ref": "#/backend/entities/User" },
       "description": "User profiles"
     },
     "/leads/{leadId}": {
-      "schema": { "$ref": "#/entities/Lead" },
+      "schema": { "$ref": "#/backend/entities/Lead" },
       "description": "Sales leads"
     },
     "/exportOrders/{orderId}": {
-      "schema": { "$ref": "#/entities/ExportOrder" },
+      "schema": { "$ref": "#/backend/entities/ExportOrder" },
       "description": "Export orders"
     },
     "/activity_logs/{logId}": {
       "schema": { "type": "object" },
-      "description": "Activity logs"
+      "description": "Activity audit logs"
     },
     "/tasks/{taskId}": {
       "schema": { "type": "object" },

@@ -31,7 +31,6 @@ export async function logActivity(
     };
 
     if (before) {
-        // Sanitize data - Firestore doesn't like Timestamps in nested objects sometimes
         logData.before = JSON.parse(JSON.stringify(before, (key, value) => {
             if (value && typeof value === 'object' && value.hasOwnProperty('seconds')) {
                 return new Date(value.seconds * 1000).toISOString();
@@ -48,7 +47,8 @@ export async function logActivity(
         }));
     }
 
-    await addDoc(collection(firestore, 'activityLogs'), logData);
+    // Standardized to activity_logs
+    await addDoc(collection(firestore, 'activity_logs'), logData);
   } catch (error) {
     console.error('Failed to write to activity log:', error);
   }

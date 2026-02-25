@@ -2,9 +2,7 @@
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
-import { Inter } from 'next/font/google';
-import { Playfair_Display } from 'next/font/google';
-
+import { Inter, Playfair_Display } from 'next/font/google';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -16,7 +14,6 @@ const playfair = Playfair_Display({
   weight: ['400', '700'],
   variable: '--font-playfair',
 });
-
 
 export default function RootLayout({
   children,
@@ -35,7 +32,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="https://picsum.photos/seed/spice/180/180" />
       </head>
-      <body className="font-body antialiased bg-background h-full overflow-hidden">
+      <body className="font-body antialiased bg-background h-full overflow-hidden" suppressHydrationWarning>
         <FirebaseClientProvider>
             {children}
             <Toaster />

@@ -26,18 +26,18 @@ const actionColors: Record<string, string> = {
 function ActivityLogTable({ data, isLoading }: { data: AuditLog[] | null, isLoading: boolean }) {
    if (isLoading) {
     return (
-        <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+        <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
         </div>
     );
    }
 
    if (!data || data.length === 0) {
-    return <p className="text-muted-foreground">No activity has been logged yet.</p>;
+    return <p className="text-muted-foreground py-8 text-center">No activity has been logged yet.</p>;
   }
   
   const toDate = (timestamp: any): Date => {
@@ -48,7 +48,7 @@ function ActivityLogTable({ data, isLoading }: { data: AuditLog[] | null, isLoad
   }
 
   return (
-    <div className="border rounded-lg">
+    <div className="border rounded-2xl overflow-hidden bg-white shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -62,15 +62,15 @@ function ActivityLogTable({ data, isLoading }: { data: AuditLog[] | null, isLoad
         <TableBody>
           {data.map((log) => (
             <TableRow key={log.id}>
-                <TableCell>{format(toDate(log.timestamp), 'PPp')}</TableCell>
-                <TableCell>{log.userEmail}</TableCell>
+                <TableCell className="text-stone-600">{format(toDate(log.timestamp), 'PPp')}</TableCell>
+                <TableCell className="font-medium text-stone-900">{log.userEmail}</TableCell>
                 <TableCell>
                     <Badge variant="outline" className={actionColors[log.action]}>
                         {log.action}
                     </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-xs">{log.collectionName}</TableCell>
-                <TableCell className="font-mono text-xs">{log.docId}</TableCell>
+                <TableCell className="font-mono text-xs text-stone-500">{log.collectionName}</TableCell>
+                <TableCell className="font-mono text-xs text-stone-400">{log.docId}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -86,7 +86,8 @@ export default function ActivityLogPage() {
 
   const logsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc'), limit(50));
+    // Standardized to activity_logs
+    return query(collection(firestore, 'activity_logs'), orderBy('timestamp', 'desc'), limit(50));
   }, [firestore]);
 
   const { data: logs, isLoading: areLogsLoading } = useCollection<AuditLog>(logsQuery);
@@ -96,13 +97,13 @@ export default function ActivityLogPage() {
   return (
     <>
       <PageHeader
-        title="Activity Log"
-        description="A record of all create, update, and delete actions in the CRM."
+        title="System Activity Log"
+        description="A complete audit trail of all transactions and data changes in your mercantile empire."
       />
-      <Card>
+      <Card className="border-none shadow-xl">
         <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-            <CardDescription>Showing the last 50 events.</CardDescription>
+            <CardTitle>Recent Events</CardTitle>
+            <CardDescription>Showing the last 50 data mutations across the CRM.</CardDescription>
         </CardHeader>
         <CardContent>
             <ActivityLogTable data={logs} isLoading={isLoading} />
