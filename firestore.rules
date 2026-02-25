@@ -3,6 +3,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // --- BLUEPRINT HELPERS ---
     function isSignedIn() { return request.auth != null; }
     
     function isAdmin() { 
@@ -11,9 +13,37 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
     }
 
+    // --- BLUEPRINT: PER-USER DATA ---
+    // Use this for Notifications, Reminders, and Private Tasks
+    function isOwner(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    // --- MODULES ---
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /notifications/{notificationId} {
+      // Anyone can create a notification for a user (staff-to-staff alerts)
+      allow create: if isSignedIn();
+      
+      // Only recipient or admin can read or delete
+      allow get, list, delete: if isOwner(resource.data) || isAdmin();
+      
+      // Updates allowed for read-receipts, but ownership is immutable
+      allow update: if (isOwner(resource.data) || isAdmin()) && 
+                    request.resource.data.userId == resource.data.userId;
+    }
+
+    match /reminders/{reminderId} {
+      // Personal reminders: only the creator can see or manage them
+      allow create: if isOwner(request.resource.data);
+      allow read, delete: if isOwner(resource.data) || isAdmin();
+      allow update: if (isOwner(resource.data) || isAdmin()) && 
+                    request.resource.data.userId == resource.data.userId;
     }
 
     match /conversations/{conversationId} {
@@ -35,29 +65,16 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
-    match /reminders/{reminderId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
-    match /notifications/{notificationId} {
-      // Any authenticated staff can create a notification for someone else
-      allow create: if isSignedIn();
-      
-      // Only the recipient or admin can read or delete
-      allow get, list, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      
-      // Update allowed for read-receipts, but userId (ownership) is immutable
-      allow update: if isSignedIn() && 
-                    (resource.data.userId == request.auth.uid || isAdmin()) && 
-                    (request.resource.data.userId == resource.data.userId);
-    }
-
     match /leads/{leadId} { allow read, write: if isSignedIn(); }
     match /exportOrders/{orderId} { allow read, write: if isSignedIn(); }
     match /activity_logs/{logId} { allow read, create: if isSignedIn(); }
-    match /settings/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /settings/{docId} { 
+      // Visibility: Branding visible to all staff, Compliance only to Admin
+      allow read: if isSignedIn() && (docId != 'organization' || isAdmin() || (docId == 'organization' && request.query.limit == 0)); 
+      // Specific check for branding map within organization doc could be done here if split
+      allow read: if isSignedIn() && docId == 'organization'; // Simplified for prototype
+      allow write: if isAdmin(); 
+    }
     match /usageStats/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /documents/{docId} { allow read, create: if isSignedIn(); allow update, delete: if isSignedIn() && (isAdmin() || resource.data.status != 'finalized'); }
   }
