@@ -32,14 +32,14 @@ service cloud.firestore {
     }
 
     match /reminders/{reminderId} {
-      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn();
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /notifications/{notificationId} {
-      // Fix: Use resource == null to handle non-existent docs in listing/creation
-      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn();
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn(); // Allow system or staff to notify users
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 

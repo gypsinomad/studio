@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, Timestamp, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +75,12 @@ export default function TeamCalendarPage() {
 
   const remindersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'reminders'), limit(50));
+    // CRITICAL: Filter by userId to match Firestore Security Rules
+    return query(
+      collection(firestore, 'reminders'), 
+      where('userId', '==', user.uid),
+      limit(50)
+    );
   }, [firestore, user]);
 
   const { data: meetings } = useCollection<Meeting>(meetingsQuery);
