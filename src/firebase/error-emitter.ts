@@ -1,5 +1,6 @@
 'use client';
 import { FirestorePermissionError } from '@/firebase/errors';
+import type { DebugLog, AITrace } from '@/lib/types';
 
 /**
  * Defines the shape of all possible events and their corresponding payload types.
@@ -7,6 +8,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
  */
 export interface AppEvents {
   'permission-error': FirestorePermissionError;
+  'debug-log': DebugLog;
+  'ai-trace': AITrace;
 }
 
 // A generic type for a callback function.
@@ -18,15 +21,9 @@ type Callback<T> = (data: T) => void;
  */
 function createEventEmitter<T extends Record<string, any>>() {
   // The events object stores arrays of callbacks, keyed by event name.
-  // The types ensure that a callback for a specific event matches its payload type.
   const events: { [K in keyof T]?: Array<Callback<T[K]>> } = {};
 
   return {
-    /**
-     * Subscribe to an event.
-     * @param eventName The name of the event to subscribe to.
-     * @param callback The function to call when the event is emitted.
-     */
     on<K extends keyof T>(eventName: K, callback: Callback<T[K]>) {
       if (!events[eventName]) {
         events[eventName] = [];
@@ -34,11 +31,6 @@ function createEventEmitter<T extends Record<string, any>>() {
       events[eventName]?.push(callback);
     },
 
-    /**
-     * Unsubscribe from an event.
-     * @param eventName The name of the event to unsubscribe from.
-     * @param callback The specific callback to remove.
-     */
     off<K extends keyof T>(eventName: K, callback: Callback<T[K]>) {
       if (!events[eventName]) {
         return;
@@ -46,11 +38,6 @@ function createEventEmitter<T extends Record<string, any>>() {
       events[eventName] = events[eventName]?.filter(cb => cb !== callback);
     },
 
-    /**
-     * Publish an event to all subscribers.
-     * @param eventName The name of the event to emit.
-     * @param data The data payload that corresponds to the event's type.
-     */
     emit<K extends keyof T>(eventName: K, data: T[K]) {
       if (!events[eventName]) {
         return;

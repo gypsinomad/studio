@@ -225,3 +225,25 @@ export interface ActivityLog {
   description: string;
   timestamp: any;
 }
+
+// Debug Suite Types
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+export interface DebugLog {
+  id: string;
+  level: LogLevel;
+  module: string;
+  message: string;
+  data?: any;
+  timestamp: Date;
+}
+
+export interface AITrace {
+  id: string;
+  flowName: string;
+  status: 'started' | 'completed' | 'failed';
+  input?: any;
+  output?: any;
+  error?: string;
+  timestamp: Date;
+}

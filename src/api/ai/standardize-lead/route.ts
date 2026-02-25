@@ -91,6 +91,18 @@ export async function POST(request: Request) {
         updateData.score = score;
         updateData.priority = priority;
 
+        // Log the standardization event for debugging
+        await adminDb.collection('activity_logs').add({
+            userId: 'SYSTEM_AI',
+            userEmail: 'ai-engine@spiceroute.crm',
+            action: 'update',
+            collectionName: 'leads',
+            docId: leadId,
+            timestamp: FieldValue.serverTimestamp(),
+            details: `AI Standardized lead ${leadId}. Score: ${score}, Priority: ${priority}`,
+            aiReason: result.aiReason
+        });
+
         await leadRef.update(updateData);
 
         return NextResponse.json({ success: true, leadId, message: "Lead standardized and scored." });
