@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { debugLogger } from '@/lib/debug-logger';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -40,12 +41,7 @@ export interface InternalQuery extends Query<DocumentData> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * Handles nullable references/queries.
- * 
- * @template T Optional type for document data. Defaults to any.
- * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
- * The Firestore CollectionReference or Query. Waits if null/undefined.
- * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
+ * Handles nullable references/queries and prevents assertion failures on permission errors.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -57,7 +53,7 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   
-  // Use a ref to track the last failed query to prevent assertion spam in SDK
+  // Track the query ID to prevent retry loops on terminal (permission) errors
   const lastFailedQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -72,14 +68,16 @@ export function useCollection<T = any>(
       ? (memoizedTargetRefOrQuery as CollectionReference).path
       : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
 
-    // Skip if this specific query has already failed to avoid infinite SDK assertion loops
+    // Skip if this specific query instance already failed terminal security check
     if (lastFailedQueryRef.current === currentQueryId) {
+      debugLogger.log('FIRESTORE', `Skipping blocked query listener: ${currentQueryId}`, 'warn');
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    debugLogger.log('FIRESTORE', `Starting listener: ${currentQueryId}`, 'debug');
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
@@ -91,7 +89,7 @@ export function useCollection<T = any>(
         setData(results);
         setError(null);
         setIsLoading(false);
-        lastFailedQueryRef.current = null; // Clear failure on success
+        lastFailedQueryRef.current = null; // Clear blockage on success
       },
       (firestoreError: FirestoreError) => {
         const path: string =
@@ -99,24 +97,29 @@ export function useCollection<T = any>(
             ? (memoizedTargetRefOrQuery as CollectionReference).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
 
+        // Terminal error handling: block further subscription attempts for this component mount
+        lastFailedQueryRef.current = path;
+        
         const contextualError = new FirestorePermissionError({
           operation: 'list',
           path,
-        })
+        });
 
-        // Mark as failed to prevent the SDK from getting stuck in an error loop
-        lastFailedQueryRef.current = path;
+        debugLogger.log('FIRESTORE', `Terminal listener failure: ${path}`, 'error', firestoreError);
         
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
 
-        // trigger global error propagation
+        // Notify global listeners (Debug Monitor)
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      debugLogger.log('FIRESTORE', `Stopping listener: ${currentQueryId}`, 'debug');
+      unsubscribe();
+    };
   }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
