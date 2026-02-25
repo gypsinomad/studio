@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +12,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { DocumentChecklistItem, DocumentChecklistStatus, Document as DocumentData } from '@/lib/types';
-import { Upload, Link as LinkIcon, LoaderCircle, Eye, FileWarning } from 'lucide-react';
+import { Upload, Link as LinkIcon, LoaderCircle, Eye, FileWarning, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DOCUMENT_TYPES } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
@@ -101,6 +100,24 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
   const handleStatusChange = (itemId: string, status: DocumentChecklistStatus) => {
     updateChecklistItem(itemId, { status });
   };
+
+  const handleFinalizeDocument = async (item: DocumentChecklistItem) => {
+    if (!item.fileRef || !firestore) return;
+    
+    try {
+      // Update the document metadata to 'finalized'
+      await updateDoc(doc(firestore, 'documents', item.fileRef), {
+        status: 'finalized',
+        finalizedAt: serverTimestamp(),
+        finalizedBy: user?.uid
+      });
+      
+      toast({ title: 'Document Confirmed', description: 'This document is now marked as finalized.' });
+      fetchChecklist(); // Refresh to update UI
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not finalize document.' });
+    }
+  }
   
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, item: DocumentChecklistItem) => {
     const file = event.target.files?.[0];
@@ -170,7 +187,6 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
     }
 
     if (item.fileRef && firestore) {
-        toast({ title: "Resolving Link", description: "Fetching document secure URL..." });
         try {
             const docSnap = await getDoc(doc(firestore, 'documents', item.fileRef));
             if (docSnap.exists()) {
@@ -225,7 +241,10 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
           {checklist.map((item) => (
             <TableRow key={item.id} className="group transition-colors">
               <TableCell className="font-medium text-stone-900">
-                  {getDocumentLabel(item.type)}
+                  <div className="flex items-center gap-2">
+                    {getDocumentLabel(item.type)}
+                    {item.status === 'completed' && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+                  </div>
                   {item.mimeType && (
                       <span className="ml-2 text-[10px] uppercase font-bold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
                           {item.mimeType.split('/')[1] || 'FILE'}
@@ -258,7 +277,7 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
                 <div className="flex items-center justify-end gap-2">
                     {uploadingItemId === item.id ? (
                         <div className="flex flex-col items-end gap-1 w-24">
-                            <span className="text-[10px] font-bold text-spice-600 animate-pulse">
+                            <span className="text-[10px] font-bold text-primary animate-pulse">
                                 {Math.round(uploadProgress)}%
                             </span>
                             <Progress value={uploadProgress} className="h-1.5 w-full" />
@@ -281,9 +300,14 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
                             </Button>
                             
                             {item.status === 'completed' && (
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-lg" onClick={() => handleViewFile(item)}>
-                                    <Eye className="h-4 w-4 text-spice-600" />
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="ghost" title="View PDF" className="h-8 w-8 p-0 rounded-lg" onClick={() => handleViewFile(item)}>
+                                      <Eye className="h-4 w-4 text-primary" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" title="Mark as Finalized" className="h-8 w-8 p-0 rounded-lg text-emerald-600" onClick={() => handleFinalizeDocument(item)}>
+                                      <FileCheck className="h-4 w-4" />
+                                  </Button>
+                                </>
                             )}
                         </>
                     )}

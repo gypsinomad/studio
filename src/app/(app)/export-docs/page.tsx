@@ -3,7 +3,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calculator, FileText, Box, ArrowRight, TrendingUp, AlertCircle, ExternalLink, Eye } from 'lucide-react';
+import { PlusCircle, Calculator, FileText, Box, ArrowRight, TrendingUp, AlertCircle, ExternalLink, Eye, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,7 +28,7 @@ const pendingPayments = [
 
 function RecentInvoices() {
     const firestore = useFirestore();
-    const INVOICE_TYPES = ["proformaInvoice", "commercialInvoice", "shippingBill"];
+    const INVOICE_TYPES = ["proformaInvoice", "commercialInvoice", "shippingBill", "billOfLading", "packingList"];
     
     const q = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -68,7 +68,7 @@ function RecentInvoices() {
                     </div>
                 ) : !documents || documents.length === 0 ? (
                     <div className="p-12 text-center text-slate-400 font-medium italic">
-                        No invoices uploaded recently.
+                        No real documents uploaded yet.
                     </div>
                 ) : (
                     <Table>
@@ -83,8 +83,13 @@ function RecentInvoices() {
                             {documents.map((doc) => (
                                 <TableRow key={doc.id} className="group hover:bg-slate-50/50 transition-colors">
                                     <TableCell className="pl-6">
-                                        <p className="font-bold text-slate-900 truncate max-w-[200px]">{doc.name}</p>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase">{format(toDate(doc.uploadedAt), 'PP')}</p>
+                                        <div className="flex items-center gap-2">
+                                          {doc.status === 'finalized' && <FileCheck className="h-3 w-3 text-emerald-600" />}
+                                          <div>
+                                            <p className="font-bold text-slate-900 truncate max-w-[200px]">{doc.name}</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase">{format(toDate(doc.uploadedAt), 'PP')}</p>
+                                          </div>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant="outline" className="bg-white text-slate-600 text-[10px] font-bold">
@@ -188,7 +193,7 @@ export default function ExportDocsOverview() {
         <div className="flex gap-3">
           <Button variant="outline" asChild className="rounded-xl"><Link href="/export-docs/analyzer"><Calculator className="mr-2 size-4" /> Open Analyzer</Link></Button>
           <Button variant="outline" asChild className="rounded-xl"><Link href="/export-docs/items/new"><PlusCircle className="mr-2 size-4" /> Add Item</Link></Button>
-          <Button variant="accent" asChild className="rounded-xl"><Link href="/export-docs/invoices/new"><PlusCircle className="mr-2 size-4" /> New Invoice</Link></Button>
+          <Button variant="accent" asChild className="rounded-xl"><Link href="/export-orders"><PlusCircle className="mr-2 size-4" /> New Inquiry</Link></Button>
         </div>
       </PageHeader>
 
