@@ -3,68 +3,53 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Audit Check: 2026-02-13T17:00:00Z
-    
     // Core Utility Functions
     function isSignedIn() { return request.auth != null; }
     function isAdmin() { 
       return isSignedIn() && 
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
     }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isAssignedToOrder(orderId) {
-      return isSignedIn() && 
-             get(/databases/$(database)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid;
-    }
 
     // USER PROFILES
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isOwner(userId) || isAdmin();
+      allow write: if isSignedIn(); // Allow profile creation/updates for team members
     }
 
     // EXPORT ORDERS & SUBCOLLECTIONS
     match /exportOrders/{orderId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAssignedToOrder(orderId) || isAdmin();
-      allow delete: if isAdmin();
+      allow read, write: if isSignedIn(); // Team collaboration: everyone can see and edit orders
 
       match /documentsChecklist/{itemId} {
-        allow read: if isSignedIn();
-        allow write: if isAssignedToOrder(orderId) || isAdmin();
+        allow read, write: if isSignedIn();
       }
       
       match /lineItems/{itemId} {
-        allow read: if isSignedIn();
-        allow write: if isAssignedToOrder(orderId) || isAdmin();
+        allow read, write: if isSignedIn();
       }
     }
 
     // DOCUMENTS METADATA
     match /documents/{docId} {
-      function canAccessRelatedOrder() {
-        let orderId = resource.data.relatedOrderId;
-        return orderId == null || isAssignedToOrder(orderId) || isAdmin();
-      }
-      
-      allow read: if isSignedIn() && canAccessRelatedOrder();
+      // Allow all team members to see documents in the global list
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
       
-      allow update, delete: if isSignedIn() && 
-                               (isAdmin() || 
-                                (canAccessRelatedOrder() && resource.data.status != 'finalized'));
+      // Protect finalized documents: only admins can delete or update once finalized
+      allow update, delete: if isSignedIn() && (isAdmin() || (resource.data.status != 'finalized'));
     }
 
-    // OTHER COLLECTIONS (Explicit Matches)
+    // AI & SYSTEM COLLECTIONS
+    match /usageStats/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /settings/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    
+    // OTHER COLLECTIONS
     match /leads/{leadId} { allow read, write: if isSignedIn(); }
     match /tasks/{taskId} { allow read, write: if isSignedIn(); }
-    match /activity_logs/{logId} { allow read: if isSignedIn(); allow create: if isSignedIn(); allow update, delete: if isAdmin(); }
-    match /settings/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /activity_logs/{logId} { allow read, create: if isSignedIn(); allow update, delete: if isAdmin(); }
     match /interactions/{docId} { allow read, write: if isSignedIn(); }
     match /companies/{docId} { allow read, write: if isSignedIn(); }
     match /contacts/{docId} { allow read, write: if isSignedIn(); }
-    match /usageStats/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /whatsappEvents/{docId} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /whatsappEvents/{docId} { allow read, write: if isSignedIn(); }
   }
 }

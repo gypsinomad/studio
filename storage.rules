@@ -6,23 +6,14 @@ service firebase.storage {
     
     function isSignedIn() { return request.auth != null; }
     
-    // Helper to check order assignment via Firestore (latency warning: this triggers firestore lookup)
-    function canAccessOrder(orderId) {
-      return firestore.get(/databases/(default)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid ||
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    match /documents/{orderId}/{allPaths=**} {
-      // Allow read/write if the user is signed in and has access to the specific order.
-      // We allow create if signed in, but verify ownership on read/overwrite.
-      allow read: if isSignedIn() && canAccessOrder(orderId);
-      allow write: if isSignedIn() && canAccessOrder(orderId);
+    // Simplified for team collaboration: any signed-in team member can access export documents
+    match /documents/{allPaths=**} {
+      allow read, write: if isSignedIn();
     }
 
     // Default catch-all for other storage needs
     match /{allPaths=**} {
-      allow read, write: if isSignedIn() && 
-                          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read, write: if isSignedIn();
     }
   }
 }
