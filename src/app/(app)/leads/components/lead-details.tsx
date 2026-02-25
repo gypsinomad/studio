@@ -4,7 +4,7 @@
 import type { Lead, LeadPriority } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, BrainCircuit, AlertTriangle, Flame, Zap, Snowflake, ArrowRight, CalendarIcon, Save } from 'lucide-react';
+import { ExternalLink, BrainCircuit, AlertTriangle, Flame, Zap, Snowflake, ArrowRight, Calendar, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { LeadSource, LeadStatus } from '@/lib/types';
@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { InteractionsList } from './interactions-list';
 import { InteractionLogger } from './interaction-logger';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
@@ -69,10 +69,17 @@ const getChannelName = (source: LeadSource | string) => {
     }
 }
 
+/** Helper to safely convert Firestore timestamps to Dates */
+const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+    return new Date(timestamp);
+}
+
 function FollowUpManager({ lead }: { lead: Lead }) {
     const { toast } = useToast();
     const { idToken } = useCurrentUser();
-    const [nextFollowUp, setNextFollowUp] = useState<Date | undefined>(lead.nextFollowUpAt?.toDate());
+    const [nextFollowUp, setNextFollowUp] = useState<Date | undefined>(toDate(lead.nextFollowUpAt) || undefined);
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSaveFollowUp = async () => {
@@ -104,6 +111,8 @@ function FollowUpManager({ lead }: { lead: Lead }) {
         }
     }
 
+    const lastContactDate = toDate(lead.lastContactAt);
+
     return (
         <div className="space-y-4 rounded-lg border p-4">
              <div className="space-y-1">
@@ -112,7 +121,7 @@ function FollowUpManager({ lead }: { lead: Lead }) {
             </div>
             <div className="grid grid-cols-3 gap-2 items-center">
                 <p className="text-muted-foreground col-span-1">Last Contact</p>
-                <p className="font-medium col-span-2">{lead.lastContactAt ? format(lead.lastContactAt.toDate(), 'PPp') : 'N/A'}</p>
+                <p className="font-medium col-span-2">{lastContactDate ? format(lastContactDate, 'PPp') : 'N/A'}</p>
             </div>
              <div className="grid grid-cols-3 gap-2 items-center">
                 <p className="text-muted-foreground col-span-1">Next Follow-Up</p>
@@ -120,12 +129,12 @@ function FollowUpManager({ lead }: { lead: Lead }) {
                      <Popover>
                         <PopoverTrigger asChild>
                            <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
-                               <CalendarIcon className="mr-2 h-4 w-4" />
+                               <Calendar className="mr-2 h-4 w-4" />
                                {nextFollowUp ? format(nextFollowUp, "PPP") : <span>Set a date</span>}
                            </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
-                           <Calendar mode="single" selected={nextFollowUp} onSelect={setNextFollowUp} initialFocus />
+                           <CalendarComponent mode="single" selected={nextFollowUp} onSelect={setNextFollowUp} initialFocus />
                         </PopoverContent>
                     </Popover>
                 </div>
@@ -161,7 +170,7 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
             <div className="grid grid-cols-3 gap-2 items-center">
                 <p className="text-muted-foreground col-span-1">Status</p>
                 <div className="col-span-2">
-                    <Badge variant="outline" className={cn("capitalize", statusColors[lead.status])}>
+                    <Badge variant="outline" className={cn("capitalize", statusColors[lead.status] || 'bg-slate-100')}>
                         {lead.status}
                     </Badge>
                 </div>

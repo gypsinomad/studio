@@ -1,3 +1,4 @@
+
 'use client';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
@@ -29,6 +30,13 @@ interface InteractionsListProps {
     leadId: string;
 }
 
+/** Helper to safely convert Firestore timestamps to Dates */
+const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+    return new Date(timestamp);
+}
+
 export function InteractionsList({ leadId }: InteractionsListProps) {
     const firestore = useFirestore();
     const interactionsQuery = useMemoFirebase(() => {
@@ -58,6 +66,8 @@ export function InteractionsList({ leadId }: InteractionsListProps) {
                 {interactions.map(interaction => {
                     const TypeIcon = typeIcons[interaction.type];
                     const DirectionIcon = directionIcons[interaction.direction];
+                    const interactionDate = toDate(interaction.timestamp);
+                    
                     return (
                         <div key={interaction.id} className="flex items-start gap-3 text-sm">
                              <Tooltip>
@@ -76,7 +86,7 @@ export function InteractionsList({ leadId }: InteractionsListProps) {
                                 <p className="text-muted-foreground">{interaction.summary}</p>
                             </div>
                             <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                {interaction.timestamp ? formatDistanceToNow(interaction.timestamp.toDate(), { addSuffix: true }) : ''}
+                                {interactionDate ? formatDistanceToNow(interactionDate, { addSuffix: true }) : ''}
                             </p>
                         </div>
                     )
