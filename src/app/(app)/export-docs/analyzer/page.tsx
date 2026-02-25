@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Calculator, FileDown, Search, Plus, Trash2, Bot, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -99,7 +100,7 @@ export default function OrderAnalyzerPage() {
             </Card>
           </div>
 
-          <Card>
+          <Card interactive>
             <CardHeader><CardTitle>Container Utilization</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               {containers.map(c => {
