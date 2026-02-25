@@ -1,3 +1,4 @@
+
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
@@ -12,6 +13,8 @@ import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebas
 import { useAISettings } from '@/hooks/use-ai-settings';
 import { PWAInstallButton } from './pwa-install-button';
 import { Bell } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +25,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { collection, query, where, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 function NotificationsPanel({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -48,12 +49,12 @@ function NotificationsPanel({ userId }: { userId: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-2xl bg-slate-50 hover:bg-white border border-slate-100 shadow-sm transition-all hover:-translate-y-0.5">
-          <Bell className="size-5 text-slate-600" />
+        <button className="relative p-2 rounded-xl bg-slate-50 hover:bg-white border border-slate-100 shadow-sm transition-all hover:-translate-y-0.5 group">
+          <Bell className="size-5 text-slate-600 group-hover:text-primary transition-colors" />
           {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 size-2.5 bg-red-500 rounded-full border-2 border-white ring-4 ring-red-500/20" />
+            <span className="absolute top-1.5 right-1.5 size-2.5 bg-red-500 rounded-full border-2 border-white ring-4 ring-red-500/20" />
           )}
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl border-none shadow-2xl overflow-hidden">
         <DropdownMenuLabel className="p-4 bg-slate-50 border-b flex items-center justify-between">
@@ -62,14 +63,17 @@ function NotificationsPanel({ userId }: { userId: string }) {
         </DropdownMenuLabel>
         <div className="max-h-96 overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 space-y-4"><Skeleton className="h-12 w-full" /></div>
+            <div className="p-4 space-y-4">
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-lg" />
+            </div>
           ) : !notifications || notifications.length === 0 ? (
             <div className="p-8 text-center text-slate-400 italic text-sm">No recent activity.</div>
           ) : (
             notifications.map(n => (
               <DropdownMenuItem 
                 key={n.id} 
-                className={cn("p-4 flex flex-col items-start gap-1 cursor-pointer", !n.readAt && "bg-indigo-50/50")}
+                className={cn("p-4 flex flex-col items-start gap-1 cursor-pointer transition-colors", !n.readAt && "bg-indigo-50/50")}
                 onClick={() => markAsRead(n.id!)}
               >
                 <div className="flex items-center justify-between w-full">

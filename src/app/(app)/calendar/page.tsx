@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -9,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { 
   Clock, 
   Calendar as CalendarIcon, 
@@ -75,7 +75,7 @@ export default function TeamCalendarPage() {
 
   const remindersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // CRITICAL: Filter by userId to match Firestore Security Rules
+    // Filter by userId to match rules
     return query(
       collection(firestore, 'reminders'), 
       where('userId', '==', user.uid),
@@ -88,7 +88,10 @@ export default function TeamCalendarPage() {
   const { data: orders } = useCollection<ExportOrder>(ordersQuery);
   const { data: reminders } = useCollection<Reminder>(remindersQuery);
 
-  const toDate = (ts: any) => ts?.toDate ? ts.toDate() : new Date(ts);
+  const toDate = (ts: any) => {
+    if (!ts) return new Date();
+    return ts.toDate ? ts.toDate() : new Date(ts);
+  };
 
   const allEvents = useMemo(() => {
     const events: CalendarEvent[] = [];
