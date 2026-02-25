@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -35,6 +36,17 @@
         "destinationCountry": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "AIUsageStats": {
+      "title": "AIUsageStats",
+      "type": "object",
+      "properties": {
+        "monthKey": { "type": "string" },
+        "totalCallsMonth": { "type": "number" },
+        "estimatedSpendThisMonthInr": { "type": "number" },
+        "dailyCalls": { "type": "object" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -64,6 +76,14 @@
     "/settings/ai": {
       "schema": { "type": "object" },
       "description": "AI configuration"
+    },
+    "/usageStats/{monthId}": {
+      "schema": { "$ref": "#/backend/entities/AIUsageStats" },
+      "description": "Monthly AI usage tracking"
+    },
+    "/whatsappEvents/{eventId}": {
+      "schema": { "type": "object" },
+      "description": "Incoming WhatsApp webhook events"
     }
   }
 }
