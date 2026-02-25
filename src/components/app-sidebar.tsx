@@ -47,7 +47,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="p-4">
-        <SidebarMenu className="space-y-1">
+        <SidebarMenu className="space-y-1 pb-24">
           {visibleNavItems.map(item => {
             if (item.isGroup) {
               return (
