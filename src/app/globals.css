@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 158 95% 39%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 222.2 84% 11%; /* Navy sidebar */
     --sidebar-foreground: 210 40% 98%;
@@ -60,10 +60,10 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-stone-200;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-stone-50 text-stone-900;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

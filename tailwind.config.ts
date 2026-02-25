@@ -39,13 +39,6 @@ export default {
           800: '#78350F',
           900: '#451A03',
         },
-        cardamom: {
-          50: '#ECFDF5',
-          100: '#D1FAE5',
-          200: '#A7F3D0',
-          500: '#059669',
-          700: '#047857',
-        },
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
