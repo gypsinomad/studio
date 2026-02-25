@@ -1,7 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Calculator, FileText, Box, ArrowRight, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const stats = [
-  { title: "Total Export Value (MTD)", value: "$142,500", icon: TrendingUp, description: "+12% from last month", color: "text-emerald-600" },
+  { title: "Total Export Value (MTD)", value: "$142,500", icon: TrendingUp, description: "+12% from last month", color: "text-spice-600" },
   { title: "Active Invoices", value: "12", icon: FileText, description: "4 awaiting confirmation", color: "text-blue-600" },
   { title: "Pending Payments", value: "8", icon: ArrowRight, description: "3 are overdue", color: "text-amber-600" },
   { title: "Items in Register", value: "154", icon: Box, description: "12 added this week", color: "text-stone-600" },
@@ -33,14 +33,14 @@ export default function ExportDocsOverview() {
         <div className="flex gap-3">
           <Button variant="outline" asChild><Link href="/export-docs/analyzer"><Calculator className="mr-2 size-4" /> Open Analyzer</Link></Button>
           <Button variant="outline" asChild><Link href="/export-docs/items/new"><PlusCircle className="mr-2 size-4" /> Add Item</Link></Button>
-          <Button variant="emerald" asChild><Link href="/export-docs/invoices/new"><PlusCircle className="mr-2 size-4" /> New Invoice</Link></Button>
+          <Button asChild><Link href="/export-docs/invoices/new"><PlusCircle className="mr-2 size-4" /> New Invoice</Link></Button>
         </div>
       </PageHeader>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <Card key={s.title} className="group relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 left-0 w-1 h-full bg-spice-500 opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-bold uppercase tracking-wider text-stone-500">{s.title}</CardTitle>
               <div className={`p-2 rounded-lg bg-stone-50 group-hover:bg-white group-hover:shadow-sm transition-all ${s.color}`}>
@@ -85,7 +85,7 @@ export default function ExportDocsOverview() {
                     <TableCell className="font-medium">{inv.buyer}</TableCell>
                     <TableCell className="font-semibold">{inv.currency} {inv.amount.toLocaleString()}</TableCell>
                     <TableCell className="pr-6">
-                      <Badge variant={inv.status === 'Confirmed' ? 'emerald' : 'secondary'} className={inv.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : ''}>
+                      <Badge variant={inv.status === 'Confirmed' ? 'success' : 'secondary'} className={inv.status === 'Confirmed' ? 'bg-spice-50 text-spice-700 border-spice-100' : ''}>
                         {inv.status}
                       </Badge>
                     </TableCell>
