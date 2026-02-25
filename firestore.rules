@@ -26,19 +26,19 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // 1. Create: Any authenticated staff can send notifications to others (mentions, tasks)
+      // 1. Create: Any authenticated staff can send notifications
       allow create: if isSignedIn();
       
-      // 2. Read/Delete: Only the intended recipient or an admin can access/remove
-      allow get, list, delete: if isOwner(resource.data) || isAdmin();
+      // 2. Read/Delete: Recipient or Admin only
+      // 'list' is satisfied when query includes where('userId', '==', request.auth.uid)
+      allow get, list, delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       
-      // 3. Update: Read-receipts allowed, but ownership (userId) is strictly IMMUTABLE
-      allow update: if (isOwner(resource.data) || isAdmin()) && 
+      // 3. Update: Read-receipts allowed, but recipient ID is immutable
+      allow update: if ((isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin()) && 
                     request.resource.data.userId == resource.data.userId;
     }
 
     match /reminders/{reminderId} {
-      // Personal reminders template
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow read, delete: if isOwner(resource.data) || isAdmin();
       allow update: if (isOwner(resource.data) || isAdmin()) && 
@@ -69,7 +69,6 @@ service cloud.firestore {
     match /activity_logs/{logId} { allow read, create: if isSignedIn(); }
     
     match /settings/{docId} { 
-      // Visibility: Branding visible to all, Compliance only to Admin
       allow read: if isSignedIn() && (docId != 'organization' || isAdmin());
       allow write: if isAdmin(); 
     }

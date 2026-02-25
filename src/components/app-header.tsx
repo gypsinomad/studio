@@ -28,6 +28,8 @@ import { formatDistanceToNow } from 'date-fns';
 
 function NotificationsPanel({ userId }: { userId: string }) {
   const firestore = useFirestore();
+  
+  // GOLDEN RULE: Query must satisfy the security rules 'list' requirement
   const q = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
     return query(
