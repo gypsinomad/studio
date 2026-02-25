@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   SidebarHeader,
   SidebarContent,
@@ -20,13 +21,31 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { ChevronRight } from 'lucide-react';
 
 export function AppSidebar() {
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const { state } = useSidebar();
   const { isAdmin } = useCurrentUser();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const visibleNavItems = NAV_ITEMS.filter(item => 
     !item.adminOnly || (item.adminOnly && isAdmin)
   );
+
+  // Return a simplified version or placeholder during SSR to avoid ID mismatch in Radix components
+  if (!isMounted) {
+    return (
+      <div className="flex flex-col h-full w-full bg-sidebar">
+        <div className="p-6">
+          <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg text-xl">
+            🌶️
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
