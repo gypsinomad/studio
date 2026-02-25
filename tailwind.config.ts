@@ -28,16 +28,16 @@ export default {
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         spice: {
-          50: '#FFFBEB',
-          100: '#FEF3C7',
-          200: '#FDE68A',
-          300: '#FCD34D',
-          400: '#FBBF24',
-          500: '#D97706', /* Saffron */
-          600: '#B45309', /* Terracotta */
-          700: '#92400E',
-          800: '#78350F',
-          900: '#451A03',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1', /* Royal Indigo */
+          600: '#4f46e5', /* Deep Indigo */
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
         },
         card: {
           DEFAULT: 'hsl(var(--card))',

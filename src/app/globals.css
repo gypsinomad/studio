@@ -4,36 +4,43 @@
 
 @layer base {
   :root {
-    --background: 210 40% 96%; /* Refined Cool Slate #f1f5f9 */
+    --background: 226 33% 98%; /* Very light slate-indigo tint */
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 199 89% 48%; /* Sky Blue #0ea5e9 */
+    --primary: 243 75% 59%; /* Indigo #6366f1 */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --secondary: 226 33% 96%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --muted: 226 33% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 25 95% 53%; /* Saffron Orange #f97316 */
+    --accent: 38 92% 50%; /* Amber #f59e0b */
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 199 89% 48%;
+    --ring: 243 75% 59%;
     --radius: 1rem;
 
     /* 2026 Midnight Navigation */
-    --sidebar-background: 222 47% 5%; /* Deep Midnight #020617 */
+    --sidebar-background: 222 47% 4%; /* Near black */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary: 243 75% 59%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 12%;
+    --sidebar-accent: 222 47% 10%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 47% 10%;
-    --sidebar-ring: 199 89% 48%;
+    --sidebar-border: 222 47% 8%;
+    --sidebar-ring: 243 75% 59%;
+
+    /* Chart Colors */
+    --chart-1: 243 75% 59%; /* Indigo */
+    --chart-2: 262 83% 58%; /* Violet */
+    --chart-3: 38 92% 50%;  /* Amber */
+    --chart-4: 199 89% 48%; /* Sky */
+    --chart-5: 160 84% 39%; /* Emerald */
   }
 
   .dark {

@@ -15,10 +15,10 @@ function StatCard({ title, value, icon: Icon, description, isLoading }: { title:
     
     return (
         <div className="group relative overflow-hidden rounded-2xl bg-white border border-stone-200 p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-spice-500 to-spice-600" />
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary to-spice-600" />
             <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 rounded-xl bg-spice-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Icon className="w-6 h-6 text-spice-600" />
+                    <Icon className="w-6 h-6 text-primary" />
                 </div>
             </div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">{title}</h3>
