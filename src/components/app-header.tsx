@@ -29,7 +29,7 @@ import { formatDistanceToNow } from 'date-fns';
 function NotificationsPanel({ userId }: { userId: string }) {
   const firestore = useFirestore();
   
-  // GOLDEN RULE: Query must satisfy the security rules 'list' requirement
+  // MANDATORY: The query must explicitly include the filter that matches security rules
   const q = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
     return query(
@@ -103,15 +103,14 @@ export function AppHeader() {
   const { settings, usage, isLoading: isAiLoading } = useAISettings();
 
   const mergedUser = useMemo(() => {
-    if (!user || !userProfile) return null;
-    const fullUser: User = {
-        ...userProfile,
+    if (!user) return null;
+    return {
         authUid: user.uid,
-        email: user.email || userProfile.email,
-        displayName: user.displayName || userProfile.displayName,
-        avatarUrl: user.photoURL || userProfile.avatarUrl,
+        email: user.email || userProfile?.email || '',
+        displayName: user.displayName || userProfile?.displayName || 'User',
+        avatarUrl: user.photoURL || userProfile?.avatarUrl,
+        role: userProfile?.role || 'viewer'
     };
-    return fullUser;
   }, [user, userProfile]);
 
   const isLoading = isUserLoading || (isAdmin && isAiLoading);
@@ -140,7 +139,7 @@ export function AppHeader() {
         <NotificationsPanel userId={mergedUser.authUid} />
         {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
         <div className="h-8 w-[1px] bg-slate-200 hidden sm:block mx-2" />
-        <UserNav user={mergedUser} />
+        <UserNav user={mergedUser as User} />
       </div>
     );
   };

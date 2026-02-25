@@ -30,11 +30,14 @@ service cloud.firestore {
       allow create: if isSignedIn();
       
       // 2. Read/Delete: Recipient or Admin only
-      // 'list' is satisfied when query includes where('userId', '==', request.auth.uid)
-      allow get, list, delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Split read into get and list for better rule clarity
+      allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Explicit list permission to help the query optimizer
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       
       // 3. Update: Read-receipts allowed, but recipient ID is immutable
-      allow update: if ((isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin()) && 
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && 
                     request.resource.data.userId == resource.data.userId;
     }
 
