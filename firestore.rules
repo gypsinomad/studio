@@ -42,15 +42,16 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Users can only read their own notifications or if they are admin
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Any authenticated staff can create a notification for someone else
+      allow create: if isSignedIn();
       
-      // Internal users can create notifications for each other (mentions/tasks)
-      allow create: if isSignedIn(); 
+      // Only the recipient or admin can read or delete
+      allow get, list, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Only the recipient or admin can mark as read (update) or delete
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && (request.resource.data.userId == resource.data.userId);
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Update allowed for read-receipts, but userId (ownership) is immutable
+      allow update: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid || isAdmin()) && 
+                    (request.resource.data.userId == resource.data.userId);
     }
 
     match /leads/{leadId} { allow read, write: if isSignedIn(); }

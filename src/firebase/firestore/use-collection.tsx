@@ -27,9 +27,6 @@ export interface UseCollectionResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
 }
 
-/* Internal implementation of Query:
-  https://github.com/firebase/firebase-js-sdk/blob/c5f08a9bc5da0d2b0207802c972d53724ccef055/packages/firestore/src/lite-api/reference.ts#L143
-*/
 export interface InternalQuery extends Query<DocumentData> {
   _query: {
     path: {
@@ -41,7 +38,7 @@ export interface InternalQuery extends Query<DocumentData> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * Handles nullable references/queries and prevents assertion failures on permission errors.
+ * Includes "Terminal Error" hardening to prevent internal assertion failed loops.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -53,7 +50,7 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   
-  // Track the query ID to prevent retry loops on terminal (permission) errors
+  // Track query state to prevent retry loops on terminal (permission) errors
   const lastFailedQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -68,7 +65,7 @@ export function useCollection<T = any>(
       ? (memoizedTargetRefOrQuery as CollectionReference).path
       : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
 
-    // Skip if this specific query instance already failed terminal security check
+    // SKIP: If this query instance already failed with a permission error
     if (lastFailedQueryRef.current === currentQueryId) {
       debugLogger.log('FIRESTORE', `Skipping blocked query listener: ${currentQueryId}`, 'warn');
       setIsLoading(false);
@@ -77,7 +74,7 @@ export function useCollection<T = any>(
 
     setIsLoading(true);
     setError(null);
-    debugLogger.log('FIRESTORE', `Starting listener: ${currentQueryId}`, 'debug');
+    debugLogger.log('FIRESTORE', `Starting collection listener: ${currentQueryId}`, 'debug');
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
@@ -89,29 +86,24 @@ export function useCollection<T = any>(
         setData(results);
         setError(null);
         setIsLoading(false);
-        lastFailedQueryRef.current = null; // Clear blockage on success
+        lastFailedQueryRef.current = null; // Reset terminal state on success
       },
       (firestoreError: FirestoreError) => {
-        const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
-
-        // Terminal error handling: block further subscription attempts for this component mount
-        lastFailedQueryRef.current = path;
+        // TERMINAL ERROR: Block further re-subscriptions for this instance
+        lastFailedQueryRef.current = currentQueryId;
         
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path,
+          path: currentQueryId,
         });
 
-        debugLogger.log('FIRESTORE', `Terminal listener failure: ${path}`, 'error', firestoreError);
+        debugLogger.log('FIRESTORE', `Terminal listener failure: ${currentQueryId}`, 'error', firestoreError);
         
         setError(contextualError);
         setData(null);
         setIsLoading(false);
 
-        // Notify global listeners (Debug Monitor)
+        // Notify Debug Monitor
         errorEmitter.emit('permission-error', contextualError);
       }
     );
@@ -123,7 +115,7 @@ export function useCollection<T = any>(
   }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error('Firestore query/reference was not properly memoized using useMemoFirebase. This causes infinite render loops.');
+    throw new Error('Firestore query was not properly memoized using useMemoFirebase. This causes infinite render loops.');
   }
   
   return { data, isLoading, error };
