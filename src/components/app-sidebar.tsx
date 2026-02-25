@@ -30,16 +30,16 @@ export function AppSidebar() {
 
   return (
     <>
-      <SidebarHeader className="border-b border-sidebar-border/50 p-0">
+      <SidebarHeader className="p-0 shrink-0">
         <div className="p-6">
              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg text-xl">
+                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg text-xl shrink-0">
                     🌶️
                 </div>
                 {state === 'expanded' && (
-                <div>
-                    <h1 className="text-lg font-bold text-white tracking-tight">SpiceRoute</h1>
-                    <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold">Calicut Traders</p>
+                <div className="animate-in fade-in duration-300">
+                    <h1 className="text-lg font-bold text-white tracking-tight leading-none">SpiceRoute</h1>
+                    <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mt-1">Calicut Traders</p>
                 </div>
                 )}
             </div>
