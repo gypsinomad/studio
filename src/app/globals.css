@@ -4,36 +4,36 @@
 
 @layer base {
   :root {
-    --background: 210 10% 96%; /* Modern Cool Gray */
+    --background: 210 40% 98%; /* Near white #f8fafc */
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47% 11%; /* Midnight Navy */
+    --primary: 199 89% 48%; /* Sky Blue #0ea5e9 */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 10% 94%;
+    --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 10% 94%;
+    --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 35 92% 44%; /* Spice Saffron/Amber */
+    --accent: 25 95% 53%; /* Spice Orange #f97316 */
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 35 92% 44%;
+    --ring: 199 89% 48%;
     --radius: 1rem;
 
-    /* High contrast Midnight Sidebar variables */
-    --sidebar-background: 222.2 47% 11%; 
+    /* High contrast Midnight Sidebar */
+    --sidebar-background: 222 47% 5%; /* Very dark navy #020617 */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 35 92% 44%;
+    --sidebar-primary: 199 89% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222.2 47% 15%;
+    --sidebar-accent: 222 47% 12%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222.2 47% 15%;
-    --sidebar-ring: 35 92% 44%;
+    --sidebar-border: 222 47% 10%;
+    --sidebar-ring: 199 89% 48%;
   }
 
   .dark {
@@ -61,10 +61,10 @@
 
 @layer base {
   * {
-    @apply border-stone-200;
+    @apply border-slate-200;
   }
   body {
-    @apply bg-background text-stone-900;
+    @apply bg-background text-slate-900;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

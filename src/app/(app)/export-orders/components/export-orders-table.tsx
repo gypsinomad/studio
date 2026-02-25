@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -31,11 +30,11 @@ const stageColors: Record<string, string> = {
     shipmentReady: 'bg-orange-50 text-orange-700 border-orange-200',
     shippedDelivered: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     cancelled: 'bg-red-50 text-red-700 border-red-200',
-    lostNoResponse: 'bg-stone-100 text-stone-600 border-stone-200',
+    lostNoResponse: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
 const iceGateStatusColors: Record<IceGateStatusUpdate, string> = {
-  'Not Started': 'bg-stone-100 text-stone-600 border-stone-200',
+  'Not Started': 'bg-slate-100 text-slate-600 border-slate-200',
   'Submitted': 'bg-blue-50 text-blue-700 border-blue-200',
   'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
   'Approved': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -58,7 +57,7 @@ const stageLabels: Record<string, string> = {
 
 export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableProps) {
   if (data.length === 0) {
-    return <p className="text-stone-500">You have no export orders assigned to you.</p>;
+    return <p className="text-slate-500">You have no export orders assigned to you.</p>;
   }
 
   const toDate = (timestamp: any): Date => {
@@ -69,10 +68,10 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
       <Table>
         <TableHeader>
-          <TableRow className="bg-stone-50/50">
+          <TableRow className="bg-slate-50/50">
             <TableHead>Title</TableHead>
             <TableHead>Value</TableHead>
             <TableHead>Docs</TableHead>
@@ -84,19 +83,19 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
         </TableHeader>
         <TableBody>
           {data.map((order) => (
-            <TableRow key={order.id} className="group hover:bg-stone-50/50 transition-colors">
-              <TableCell className="font-semibold text-stone-900">{order.title}</TableCell>
-              <TableCell className="font-medium text-stone-600">
+            <TableRow key={order.id} className="group hover:bg-slate-50/50 transition-colors cursor-pointer">
+              <TableCell className="font-semibold text-slate-900">{order.title}</TableCell>
+              <TableCell className="font-medium text-slate-600">
                   {order.currency || 'USD'} {order.totalValue.toLocaleString()}
               </TableCell>
               <TableCell>
                   <div className="flex items-center gap-1.5">
-                      <FileText className={cn("h-3.5 w-3.5", (order.docsCompleted || 0) > 0 ? "text-emerald-600" : "text-stone-300")} />
+                      <FileText className={cn("h-3.5 w-3.5 transition-colors group-hover:text-primary", (order.docsCompleted || 0) > 0 ? "text-emerald-600" : "text-slate-300")} />
                       <span className={cn(
                           "text-xs font-bold px-2 py-0.5 rounded-full border",
                           (order.docsCompleted || 0) === (order.docsTotal || 8) 
                             ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                            : "bg-stone-50 text-stone-600 border-stone-100"
+                            : "bg-slate-50 text-slate-600 border-slate-100"
                       )}>
                           {order.docsCompleted || 0}/{order.docsTotal || 8}
                       </span>
@@ -112,15 +111,15 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
                   <Badge variant="outline" className={cn("capitalize font-semibold", iceGateStatusColors[order.iceGateStatus])}>
                       {order.iceGateStatus}
                   </Badge>
-                ) : <span className="text-stone-400 text-xs">—</span>}
+                ) : <span className="text-slate-400 text-xs">—</span>}
               </TableCell>
-              <TableCell className="text-stone-500 text-xs">{format(toDate(order.createdAt), 'PP')}</TableCell>
+              <TableCell className="text-slate-500 text-xs">{format(toDate(order.createdAt), 'PP')}</TableCell>
               <TableCell className="text-right">
-                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end space-x-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-stone-100" onClick={() => onEdit(order.id!)}>
-                        <Pencil className="h-4 w-4 text-stone-600" />
+                 <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center justify-end space-x-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100" onClick={(e) => { e.stopPropagation(); onEdit(order.id!); }}>
+                        <Pencil className="h-4 w-4 text-slate-600" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50" onClick={() => onDelete(order.id!)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(order.id!); }}>
                         <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
                 </div>
