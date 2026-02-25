@@ -37,7 +37,7 @@ export function AppSidebar() {
   // Return a simplified version or placeholder during SSR to avoid ID mismatch in Radix components
   if (!isMounted) {
     return (
-      <div className="flex flex-col h-full w-full bg-sidebar">
+      <div className="flex flex-col h-full w-full bg-sidebar border-r border-sidebar-border">
         <div className="p-6">
           <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg text-xl">
             🌶️
@@ -57,8 +57,8 @@ export function AppSidebar() {
                 </div>
                 {state === 'expanded' && (
                 <div className="animate-in fade-in duration-300">
-                    <h1 className="text-lg font-bold text-white tracking-tight leading-none">SpiceRoute</h1>
-                    <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mt-1">Calicut Traders</p>
+                    <h1 className="text-lg font-bold text-sidebar-foreground tracking-tight leading-none">SpiceRoute</h1>
+                    <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/50 font-bold mt-1">Calicut Traders</p>
                 </div>
                 )}
             </div>
