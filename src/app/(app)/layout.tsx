@@ -32,7 +32,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <SidebarProvider>
-        <Sidebar collapsible="icon" className="bg-white/80 backdrop-blur-xl border-r border-stone-200">
+        <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-2xl">
           <AppSidebar />
         </Sidebar>
         <SidebarInset className="flex flex-col h-screen overflow-hidden">
