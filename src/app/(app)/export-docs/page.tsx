@@ -3,15 +3,16 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calculator, FileText, Box, ArrowRight, TrendingUp, AlertCircle, ExternalLink } from 'lucide-react';
+import { PlusCircle, Calculator, FileText, Box, ArrowRight, TrendingUp, AlertCircle, ExternalLink, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
-import type { ExportOrder } from '@/lib/types';
+import { collection, query, where, limit, orderBy } from 'firebase/firestore';
+import type { ExportOrder, Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 const stats = [
   { title: "Total Export Value (MTD)", value: "$142,500", icon: TrendingUp, description: "+12% from last month", color: "text-primary" },
@@ -20,16 +21,90 @@ const stats = [
   { title: "Items in Register", value: "154", icon: Box, description: "12 added this week", color: "text-slate-600" },
 ];
 
-const recentInvoices = [
-  { id: "CI-2026-0012", buyer: "Gulf Foods LLC", currency: "USD", amount: 12500, status: "Confirmed", date: "2026-02-10" },
-  { id: "PI-2026-0011", buyer: "London Spice Co", currency: "GBP", amount: 8200, status: "Draft", date: "2026-02-09" },
-  { id: "CI-2026-0010", buyer: "Nairobi Traders", currency: "USD", amount: 5800, status: "Confirmed", date: "2026-02-08" },
-];
-
 const pendingPayments = [
   { id: "CI-2026-0008", buyer: "Apex Imports", amount: 4200, due: "2026-02-01", overdue: true },
   { id: "CI-2026-0005", buyer: "Gulf Foods LLC", amount: 9000, due: "2026-02-15", overdue: false },
 ];
+
+function RecentInvoices() {
+    const firestore = useFirestore();
+    const INVOICE_TYPES = ["proformaInvoice", "commercialInvoice", "shippingBill"];
+    
+    const q = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(
+            collection(firestore, 'documents'),
+            where('type', 'in', INVOICE_TYPES),
+            orderBy('uploadedAt', 'desc'),
+            limit(5)
+        );
+    }, [firestore]);
+
+    const { data: documents, isLoading } = useCollection<DocumentType>(q);
+
+    const toDate = (timestamp: any): Date => {
+        if (timestamp && typeof timestamp.toDate === 'function') {
+            return timestamp.toDate();
+        }
+        return new Date(timestamp);
+    }
+
+    return (
+        <Card className="shadow-lg border-slate-100 rounded-2xl overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Recent Export Documents</CardTitle>
+                    <CardDescription>Latest confirmed shipping documents</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" asChild className="rounded-lg text-primary hover:bg-primary/5">
+                    <Link href="/export-docs/invoices">View All <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+                {isLoading ? (
+                    <div className="p-6 space-y-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                    </div>
+                ) : !documents || documents.length === 0 ? (
+                    <div className="p-12 text-center text-slate-400 font-medium italic">
+                        No invoices uploaded recently.
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-slate-50/50 hover:bg-transparent">
+                                <TableHead className="pl-6">Document</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead className="pr-6 text-right">View</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {documents.map((doc) => (
+                                <TableRow key={doc.id} className="group hover:bg-slate-50/50 transition-colors">
+                                    <TableCell className="pl-6">
+                                        <p className="font-bold text-slate-900 truncate max-w-[200px]">{doc.name}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase">{format(toDate(doc.uploadedAt), 'PP')}</p>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="bg-white text-slate-600 text-[10px] font-bold">
+                                            {doc.type.replace(/([A-Z])/g, ' $1').trim()}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="pr-6 text-right">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary rounded-lg" onClick={() => window.open(doc.fileUrl, '_blank')}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
 
 function MissingCriticalDocs() {
     const firestore = useFirestore();
@@ -139,43 +214,7 @@ export default function ExportDocsOverview() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
-            <Card className="shadow-lg border-slate-100 rounded-2xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                <CardTitle>Recent Export Invoices</CardTitle>
-                <CardDescription>Latest generated shipping documents</CardDescription>
-                </div>
-                <Button variant="ghost" size="sm" asChild className="rounded-lg text-primary hover:bg-primary/5">
-                <Link href="/export-docs/invoices">View All <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-                <Table>
-                <TableHeader>
-                    <TableRow className="bg-slate-50/50 hover:bg-transparent">
-                    <TableHead className="pl-6">Invoice #</TableHead>
-                    <TableHead>Buyer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="pr-6">Status</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {recentInvoices.map((inv) => (
-                    <TableRow key={inv.id} className="group cursor-pointer hover:bg-slate-50/50 transition-colors">
-                        <TableCell className="pl-6 font-bold text-primary">{inv.id}</TableCell>
-                        <TableCell className="font-semibold text-slate-900">{inv.buyer}</TableCell>
-                        <TableCell className="font-bold text-slate-700">{inv.currency} {inv.amount.toLocaleString()}</TableCell>
-                        <TableCell className="pr-6">
-                        <Badge variant="outline" className={inv.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-3 py-1 rounded-lg' : 'font-bold'}>
-                            {inv.status}
-                        </Badge>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-                </Table>
-            </CardContent>
-            </Card>
+            <RecentInvoices />
 
             <Card className="shadow-lg border-slate-100 rounded-2xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between">
