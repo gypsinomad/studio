@@ -352,3 +352,51 @@ export interface AuditLog {
   before?: { [key: string]: any };
   after?: { [key:string]: any };
 }
+
+// Organization Settings
+export interface OrganizationSettings {
+  branding: {
+    brandName: string;
+    logoUrl?: string;
+    darkLogoUrl?: string;
+    faviconUrl?: string;
+    primaryColor: string;
+    accentColor: string;
+  };
+  profile: {
+    legalName: string;
+    displayName: string;
+    address: {
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      pinCode: string;
+      country: string;
+    };
+    email: string;
+    phone: string;
+    website?: string;
+  };
+  localization: {
+    timezone: string;
+    currency: string;
+    dateFormat: string;
+    timeFormat: string;
+  };
+  compliance: {
+    pan: string;
+    gstin: string;
+    iec: string;
+    adCode?: string;
+    apedaReg?: string;
+    fssaiNumber?: string;
+    isVerified: boolean;
+    internalNotes?: string;
+    licenses: Array<{
+      name: string;
+      id: string;
+      expiryDate: any;
+    }>;
+  };
+}

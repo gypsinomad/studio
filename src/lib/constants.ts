@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Sprout,
@@ -13,6 +14,7 @@ import {
   Box,
   Calculator,
   CreditCard,
+  Building2,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -81,10 +83,14 @@ export const NAV_ITEMS = [
     icon: BarChart3,
   },
   {
-    title: 'Admin Settings',
-    href: '/users',
+    title: 'Settings',
     icon: Settings,
+    isGroup: true,
     adminOnly: true,
+    items: [
+      { title: 'Organization', href: '/settings/organization', icon: Building2 },
+      { title: 'User Admin', href: '/users', icon: Users },
+    ]
   },
 ];
 

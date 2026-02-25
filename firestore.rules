@@ -16,6 +16,14 @@ service cloud.firestore {
       allow write: if isSignedIn(); // Allow profile creation/updates for team members
     }
 
+    // ORGANIZATION SETTINGS
+    match /settings/organization {
+      // Internal users can read branding for the UI
+      allow read: if isSignedIn();
+      // Only admins can modify core settings
+      allow write: if isAdmin();
+    }
+
     // EXPORT ORDERS & SUBCOLLECTIONS
     match /exportOrders/{orderId} {
       allow read, write: if isSignedIn(); // Team collaboration: everyone can see and edit orders
