@@ -1,28 +1,68 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // FORCE RESET: 2026-02-13T14:30:00Z
-    // GLOBAL UNRESTRICTED ACCESS
-    match /{allPaths=**} {
-      allow read, write: if true;
-    }
+    // Audit Check: 2026-02-13T16:00:00Z
     
-    // Explicit matches for collection-level operations (list/query)
-    match /users/{userId} { allow read, write: if true; }
-    match /leads/{leadId} { allow read, write: if true; }
-    match /exportOrders/{orderId} { allow read, write: if true; }
-    match /tasks/{taskId} { allow read, write: if true; }
-    match /activity_logs/{logId} { allow read, write: if true; }
-    match /activity_logs { allow read, write: if true; }
-    match /settings/{docId} { allow read, write: if true; }
-    match /interactions/{docId} { allow read, write: if true; }
-    match /interactions { allow read, write: if true; }
-    match /companies/{docId} { allow read, write: if true; }
-    match /companies { allow read, write: if true; }
-    match /contacts/{docId} { allow read, write: if true; }
-    match /contacts { allow read, write: if true; }
-    match /documents/{docId} { allow read, write: if true; }
-    match /documents { allow read, write: if true; }
+    // Core Utility Functions
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+    }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAssignedToOrder(orderId) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/exportOrders/$(orderId)).data.assignedUserId == request.auth.uid;
+    }
+
+    // USER PROFILES
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // EXPORT ORDERS & SUBCOLLECTIONS
+    match /exportOrders/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAssignedToOrder(orderId) || isAdmin();
+      allow delete: if isAdmin();
+
+      match /documentsChecklist/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if isAssignedToOrder(orderId) || isAdmin();
+      }
+      
+      match /lineItems/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if isAssignedToOrder(orderId) || isAdmin();
+      }
+    }
+
+    // DOCUMENTS METADATA
+    match /documents/{docId} {
+      function canAccessRelatedOrder() {
+        let orderId = resource.data.relatedOrderId;
+        return orderId == null || isAssignedToOrder(orderId) || isAdmin();
+      }
+      
+      allow read: if isSignedIn() && canAccessRelatedOrder();
+      allow create: if isSignedIn();
+      
+      allow update, delete: if isSignedIn() && 
+                               (isAdmin() || 
+                                (canAccessRelatedOrder() && resource.data.status != 'finalized'));
+    }
+
+    // OTHER COLLECTIONS (Explicit Matches)
+    match /leads/{leadId} { allow read, write: if isSignedIn(); }
+    match /tasks/{taskId} { allow read, write: if isSignedIn(); }
+    match /activity_logs/{logId} { allow read: if isSignedIn(); allow create: if isSignedIn(); allow update, delete: if isAdmin(); }
+    match /settings/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /interactions/{docId} { allow read, write: if isSignedIn(); }
+    match /companies/{docId} { allow read, write: if isSignedIn(); }
+    match /contacts/{docId} { allow read, write: if isSignedIn(); }
   }
 }

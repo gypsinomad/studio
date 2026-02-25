@@ -9,13 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStorage } from '@/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { DocumentChecklistItem, DocumentChecklistStatus, Document as DocumentData } from '@/lib/types';
-import { Upload, Link as LinkIcon, LoaderCircle } from 'lucide-react';
+import { Upload, Link as LinkIcon, LoaderCircle, Eye, FileWarning } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DOCUMENT_TYPES } from '@/lib/constants';
+import { Progress } from '@/components/ui/progress';
 
 interface DocumentChecklistProps {
   orderId: string;
@@ -43,8 +44,7 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
   const [checklist, setChecklist] = useState<DocumentChecklistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const fetchChecklist = async () => {
     if (!idToken) return;
@@ -76,7 +76,23 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
         body: JSON.stringify({ checklistItemId, ...payload }),
       });
       if (!response.ok) throw new Error('Failed to update item');
-      await fetchChecklist(); // Refresh data
+      
+      // Update local state for counts
+      const updatedChecklist = checklist.map(item => 
+        item.id === checklistItemId ? { ...item, ...payload } : item
+      );
+      setChecklist(updatedChecklist);
+
+      // Update parent order summary counts
+      if (firestore) {
+        const completed = updatedChecklist.filter(i => i.status === 'completed').length;
+        const total = updatedChecklist.length;
+        updateDoc(doc(firestore, 'exportOrders', orderId), {
+            docsCompleted: completed,
+            docsTotal: total
+        });
+      }
+
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not update checklist item.' });
     }
@@ -91,60 +107,115 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
     if (!file || !storage || !firestore || !user) return;
     
     setUploadingItemId(item.id!);
+    setUploadProgress(0);
     
     try {
-        // 1. Upload to storage
-        const storagePath = `documents/${orderId}/${item.type}_${Date.now()}`;
+        const storagePath = `documents/${orderId}/${item.type}_${Date.now()}_${file.name}`;
         const storageRef = ref(storage, storagePath);
-        const uploadResult = await uploadBytes(storageRef, file);
-        const fileUrl = await getDownloadURL(uploadResult.ref);
+        
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-        // 2. Create root document entry
-        const docPayload: Omit<DocumentData, 'id'> = {
-            name: file.name,
-            type: item.type as DocumentData['type'],
-            fileUrl,
-            status: 'uploaded',
-            relatedOrderId: orderId,
-            uploadedBy: user.uid,
-            uploadedAt: serverTimestamp(),
-        };
-        const newDocRef = await addDoc(collection(firestore, 'documents'), docPayload);
+        uploadTask.on('state_changed', 
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(progress);
+            }, 
+            (error) => {
+                toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+                setUploadingItemId(null);
+            }, 
+            async () => {
+                const fileUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
-        // 3. Update checklist item to link it
-        await updateChecklistItem(item.id!, {
-            status: 'completed',
-            fileRef: newDocRef.id,
-        });
+                // Create document metadata
+                const docPayload: Omit<DocumentData, 'id'> = {
+                    name: file.name,
+                    type: item.type as DocumentData['type'],
+                    fileUrl,
+                    status: 'uploaded',
+                    relatedOrderId: orderId,
+                    uploadedBy: user.uid,
+                    uploadedAt: serverTimestamp(),
+                    fileSize: file.size,
+                    mimeType: file.type,
+                    storagePath: storagePath
+                };
+                const newDocRef = await addDoc(collection(firestore, 'documents'), docPayload);
 
-        toast({ title: 'Success', description: `${getDocumentLabel(item.type)} uploaded and linked.`});
+                // Link to checklist
+                await updateChecklistItem(item.id!, {
+                    status: 'completed',
+                    fileRef: newDocRef.id,
+                    fileUrl: fileUrl,
+                    fileSize: file.size,
+                    mimeType: file.type
+                });
+
+                toast({ title: 'Success', description: `${getDocumentLabel(item.type)} uploaded.`});
+                setUploadingItemId(null);
+                setUploadProgress(0);
+            }
+        );
 
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload and link the document.' });
-        console.error(error);
-    } finally {
+        toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
         setUploadingItemId(null);
+    }
+  };
+
+  const handleViewFile = async (item: DocumentChecklistItem) => {
+    if (item.fileUrl) {
+        window.open(item.fileUrl, '_blank');
+        return;
+    }
+
+    if (item.fileRef && firestore) {
+        toast({ title: "Resolving Link", description: "Fetching document secure URL..." });
+        try {
+            const docSnap = await getDoc(doc(firestore, 'documents', item.fileRef));
+            if (docSnap.exists()) {
+                const data = docSnap.data() as DocumentData;
+                window.open(data.fileUrl, '_blank');
+            } else {
+                throw new Error("Document link not found.");
+            }
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Error", description: "Could not open document." });
+        }
+    } else {
+        toast({ variant: 'warning', title: "No File", description: "No file has been uploaded for this item." });
     }
   };
 
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
       </div>
     );
   }
+
+  if (checklist.length === 0) {
+      return (
+          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-2xl bg-stone-50/50">
+              <FileWarning className="h-12 w-12 text-stone-300 mb-4" />
+              <h3 className="text-lg font-semibold text-stone-900">Getting Started</h3>
+              <p className="text-sm text-stone-500 max-w-xs text-center mt-1">
+                  No documents uploaded yet. Start by adding the Commercial Invoice and Packing List.
+              </p>
+          </div>
+      )
+  }
   
   return (
-    <div className="border rounded-lg">
-      <input type="file" ref={fileInputRef} className="hidden" />
+    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Document</TableHead>
+          <TableRow className="bg-stone-50/50">
+            <TableHead>Document Type</TableHead>
             <TableHead>Required</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -152,15 +223,28 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
         </TableHeader>
         <TableBody>
           {checklist.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="font-medium">{getDocumentLabel(item.type)}</TableCell>
-              <TableCell>{item.required ? 'Yes' : 'No'}</TableCell>
+            <TableRow key={item.id} className="group transition-colors">
+              <TableCell className="font-medium text-stone-900">
+                  {getDocumentLabel(item.type)}
+                  {item.mimeType && (
+                      <span className="ml-2 text-[10px] uppercase font-bold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
+                          {item.mimeType.split('/')[1] || 'FILE'}
+                      </span>
+                  )}
+              </TableCell>
+              <TableCell>
+                  {item.required ? (
+                      <Badge variant="outline" className="text-amber-600 border-amber-100 bg-amber-50">Required</Badge>
+                  ) : (
+                      <span className="text-stone-400 text-xs">Optional</span>
+                  )}
+              </TableCell>
               <TableCell>
                 <Select
                   value={item.status}
                   onValueChange={(value: DocumentChecklistStatus) => handleStatusChange(item.id!, value)}
                 >
-                  <SelectTrigger className={cn("w-32 h-8 text-xs", statusColors[item.status])}>
+                  <SelectTrigger className={cn("w-32 h-8 text-xs font-semibold rounded-lg", statusColors[item.status])}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -171,28 +255,39 @@ export function DocumentChecklist({ orderId }: DocumentChecklistProps) {
                 </Select>
               </TableCell>
               <TableCell className="text-right">
-                {item.status !== 'completed' ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={uploadingItemId === item.id}
-                    onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.onchange = (e) => handleFileUpload(e as any, item);
-                        input.click();
-                    }}
-                  >
-                    {uploadingItemId === item.id ? <LoaderCircle className="h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
-                    Upload
-                  </Button>
-                ) : (
-                   <Button size="sm" variant="ghost" asChild>
-                       <a href="#" onClick={(e) => { e.preventDefault(); toast({title: "Info", description: "Viewing linked documents is not yet implemented."})}}>
-                         <LinkIcon className="mr-2 h-4 w-4" /> View
-                       </a>
-                   </Button>
-                )}
+                <div className="flex items-center justify-end gap-2">
+                    {uploadingItemId === item.id ? (
+                        <div className="flex flex-col items-end gap-1 w-24">
+                            <span className="text-[10px] font-bold text-spice-600 animate-pulse">
+                                {Math.round(uploadProgress)}%
+                            </span>
+                            <Progress value={uploadProgress} className="h-1.5 w-full" />
+                        </div>
+                    ) : (
+                        <>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 rounded-lg"
+                                onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.onchange = (e) => handleFileUpload(e as any, item);
+                                    input.click();
+                                }}
+                            >
+                                <Upload className="mr-2 h-3.5 w-3.5" />
+                                {item.status === 'completed' ? 'Replace' : 'Upload'}
+                            </Button>
+                            
+                            {item.status === 'completed' && (
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-lg" onClick={() => handleViewFile(item)}>
+                                    <Eye className="h-4 w-4 text-spice-600" />
+                                </Button>
+                            )}
+                        </>
+                    )}
+                </div>
               </TableCell>
             </TableRow>
           ))}

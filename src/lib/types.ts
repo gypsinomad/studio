@@ -144,6 +144,10 @@ export interface ExportOrder {
 
   // Audit Trail
   activityLog?: OrderActivityLog[];
+
+  // Document Summary (Derived)
+  docsCompleted?: number;
+  docsTotal?: number;
 }
 
 
@@ -210,7 +214,7 @@ export interface Task {
 }
 
 export type DocumentType = 'proformaInvoice' | 'commercialInvoice' | 'contract' | 'packingList' | 'billOfLading' | 'coo' | 'fssai' | 'apeda' | 'phytoCertificate' | 'insuranceCertificate' | 'shippingBill' | 'other';
-export type DocumentStatus = 'pending' | 'uploaded' | 'verified';
+export type DocumentStatus = 'pending' | 'uploaded' | 'verified' | 'finalized';
 
 export interface Document {
   id?: string;
@@ -223,6 +227,9 @@ export interface Document {
   expiryDate?: any; // Date or Firestore Timestamp
   uploadedBy: string;
   uploadedAt: any; // Date or Firestore Timestamp
+  fileSize: number | null;
+  mimeType: string | null;
+  storagePath?: string;
 }
 
 export type DocumentChecklistStatus = 'notStarted' | 'inProgress' | 'completed';
@@ -232,7 +239,10 @@ export interface DocumentChecklistItem {
     type: DocumentType | string;
     required: boolean;
     status: DocumentChecklistStatus;
-    fileRef?: string; // Path in Firebase Storage or ID of doc in /documents
+    fileRef?: string; // ID of doc in /documents
+    fileUrl?: string | null;
+    fileSize?: number | null;
+    mimeType?: string | null;
     notes?: string;
     updatedAt: any; // Firestore Timestamp
     updatedBy: string; // user.uid

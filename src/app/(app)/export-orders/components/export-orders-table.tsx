@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import type { ExportOrder, IceGateStatusUpdate } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, FileText } from 'lucide-react';
 
 
 interface ExportOrdersTableProps {
@@ -68,13 +69,13 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-stone-50/50">
             <TableHead>Title</TableHead>
-            <TableHead>Destination</TableHead>
             <TableHead>Value</TableHead>
+            <TableHead>Docs</TableHead>
             <TableHead>Stage</TableHead>
             <TableHead>ICEGATE Status</TableHead>
             <TableHead>Created At</TableHead>
@@ -83,23 +84,37 @@ export function ExportOrdersTable({ data, onDelete, onEdit }: ExportOrdersTableP
         </TableHeader>
         <TableBody>
           {data.map((order) => (
-            <TableRow key={order.id} className="group">
-              <TableCell className="font-medium text-stone-900">{order.title}</TableCell>
-              <TableCell>{order.destinationCountry}</TableCell>
-              <TableCell>{order.currency || 'USD'} {order.totalValue.toLocaleString()}</TableCell>
+            <TableRow key={order.id} className="group hover:bg-stone-50/50 transition-colors">
+              <TableCell className="font-semibold text-stone-900">{order.title}</TableCell>
+              <TableCell className="font-medium text-stone-600">
+                  {order.currency || 'USD'} {order.totalValue.toLocaleString()}
+              </TableCell>
               <TableCell>
-                <Badge variant="outline" className={cn("capitalize", stageColors[order.stage])}>
+                  <div className="flex items-center gap-1.5">
+                      <FileText className={cn("h-3.5 w-3.5", (order.docsCompleted || 0) > 0 ? "text-emerald-600" : "text-stone-300")} />
+                      <span className={cn(
+                          "text-xs font-bold px-2 py-0.5 rounded-full border",
+                          (order.docsCompleted || 0) === (order.docsTotal || 8) 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                            : "bg-stone-50 text-stone-600 border-stone-100"
+                      )}>
+                          {order.docsCompleted || 0}/{order.docsTotal || 8}
+                      </span>
+                  </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className={cn("capitalize font-bold rounded-lg px-2 py-0.5", stageColors[order.stage])}>
                     {stageLabels[order.stage] || order.stage}
                 </Badge>
               </TableCell>
               <TableCell>
                 {order.iceGateStatus ? (
-                  <Badge variant="outline" className={cn("capitalize", iceGateStatusColors[order.iceGateStatus])}>
+                  <Badge variant="outline" className={cn("capitalize font-semibold", iceGateStatusColors[order.iceGateStatus])}>
                       {order.iceGateStatus}
                   </Badge>
-                ) : <span className="text-stone-400">N/A</span>}
+                ) : <span className="text-stone-400 text-xs">—</span>}
               </TableCell>
-              <TableCell>{format(toDate(order.createdAt), 'PP')}</TableCell>
+              <TableCell className="text-stone-500 text-xs">{format(toDate(order.createdAt), 'PP')}</TableCell>
               <TableCell className="text-right">
                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end space-x-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8 p-0 rounded-lg hover:bg-stone-100" onClick={() => onEdit(order.id!)}>
