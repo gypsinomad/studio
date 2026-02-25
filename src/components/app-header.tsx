@@ -1,18 +1,17 @@
-
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
 import type { User, Notification } from '@/lib/types';
 import { AiUsageIndicator } from './ai-usage-indicator';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { signOut } from 'firebase/auth';
 import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { useAISettings } from '@/hooks/use-ai-settings';
 import { PWAInstallButton } from './pwa-install-button';
-import { Bell, Check } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +22,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { collection, query, where, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 function NotificationsPanel({ userId }: { userId: string }) {
   const firestore = useFirestore();
