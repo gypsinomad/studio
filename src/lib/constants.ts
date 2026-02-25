@@ -1,4 +1,3 @@
-
 import {
   LayoutDashboard,
   Sprout,
@@ -17,6 +16,7 @@ import {
   Building2,
   MessageSquare,
   Sparkles,
+  Calendar,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -29,6 +29,11 @@ export const NAV_ITEMS = [
     title: 'Workspace',
     href: '/chat',
     icon: MessageSquare,
+  },
+  {
+    title: 'Calendar',
+    href: '/calendar',
+    icon: Calendar,
   },
   {
     title: 'Dashboard',

@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -68,6 +67,18 @@
         "readAt": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "fireAt": { "type": "string", "format": "date-time" },
+        "linkedId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -93,6 +104,10 @@
     "/notifications/{notificationId}": {
       "schema": { "$ref": "#/backend/entities/Notification" },
       "description": "User notifications"
+    },
+    "/reminders/{reminderId}": {
+      "schema": { "$ref": "#/backend/entities/Reminder" },
+      "description": "Personal reminders"
     },
     "/leads/{leadId}": {
       "schema": { "type": "object" },

@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -62,6 +61,16 @@ export interface Notification {
   body: string;
   relatedId?: string;
   readAt?: any;
+  createdAt: any;
+}
+
+export interface Reminder {
+  id?: string;
+  userId: string;
+  title: string;
+  description?: string;
+  fireAt: any;
+  linkedId?: string;
   createdAt: any;
 }
 
