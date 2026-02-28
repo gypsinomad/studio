@@ -196,11 +196,6 @@ export const useUser = (): UserHookResult => {
 
 // ─── useMemoFirebase ──────────────────────────────────────────────────────────
 
-/**
- * Like useMemo, but attaches a non-enumerable __memo debug marker to
- * object results so internal tooling can detect memoized Firebase values.
- * The return type is always T — the marker is invisible to consumers.
- */
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const memoized = useMemo(factory, deps);
 

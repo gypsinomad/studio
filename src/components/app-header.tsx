@@ -11,7 +11,7 @@ import { signOut } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase';
 import { useAISettings } from '@/hooks/use-ai-settings';
 import { PWAInstallButton } from './pwa-install-button';
-import { Bell } from 'lucide-react';
+import { Bell, FileCheck, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -29,8 +29,7 @@ import { useProtectedCollection } from '@/hooks/use-protected-collection';
 function NotificationsPanel({ isAdmin }: { isAdmin: boolean }) {
   const firestore = useFirestore();
   
-  // Use the protected pattern to ensure we only query when UID is ready.
-  // This satisfies the security rules mandatory userId filter.
+  // GOLDEN PATTERN: Use useProtectedCollection to ensure UID exists before query fires
   const { data: notifications, isLoading } = useProtectedCollection<Notification>(
     'notifications',
     (db, uid) => query(
@@ -88,7 +87,7 @@ function NotificationsPanel({ isAdmin }: { isAdmin: boolean }) {
                 </div>
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{n.message}</p>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  {n.createdAt ? formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true }) : ''}
+                  {n.createdAt && n.createdAt.toDate ? formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true }) : ''}
                 </span>
               </DropdownMenuItem>
             ))

@@ -35,30 +35,19 @@ service cloud.firestore {
     // ─── NOTIFICATIONS ────────────────────────────────────────────────────────
 
     match /notifications/{notificationId} {
-      // Any authenticated user can create a notification for others
-      allow create: if isSignedIn() && request.resource.data.userId != null;
-      
-      // Individual documents can be read/deleted by owner or admin
-      allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      
-      // List requests: non-admins MUST filter by their own userId. 
-      // Admins can list everything.
-      allow list: if isSignedIn() && (request.query.filters.userId == request.auth.uid || isAdmin());
-      
-      // Updates are owner/admin only and must not change ownership
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin())
-                    && (request.resource.data.userId == resource.data.userId);
+      allow create:         if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow get:            if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list:           if isQueryByCurrentUser() || isAdmin();
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // ─── REMINDERS ────────────────────────────────────────────────────────────
 
     match /reminders/{reminderId} {
-      allow create:        if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow get:           if isOwner(resource.data) || isAdmin();
-      allow list:          if isSignedIn() && (request.query.filters.userId == request.auth.uid || isAdmin());
-      allow update:        if (isOwner(resource.data) || isAdmin()) &&
-                              request.resource.data.userId == resource.data.userId;
-      allow delete:        if isOwner(resource.data) || isAdmin();
+      allow create:         if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow get:            if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list:           if isQueryByCurrentUser() || isAdmin();
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // ─── CONVERSATIONS ────────────────────────────────────────────────────────
