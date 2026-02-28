@@ -4,11 +4,11 @@ import { UserNav } from '@/components/user-nav';
 import type { User, Notification } from '@/lib/types';
 import { AiUsageIndicator } from './ai-usage-indicator';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { signOut } from 'firebase/auth';
-import { useAuth, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useAISettings } from '@/hooks/use-ai-settings';
 import { PWAInstallButton } from './pwa-install-button';
 import { Bell } from 'lucide-react';
@@ -24,25 +24,23 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { collection, query, where, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
+import { useProtectedCollection } from '@/hooks/use-protected-collection';
 
 function NotificationsPanel({ isAdmin }: { isAdmin: boolean }) {
   const firestore = useFirestore();
-  const { user } = useUser();
   
-  const q = useMemoFirebase(() => {
-    // CRITICAL: We only create the query if the user is authenticated.
-    // The security rules REQUIRE the 'userId' filter for non-admin list operations.
-    if (!firestore || !user?.uid) return null;
-    
-    return query(
-      collection(firestore, 'notifications'),
-      where('userId', '==', user.uid),
+  // Use the protected pattern to ensure we only query when UID is ready.
+  // This satisfies the security rules mandatory userId filter.
+  const { data: notifications, isLoading } = useProtectedCollection<Notification>(
+    'notifications',
+    (db, uid) => query(
+      collection(db, 'notifications'),
+      where('userId', '==', uid),
       orderBy('createdAt', 'desc'),
       limit(5)
-    );
-  }, [firestore, user?.uid]);
+    )
+  );
 
-  const { data: notifications, isLoading } = useCollection<Notification>(q);
   const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 
   const markAsRead = async (id: string) => {

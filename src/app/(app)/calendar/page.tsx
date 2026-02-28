@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -26,6 +25,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday
 import type { Meeting, Task, ExportOrder, Reminder } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useProtectedCollection } from '@/hooks/use-protected-collection';
 
 type EventType = 'meeting' | 'task' | 'milestone' | 'reminder';
 
@@ -57,7 +57,7 @@ export default function TeamCalendarPage() {
   const firestore = useFirestore();
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Queries
+  // Public/Shared Queries
   const meetingsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'meetings'), limit(50));
@@ -73,20 +73,20 @@ export default function TeamCalendarPage() {
     return query(collection(firestore, 'exportOrders'), limit(50));
   }, [firestore]);
 
-  const remindersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // Filter by userId to match rules
-    return query(
-      collection(firestore, 'reminders'), 
-      where('userId', '==', user.uid),
+  // Protected Query: Reminders require userId filter to match rules.
+  // Using useProtectedCollection ensures we only listen when UID is ready.
+  const { data: reminders } = useProtectedCollection<Reminder>(
+    'reminders',
+    (db, uid) => query(
+      collection(db, 'reminders'), 
+      where('userId', '==', uid),
       limit(50)
-    );
-  }, [firestore, user]);
+    )
+  );
 
   const { data: meetings } = useCollection<Meeting>(meetingsQuery);
   const { data: tasks } = useCollection<Task>(tasksQuery);
   const { data: orders } = useCollection<ExportOrder>(ordersQuery);
-  const { data: reminders } = useCollection<Reminder>(remindersQuery);
 
   const toDate = (ts: any) => {
     if (!ts) return new Date();
