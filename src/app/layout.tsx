@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { DebugMonitor } from '@/components/debug/debug-monitor';
+import { FirestoreErrorBoundary } from '@/components/FirestoreErrorBoundary';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -34,11 +35,13 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="https://picsum.photos/seed/spice/180/180" />
       </head>
       <body className="font-body antialiased bg-background h-full overflow-hidden" suppressHydrationWarning>
-        <FirebaseClientProvider>
-            {children}
-            <Toaster />
-            <DebugMonitor />
-        </FirebaseClientProvider>
+        <FirestoreErrorBoundary>
+          <FirebaseClientProvider>
+              {children}
+              <Toaster />
+              <DebugMonitor />
+          </FirebaseClientProvider>
+        </FirestoreErrorBoundary>
       </body>
     </html>
   );

@@ -26,10 +26,11 @@ import { collection, query, where, orderBy, limit, updateDoc, doc } from 'fireba
 import { formatDistanceToNow } from 'date-fns';
 import { useProtectedCollection } from '@/hooks/use-protected-collection';
 
-function NotificationsPanel({ isAdmin }: { isAdmin: boolean }) {
+function NotificationsPanel() {
   const firestore = useFirestore();
   
-  // GOLDEN PATTERN: Use useProtectedCollection to ensure UID exists before query fires
+  // GOLDEN PATTERN: Use useProtectedCollection to ensure UID exists and filter is applied before listener starts.
+  // This is the definitive fix for the "list /notifications" permission error.
   const { data: notifications, isLoading } = useProtectedCollection<Notification>(
     'notifications',
     (db, uid) => query(
@@ -139,7 +140,7 @@ export function AppHeader() {
     return (
       <div className="flex items-center gap-4">
         <PWAInstallButton />
-        <NotificationsPanel isAdmin={isAdmin} />
+        <NotificationsPanel />
         {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
         <div className="h-8 w-[1px] bg-slate-200 hidden sm:block mx-2" />
         <UserNav user={mergedUser as User} />
