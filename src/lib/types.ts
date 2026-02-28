@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {

@@ -1,13 +1,15 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- AUTH HELPERS ---
-    function isSignedIn() { return request.auth != null; }
-    
-    function isAdmin() { 
+
+    // ─── AUTH HELPERS ─────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
       return isSignedIn() && (
         request.auth.token.admin == true ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -19,65 +21,113 @@ service cloud.firestore {
       return isSignedIn() && data.userId == request.auth.uid;
     }
 
-    // --- MODULES ---
+    function isQueryByCurrentUser() {
+      return isSignedIn() && request.query.filters.userId == request.auth.uid;
+    }
+
+    // ─── USERS ────────────────────────────────────────────────────────────────
 
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
     }
 
+    // ─── NOTIFICATIONS ────────────────────────────────────────────────────────
+
     match /notifications/{notificationId} {
-      // Allow create only if assigning to self (matches user query intent)
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Any authenticated user can create a notification for others
+      allow create: if isSignedIn() && request.resource.data.userId != null;
       
-      // Allow read (get + list) if authenticated and the owner of the document
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Individual documents can be read/deleted by owner or admin
+      allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Allow update and delete only by the owner or admin
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // List requests must be explicitly filtered by userId to satisfy the rule engine
+      allow list: if isQueryByCurrentUser() || isAdmin();
+      
+      // Updates are owner/admin only and must not change ownership
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin())
+                    && (request.resource.data.userId == resource.data.userId);
     }
+
+    // ─── REMINDERS ────────────────────────────────────────────────────────────
 
     match /reminders/{reminderId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow get, delete: if isOwner(resource.data) || isAdmin();
-      
-      // Explicit list proof
-      allow list: if isOwner(resource.data);
-      allow list: if isAdmin();
-      
-      allow update: if (isOwner(resource.data) || isAdmin()) && 
-                    request.resource.data.userId == resource.data.userId;
+      allow create:        if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow get:           if isOwner(resource.data) || isAdmin();
+      allow list:          if isQueryByCurrentUser() || isAdmin();
+      allow update:        if (isOwner(resource.data) || isAdmin()) &&
+                              request.resource.data.userId == resource.data.userId;
+      allow delete:        if isOwner(resource.data) || isAdmin();
     }
 
+    // ─── CONVERSATIONS ────────────────────────────────────────────────────────
+
     match /conversations/{conversationId} {
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || resource.data.type == 'channel' || isAdmin());
+      allow get:    if isSignedIn() && (
+                      request.auth.uid in resource.data.participants ||
+                      resource.data.type == 'channel' ||
+                      isAdmin()
+                    );
+      allow list:   if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn();
 
       match /messages/{messageId} {
-        allow read: if isSignedIn();
+        allow read:   if isSignedIn();
         allow create: if isSignedIn();
       }
     }
+
+    // ─── TASKS ────────────────────────────────────────────────────────────────
 
     match /tasks/{taskId} {
       allow read, write: if isSignedIn();
     }
 
+    // ─── MEETINGS ─────────────────────────────────────────────────────────────
+
     match /meetings/{meetingId} {
       allow read, write: if isSignedIn();
     }
 
-    match /leads/{leadId} { allow read, write: if isSignedIn(); }
-    match /exportOrders/{orderId} { allow read, write: if isSignedIn(); }
-    match /activity_logs/{logId} { allow read, create: if isSignedIn(); }
-    
-    match /settings/{docId} { 
-      allow read: if isSignedIn() && (docId != 'organization' || isAdmin());
-      allow write: if isAdmin(); 
+    // ─── LEADS ────────────────────────────────────────────────────────────────
+
+    match /leads/{leadId} {
+      allow read, write: if isSignedIn();
     }
-    
-    match /usageStats/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /documents/{docId} { allow read, create: if isSignedIn(); allow update, delete: if isSignedIn() && (isAdmin() || resource.data.status != 'finalized'); }
+
+    // ─── EXPORT ORDERS ────────────────────────────────────────────────────────
+
+    match /exportOrders/{orderId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // ─── ACTIVITY LOGS ────────────────────────────────────────────────────────
+
+    match /activity_logs/{logId} {
+      allow read, create: if isSignedIn();
+    }
+
+    // ─── SETTINGS ─────────────────────────────────────────────────────────────
+
+    match /settings/{docId} {
+      allow read:  if isSignedIn() && (docId != 'organization' || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ─── USAGE STATS ──────────────────────────────────────────────────────────
+
+    match /usageStats/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ─── DOCUMENTS ────────────────────────────────────────────────────────────
+
+    match /documents/{docId} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isAdmin() || resource.data.status != 'finalized');
+    }
+
   }
 }

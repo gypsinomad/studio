@@ -1,4 +1,3 @@
-
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
@@ -29,11 +28,10 @@ import { formatDistanceToNow } from 'date-fns';
 function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: boolean }) {
   const firestore = useFirestore();
   
-  // MANDATORY: The query must explicitly include the filter that matches security rules
   const q = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
     
-    // This query is designed to align with the 'resource.data.userId == request.auth.uid' rule.
+    // Explicitly filtering by userId to satisfy the 'isQueryByCurrentUser' rule
     return query(
       collection(firestore, 'notifications'),
       where('userId', '==', userId),
@@ -42,10 +40,9 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
     );
   }, [firestore, userId]);
 
-  // Diagnostic Log for Debugging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && userId) {
-      console.log(`[Notifications] Starting listener for userId: ${userId}`);
+      console.log(`[Notifications] Subscribing to trade alerts for UID: ${userId}`);
     }
   }, [userId]);
 
@@ -54,7 +51,11 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
 
   const markAsRead = async (id: string) => {
     if (!firestore) return;
-    updateDoc(doc(firestore, 'notifications', id), { isRead: true });
+    try {
+      await updateDoc(doc(firestore, 'notifications', id), { isRead: true });
+    } catch (e) {
+      console.error("[Notifications] Failed to mark as read:", e);
+    }
   };
 
   return (
@@ -69,7 +70,7 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl border-none shadow-2xl overflow-hidden">
         <DropdownMenuLabel className="p-4 bg-slate-50 border-b flex items-center justify-between">
-          <span className="font-bold text-slate-900">Notifications</span>
+          <span className="font-bold text-slate-900">Trade Alerts</span>
           <Badge className="bg-indigo-100 text-indigo-700 border-none">{unreadCount} New</Badge>
         </DropdownMenuLabel>
         <div className="max-h-96 overflow-y-auto">
@@ -79,7 +80,7 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
               <Skeleton className="h-12 w-full rounded-lg" />
             </div>
           ) : !notifications || notifications.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 italic text-sm">No recent activity.</div>
+            <div className="p-8 text-center text-slate-400 italic text-sm">No recent alerts.</div>
           ) : (
             notifications.map(n => (
               <DropdownMenuItem 
@@ -100,7 +101,7 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
           )}
         </div>
         <DropdownMenuSeparator className="m-0" />
-        <Button variant="ghost" className="w-full rounded-none h-12 text-xs font-bold text-indigo-600 hover:bg-slate-50">View All Updates</Button>
+        <Button variant="ghost" className="w-full rounded-none h-12 text-xs font-bold text-indigo-600 hover:bg-slate-50">View All Notifications</Button>
       </DropdownMenuContent>
     </DropdownMenu>
   );
