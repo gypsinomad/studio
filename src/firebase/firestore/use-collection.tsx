@@ -40,11 +40,10 @@ export interface InternalQuery extends Query<DocumentData> {
 /**
  * GOLDEN STANDARD: React hook to subscribe to a Firestore collection or query in real-time.
  * 
- * Features:
- * 1. Terminal Error Hardening: Blocks re-subscription on permission failures.
- * 2. Lifecycle Logging: Streams starts, stops, and errors to Debug Monitor.
- * 3. Race Condition Protection: Ensures only the latest listener is active.
- * 4. Assertion Protection: Prevents SDK "Unexpected State" errors by stopping streams immediately on error.
+ * Layer 1 Hardening: 
+ * 1. Null Query Guard: Never fires without a query.
+ * 2. Terminal Error Protection: Blocks recursive re-subscriptions on permission denial.
+ * 3. Synchronous Shutdown: Stops listener immediately on error to prevent SDK ID: ca9 failures.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -59,6 +58,7 @@ export function useCollection<T = any>(
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
   useEffect(() => {
+    // LAYER 1 GUARD: Exit immediately if the query is null or undefined
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -70,66 +70,80 @@ export function useCollection<T = any>(
       ? (memoizedTargetRefOrQuery as CollectionReference).path
       : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
 
-    // GUARD: If this query instance is blocked due to rules violation, skip subscription
+    // GUARD: Block re-subscription if this query instance encountered a terminal rules failure.
     if (lastFailedQueryRef.current === currentQueryId) {
-      debugLogger.log('FIRESTORE', `Skipping blocked listener (Terminal Error): ${currentQueryId}`, 'warn');
+      debugLogger.log('FIRESTORE', `Subscription blocked (Terminal Rules Violation): ${currentQueryId}`, 'warn');
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    debugLogger.log('FIRESTORE', `Starting listener: ${currentQueryId}`, 'debug');
+    debugLogger.log('FIRESTORE', `Establishing listener: ${currentQueryId}`, 'debug');
 
-    // Use a local variable to capture the unsubscribe function immediately
-    const unsubscribe = onSnapshot(
-      memoizedTargetRefOrQuery,
-      (snapshot: QuerySnapshot<DocumentData>) => {
-        const results: ResultItemType[] = [];
-        snapshot.docs.forEach(doc => {
-          results.push({ ...(doc.data() as T), id: doc.id });
-        });
-        setData(results);
-        setError(null);
-        setIsLoading(false);
-        lastFailedQueryRef.current = null; // Success resets terminal state
-      },
-      (firestoreError: FirestoreError) => {
-        // Stop the listener IMMEDIATELY to prevent SDK internal assertion errors (ca9)
-        // the unsubscribe function is returned by onSnapshot synchronously.
-        if (unsubscribe) unsubscribe();
-        
-        // TERMINAL FAILURE: Block further re-subscriptions for this instance
-        lastFailedQueryRef.current = currentQueryId;
-        
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path: currentQueryId,
-        });
+    /**
+     * CRITICAL: Immediate Synchronous Unsubscription.
+     * We capture the unsubscribe function synchronously. If an error occurs 
+     * immediately (common with locally cached metadata/rules), we must stop the 
+     * listener before the React cycle finishes to avoid SDK state mismatch.
+     */
+    let localUnsubscribe: Unsubscribe | undefined;
 
-        debugLogger.log('FIRESTORE', `Terminal listener failure (Permission Denied): ${currentQueryId}`, 'error', firestoreError);
-        
-        setError(contextualError);
-        setData(null);
-        setIsLoading(false);
+    const onNext = (snapshot: QuerySnapshot<DocumentData>) => {
+      const results: ResultItemType[] = [];
+      snapshot.docs.forEach(doc => {
+        results.push({ ...(doc.data() as T), id: doc.id });
+      });
+      setData(results);
+      setError(null);
+      setIsLoading(false);
+      lastFailedQueryRef.current = null; // Success resets the failure state
+    };
 
-        // Notify Global Debug Monitor
-        errorEmitter.emit('permission-error', contextualError);
+    const onError = (firestoreError: FirestoreError) => {
+      // STOP THE LISTENER IMMEDIATELY
+      if (localUnsubscribe) {
+        localUnsubscribe();
+      } else if (unsubscribeRef.current) {
+        unsubscribeRef.current();
       }
-    );
+      
+      // MARK AS TERMINAL: Prevent infinite re-subscription loops
+      lastFailedQueryRef.current = currentQueryId;
+      
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: currentQueryId,
+      });
 
-    unsubscribeRef.current = unsubscribe;
+      debugLogger.log('FIRESTORE', `Listener terminated due to permission denial: ${currentQueryId}`, 'error', firestoreError);
+      
+      setError(contextualError);
+      setData(null);
+      setIsLoading(false);
+
+      // Notify the global error listener
+      errorEmitter.emit('permission-error', contextualError);
+    };
+
+    try {
+      localUnsubscribe = onSnapshot(memoizedTargetRefOrQuery, onNext, onError);
+      unsubscribeRef.current = localUnsubscribe;
+    } catch (e) {
+      console.error("[useCollection] Synchronous error during onSnapshot:", e);
+      setIsLoading(false);
+    }
 
     return () => {
       if (unsubscribeRef.current) {
-        debugLogger.log('FIRESTORE', `Stopping listener: ${currentQueryId}`, 'debug');
+        debugLogger.log('FIRESTORE', `Cleaning up listener: ${currentQueryId}`, 'debug');
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
     };
   }, [memoizedTargetRefOrQuery]);
 
-  // BLUEPRINT ENFORCEMENT: All queries passed to this hook MUST be memoized
+  // BLUEPRINT ENFORCEMENT: All Firestore queries MUST be properly memoized
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error('BLUEPRINT VIOLATION: Firestore query must be properly memoized using useMemoFirebase to prevent infinite render loops.');
   }

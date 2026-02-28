@@ -29,7 +29,7 @@ export interface UseDocResult<T> {
 
 /**
  * React hook to subscribe to a single Firestore document in real-time.
- * Includes "Terminal Error" hardening to prevent internal assertion failed loops.
+ * Layer 1 Hardening: Null DocRef Guard & SDK state protection.
  */
 export function useDoc<T = any>(
   memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
@@ -45,6 +45,7 @@ export function useDoc<T = any>(
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
   useEffect(() => {
+    // LAYER 1: STRICT NULL GUARD
     if (!memoizedDocRef) {
       setData(null);
       setIsLoading(false);
@@ -62,46 +63,56 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    debugLogger.log('FIRESTORE', `Starting doc listener: ${path}`, 'debug');
+    debugLogger.log('FIRESTORE', `Establishing doc listener: ${path}`, 'debug');
 
-    const unsubscribe = onSnapshot(
-      memoizedDocRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
-        } else {
-          setData(null);
-        }
-        setError(null);
-        setIsLoading(false);
-        lastFailedPathRef.current = null;
-      },
-      (firestoreError: FirestoreError) => {
-        // Stop listener immediately on failure to prevent assertion loops
-        if (unsubscribe) unsubscribe();
-        
-        lastFailedPathRef.current = path;
-        
-        const contextualError = new FirestorePermissionError({
-          operation: 'get',
-          path: path,
-        });
+    let localUnsubscribe: Unsubscribe | undefined;
 
-        debugLogger.log('FIRESTORE', `Terminal doc failure: ${path}`, 'error', firestoreError);
-
-        setError(contextualError);
+    const onNext = (snapshot: DocumentSnapshot<DocumentData>) => {
+      if (snapshot.exists()) {
+        setData({ ...(snapshot.data() as T), id: snapshot.id });
+      } else {
         setData(null);
-        setIsLoading(false);
-
-        errorEmitter.emit('permission-error', contextualError);
       }
-    );
+      setError(null);
+      setIsLoading(false);
+      lastFailedPathRef.current = null;
+    };
 
-    unsubscribeRef.current = unsubscribe;
+    const onError = (firestoreError: FirestoreError) => {
+      // STOP IMMEDIATELY
+      if (localUnsubscribe) {
+        localUnsubscribe();
+      } else if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+      
+      lastFailedPathRef.current = path;
+      
+      const contextualError = new FirestorePermissionError({
+        operation: 'get',
+        path: path,
+      });
+
+      debugLogger.log('FIRESTORE', `Terminal doc failure: ${path}`, 'error', firestoreError);
+
+      setError(contextualError);
+      setData(null);
+      setIsLoading(false);
+
+      errorEmitter.emit('permission-error', contextualError);
+    };
+
+    try {
+      localUnsubscribe = onSnapshot(memoizedDocRef, onNext, onError);
+      unsubscribeRef.current = localUnsubscribe;
+    } catch (e) {
+      console.error("[useDoc] Synchronous error during onSnapshot:", e);
+      setIsLoading(false);
+    }
 
     return () => {
       if (unsubscribeRef.current) {
-        debugLogger.log('FIRESTORE', `Stopping doc listener: ${path}`, 'debug');
+        debugLogger.log('FIRESTORE', `Cleaning up doc listener: ${path}`, 'debug');
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
