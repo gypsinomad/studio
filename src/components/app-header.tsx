@@ -1,4 +1,3 @@
-
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
@@ -34,8 +33,6 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
     if (!firestore || !userId) return null;
     
     // For normal users, we MUST filter by userId to satisfy security rules
-    // For admins, we could technically fetch everything, but standard practice 
-    // for this panel is to still show personal alerts.
     return query(
       collection(firestore, 'notifications'),
       where('userId', '==', userId),
