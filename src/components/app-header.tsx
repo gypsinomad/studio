@@ -33,8 +33,7 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
   const q = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
     
-    // For normal users, we MUST filter by userId to satisfy security rules
-    // This query structure is designed to align with the 'resource.data.userId == request.auth.uid' rule.
+    // This query is designed to align with the 'resource.data.userId == request.auth.uid' rule.
     return query(
       collection(firestore, 'notifications'),
       where('userId', '==', userId),
@@ -46,16 +45,16 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
   // Diagnostic Log for Debugging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && userId) {
-      console.log(`[Notifications] Starting listener for userId: ${userId} (Role: ${isAdmin ? 'Admin' : 'Staff'})`);
+      console.log(`[Notifications] Starting listener for userId: ${userId}`);
     }
-  }, [userId, isAdmin]);
+  }, [userId]);
 
   const { data: notifications, isLoading } = useCollection<Notification>(q);
-  const unreadCount = notifications?.filter(n => !n.readAt).length || 0;
+  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 
   const markAsRead = async (id: string) => {
     if (!firestore) return;
-    updateDoc(doc(firestore, 'notifications', id), { readAt: new Date() });
+    updateDoc(doc(firestore, 'notifications', id), { isRead: true });
   };
 
   return (
@@ -85,14 +84,14 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
             notifications.map(n => (
               <DropdownMenuItem 
                 key={n.id} 
-                className={cn("p-4 flex flex-col items-start gap-1 cursor-pointer transition-colors", !n.readAt && "bg-indigo-50/50")}
+                className={cn("p-4 flex flex-col items-start gap-1 cursor-pointer transition-colors", !n.isRead && "bg-indigo-50/50")}
                 onClick={() => markAsRead(n.id!)}
               >
                 <div className="flex items-center justify-between w-full">
                   <span className="font-bold text-slate-900">{n.title}</span>
-                  {!n.readAt && <div className="size-2 rounded-full bg-indigo-500" />}
+                  {!n.isRead && <div className="size-2 rounded-full bg-indigo-500" />}
                 </div>
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{n.body}</p>
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{n.message}</p>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
                   {n.createdAt ? formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true }) : ''}
                 </span>

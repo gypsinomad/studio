@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'salesExecutive' | 'viewer';
 
 export interface User {
@@ -56,11 +57,10 @@ export interface Meeting {
 export interface Notification {
   id?: string;
   userId: string;
-  type: 'mention' | 'task' | 'meeting' | 'reminder';
   title: string;
-  body: string;
-  relatedId?: string;
-  readAt?: any;
+  message: string;
+  type: string;
+  isRead: boolean;
   createdAt: any;
 }
 
