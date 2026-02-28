@@ -34,6 +34,7 @@ function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: bool
     if (!firestore || !userId) return null;
     
     // For normal users, we MUST filter by userId to satisfy security rules
+    // This query structure is designed to align with the 'resource.data.userId == request.auth.uid' rule.
     return query(
       collection(firestore, 'notifications'),
       where('userId', '==', userId),

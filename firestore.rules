@@ -27,20 +27,14 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // 1. Create: Any authenticated staff can send notifications
-      allow create: if isSignedIn();
+      // Allow create if authenticated and setting self as owner (matching user requirement)
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
-      // 2. Read/Delete: Recipient or Admin only
-      allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Allow read (get + list) if authenticated and the owner of the document
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       
-      // EXPLICIT LIST PERMISSION FOR QUERY OPTIMIZATION
-      // Separating these allows the query engine to prove safety for per-user queries.
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isAdmin();
-      
-      // 3. Update: Read-receipts allowed, but recipient ID is immutable
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && 
-                    request.resource.data.userId == resource.data.userId;
+      // Allow update and delete only by the owner
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /reminders/{reminderId} {
