@@ -8,7 +8,7 @@ import { useMemo, useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { signOut } from 'firebase/auth';
-import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useAuth, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { useAISettings } from '@/hooks/use-ai-settings';
 import { PWAInstallButton } from './pwa-install-button';
 import { Bell } from 'lucide-react';
@@ -25,26 +25,22 @@ import {
 import { collection, query, where, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 
-function NotificationsPanel({ userId, isAdmin }: { userId: string, isAdmin: boolean }) {
+function NotificationsPanel({ isAdmin }: { isAdmin: boolean }) {
   const firestore = useFirestore();
+  const { user } = useUser();
   
   const q = useMemoFirebase(() => {
-    if (!firestore || !userId) return null;
+    // CRITICAL: We only create the query if the user is authenticated.
+    // The security rules REQUIRE the 'userId' filter for non-admin list operations.
+    if (!firestore || !user?.uid) return null;
     
-    // Explicitly filtering by userId to satisfy the 'isQueryByCurrentUser' rule
     return query(
       collection(firestore, 'notifications'),
-      where('userId', '==', userId),
+      where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(5)
     );
-  }, [firestore, userId]);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && userId) {
-      console.log(`[Notifications] Subscribing to trade alerts for UID: ${userId}`);
-    }
-  }, [userId]);
+  }, [firestore, user?.uid]);
 
   const { data: notifications, isLoading } = useCollection<Notification>(q);
   const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
@@ -146,7 +142,7 @@ export function AppHeader() {
     return (
       <div className="flex items-center gap-4">
         <PWAInstallButton />
-        <NotificationsPanel userId={mergedUser.authUid} isAdmin={isAdmin} />
+        <NotificationsPanel isAdmin={isAdmin} />
         {isAdmin && <AiUsageIndicator settings={settings} usage={usage} isLoading={isAiLoading} />}
         <div className="h-8 w-[1px] bg-slate-200 hidden sm:block mx-2" />
         <UserNav user={mergedUser as User} />
