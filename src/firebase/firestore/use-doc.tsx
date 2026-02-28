@@ -8,6 +8,7 @@ import {
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -41,6 +42,7 @@ export function useDoc<T = any>(
   
   // Track document path to prevent loops on terminal failures
   const lastFailedPathRef = useRef<string | null>(null);
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
   useEffect(() => {
     if (!memoizedDocRef) {
@@ -75,6 +77,9 @@ export function useDoc<T = any>(
         lastFailedPathRef.current = null;
       },
       (firestoreError: FirestoreError) => {
+        // Stop listener immediately on failure to prevent assertion loops
+        if (unsubscribe) unsubscribe();
+        
         lastFailedPathRef.current = path;
         
         const contextualError = new FirestorePermissionError({
@@ -92,9 +97,14 @@ export function useDoc<T = any>(
       }
     );
 
+    unsubscribeRef.current = unsubscribe;
+
     return () => {
-      debugLogger.log('FIRESTORE', `Stopping doc listener: ${path}`, 'debug');
-      unsubscribe();
+      if (unsubscribeRef.current) {
+        debugLogger.log('FIRESTORE', `Stopping doc listener: ${path}`, 'debug');
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
   }, [memoizedDocRef]);
 

@@ -9,6 +9,7 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -43,6 +44,7 @@ export interface InternalQuery extends Query<DocumentData> {
  * 1. Terminal Error Hardening: Blocks re-subscription on permission failures.
  * 2. Lifecycle Logging: Streams starts, stops, and errors to Debug Monitor.
  * 3. Race Condition Protection: Ensures only the latest listener is active.
+ * 4. Assertion Protection: Prevents SDK "Unexpected State" errors by stopping streams immediately on error.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -54,6 +56,7 @@ export function useCollection<T = any>(
   
   // Track terminal query failures to prevent recursive assertion loops in SDK
   const lastFailedQueryRef = useRef<string | null>(null);
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -78,6 +81,7 @@ export function useCollection<T = any>(
     setError(null);
     debugLogger.log('FIRESTORE', `Starting listener: ${currentQueryId}`, 'debug');
 
+    // Use a local variable to capture the unsubscribe function immediately
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -90,7 +94,11 @@ export function useCollection<T = any>(
         setIsLoading(false);
         lastFailedQueryRef.current = null; // Success resets terminal state
       },
-      async (firestoreError: FirestoreError) => {
+      (firestoreError: FirestoreError) => {
+        // Stop the listener IMMEDIATELY to prevent SDK internal assertion errors (ca9)
+        // the unsubscribe function is returned by onSnapshot synchronously.
+        if (unsubscribe) unsubscribe();
+        
         // TERMINAL FAILURE: Block further re-subscriptions for this instance
         lastFailedQueryRef.current = currentQueryId;
         
@@ -110,9 +118,14 @@ export function useCollection<T = any>(
       }
     );
 
+    unsubscribeRef.current = unsubscribe;
+
     return () => {
-      debugLogger.log('FIRESTORE', `Stopping listener: ${currentQueryId}`, 'debug');
-      unsubscribe();
+      if (unsubscribeRef.current) {
+        debugLogger.log('FIRESTORE', `Stopping listener: ${currentQueryId}`, 'debug');
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
   }, [memoizedTargetRefOrQuery]);
 
