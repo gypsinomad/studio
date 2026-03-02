@@ -23,25 +23,31 @@ service cloud.firestore {
       return request.query.filters.userId == request.auth.uid;
     }
 
-    // Default: Authenticated staff can read/write everything not explicitly restricted
+    // Default catch-all: Authenticated staff can read/write everything not explicitly restricted below
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
 
-    // Strict Notifications Rules: Ownership enforced for all operations
+    // Notifications Rules: Optimized for query-based list permissions
     match /notifications/{notificationId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (isQueryByCurrentUser() || isAdmin());
+      
+      // Split list rules ensure the query planner can verify safety without document-level lookups
+      allow list: if isSignedIn() && isQueryByCurrentUser();
+      allow list: if isAdmin();
+
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) 
                     && request.resource.data.userId == resource.data.userId;
     }
 
-    // Strict Reminders Rules
+    // Reminders Rules: Same pattern as notifications
     match /reminders/{reminderId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow get, update, delete: if isOwner(resource.data.userId) || isAdmin();
-      allow list: if isSignedIn() && (isQueryByCurrentUser() || isAdmin());
+      allow get, update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow list: if isSignedIn() && isQueryByCurrentUser();
+      allow list: if isAdmin();
     }
   }
 }
