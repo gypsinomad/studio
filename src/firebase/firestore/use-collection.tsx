@@ -34,7 +34,7 @@ export interface InternalQuery extends Query<DocumentData> {
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Layer 1 Hardening: 
- * 1. Absolute Null Guard: Never fires if query is null. (Emergency Crash Protection)
+ * 1. Absolute Null Guard: Never fires if query is null.
  * 2. Synchronous Unsubscribe: Prevents SDK ca9 errors on permission denial.
  */
 export function useCollection<T = any>(

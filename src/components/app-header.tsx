@@ -29,8 +29,8 @@ import { useProtectedCollection } from '@/hooks/use-protected-collection';
 function NotificationsPanel() {
   const firestore = useFirestore();
   
-  // GOLDEN PATTERN: Use useProtectedCollection to ensure UID exists and filter is applied before listener starts.
-  // This is the definitive fix for the "list /notifications" permission error.
+  // Use useProtectedCollection to ensure UID exists and filter is applied before listener starts.
+  // This satisfies the isQueryByCurrentUser() security rule constraint.
   const { data: notifications, isLoading } = useProtectedCollection<Notification>(
     'notifications',
     (db, uid) => query(

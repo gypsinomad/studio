@@ -18,23 +18,30 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Helper for list queries: verifies that the query includes a filter for the current user's ID
+    function isQueryByCurrentUser() {
+      return request.query.filters.userId == request.auth.uid;
+    }
+
     // Default: Authenticated staff can read/write everything not explicitly restricted
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
 
-    // Strict Notifications Rules
+    // Strict Notifications Rules: Ownership enforced for all operations
     match /notifications/{notificationId} {
-      allow create: if isSignedIn();
-      allow get, list, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow get, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (isQueryByCurrentUser() || isAdmin());
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) 
                     && request.resource.data.userId == resource.data.userId;
     }
 
     // Strict Reminders Rules
     match /reminders/{reminderId} {
-      allow create: if isSignedIn();
-      allow get, list, update, delete: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow get, update, delete: if isOwner(resource.data.userId) || isAdmin();
+      allow list: if isSignedIn() && (isQueryByCurrentUser() || isAdmin());
     }
   }
 }
