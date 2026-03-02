@@ -11,11 +11,12 @@ import React, {
   useRef,
 } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, collection, query, where, limit, orderBy } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { debugLogger } from '@/lib/debug-logger';
+import { useCollection } from './firestore/use-collection';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +129,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     return () => unsubscribe();
   }, [auth]);
+
+  // Global "Rogue Listener" Fix: Ensure any global data pre-fetching is safe.
+  // We explicitly do NOT perform notifications listing here to avoid permission denials 
+  // before the user's role is fully verified. Feature components handle their own data.
 
   const contextValue = useMemo((): FirebaseContextState => {
     const areServicesAvailable = !!(firebaseApp && firestore && auth && storage);
