@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { signOut } from 'firebase/auth';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser, useCollection } from '@/firebase';
 import { useAISettings } from '@/hooks/use-ai-settings';
 import { PWAInstallButton } from './pwa-install-button';
 import { Bell, FileCheck, FileText } from 'lucide-react';
@@ -28,18 +28,19 @@ import { useProtectedCollection } from '@/hooks/use-protected-collection';
 
 function NotificationsPanel() {
   const firestore = useFirestore();
-  
-  // Use useProtectedCollection to ensure UID exists and filter is applied before listener starts.
-  // This satisfies the isQueryByCurrentUser() security rule constraint.
-  const { data: notifications, isLoading } = useProtectedCollection<Notification>(
-    'notifications',
-    (db, uid) => query(
-      collection(db, 'notifications'),
-      where('userId', '==', uid),
+  const { user, isUserLoading } = useUser();
+
+  const notificationsQuery = useMemo(() => {
+    if (isUserLoading || !user?.uid || !firestore) return null;
+    return query(
+      collection(firestore, 'notifications'),
+      where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
-      limit(5)
-    )
-  );
+      limit(5),
+    );
+  }, [firestore, user, isUserLoading]);
+
+  const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
 
   const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 

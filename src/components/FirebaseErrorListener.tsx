@@ -15,7 +15,20 @@ export function FirebaseErrorListener() {
   useEffect(() => {
     // The callback now expects a strongly-typed error, matching the event payload.
     const handleError = (error: FirestorePermissionError) => {
-      // Set error in state to trigger a re-render.
+      // Only escalate truly critical internal failures into Recovery Mode.
+      const message = error.message || '';
+      const name = error.name || '';
+
+      const isInternalFailure =
+        message.includes('INTERNAL ASSERTION FAILED') ||
+        name === 'FirebaseError' && message.includes('internal');
+
+      if (!isInternalFailure) {
+        console.error('[FirebaseErrorListener] Non-critical Firestore permission error suppressed:', error);
+        return;
+      }
+
+      // Set error in state to trigger a re-render for critical errors only.
       setError(error);
     };
 

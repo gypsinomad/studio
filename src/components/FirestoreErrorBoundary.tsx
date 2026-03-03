@@ -23,6 +23,19 @@ export class FirestoreErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    const message = error.message || '';
+    const name = error.name || '';
+
+    const isCriticalInternalFailure =
+      message.includes('INTERNAL ASSERTION FAILED') ||
+      name === 'FirebaseError' && message.toLowerCase().includes('internal');
+
+    // Only enter Recovery Mode for critical internal failures or unexpected non-Firebase errors.
+    if (!isCriticalInternalFailure && name === 'FirebaseError') {
+      console.error('[FirestoreErrorBoundary] Non-critical Firebase error suppressed:', error);
+      return { hasError: false, error: null };
+    }
+
     return { hasError: true, error };
   }
 

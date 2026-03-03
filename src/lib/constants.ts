@@ -128,3 +128,8 @@ export const DEFAULT_DOCUMENT_CHECKLIST = [
   { type: 'insuranceCertificate', required: false, status: 'notStarted' },
   { type: 'shippingBill', required: true, status: 'notStarted' },
 ];
+export const PAYMENT_TERMS = [];
+export const CATEGORIES = [];
+export const SUBCATEGORIES = [];
+export const HSN_CODES = [];
+export const CONTAINER_TYPES = [];

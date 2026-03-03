@@ -7,7 +7,6 @@ import {
   DocumentData,
   FirestoreError,
   QuerySnapshot,
-  CollectionReference,
   Unsubscribe,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -22,15 +21,6 @@ export interface UseCollectionResult<T> {
   error: FirestoreError | Error | null;
 }
 
-export interface InternalQuery extends Query<DocumentData> {
-  _query: {
-    path: {
-      canonicalString(): string;
-      toString(): string;
-    }
-  }
-}
-
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Layer 1 Hardening: 
@@ -38,7 +28,7 @@ export interface InternalQuery extends Query<DocumentData> {
  * 2. Synchronous Unsubscribe: Prevents SDK ca9 errors on permission denial.
  */
 export function useCollection<T = any>(
-    memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    queryRef: Query<DocumentData> | null,
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   const [data, setData] = useState<ResultItemType[] | null>(null);
@@ -50,16 +40,14 @@ export function useCollection<T = any>(
 
   useEffect(() => {
     // CRITICAL: LAYER 1 HARDENING - ABSOLUTE NULL GUARD
-    if (!memoizedTargetRefOrQuery) {
+    if (!queryRef) {
       setData(null);
       setIsLoading(false);
       setError(null);
       return;
     }
 
-    const currentQueryId = memoizedTargetRefOrQuery.type === 'collection'
-      ? (memoizedTargetRefOrQuery as CollectionReference).path
-      : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+    const currentQueryId = '[query]';
 
     // Prevent recursive crash on terminal permission denial
     if (lastFailedQueryRef.current === currentQueryId) {
@@ -99,11 +87,20 @@ export function useCollection<T = any>(
       setData(null);
       setIsLoading(false);
 
+      // For permission-related issues, log but do NOT trigger global Recovery Mode.
+      if (
+        firestoreError.code === 'permission-denied' ||
+        firestoreError.message.includes('Missing or insufficient permissions')
+      ) {
+        console.error('[useCollection] Permission error while subscribing to collection:', firestoreError);
+        return;
+      }
+
       errorEmitter.emit('permission-error', contextualError);
     };
 
     try {
-      localUnsubscribe = onSnapshot(memoizedTargetRefOrQuery, onNext, onError);
+      localUnsubscribe = onSnapshot(queryRef, onNext, onError);
       unsubscribeRef.current = localUnsubscribe;
     } catch (e) {
       console.error("[useCollection] Synchronous error during setup:", e);
@@ -116,11 +113,7 @@ export function useCollection<T = any>(
         unsubscribeRef.current = null;
       }
     };
-  }, [memoizedTargetRefOrQuery]);
+  }, [queryRef]);
 
-  if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error('BLUEPRINT VIOLATION: Firestore query must be properly memoized using useMemoFirebase to prevent infinite render loops.');
-  }
-  
   return { data, isLoading, error };
 }
