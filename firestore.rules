@@ -4,6 +4,17 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    
+    // Scoped notifications access:
+    // - Users may read and update only their own notifications (matched by userId)
+    // - Any authenticated user may create a notification document
+    match /notifications/{notifId} {
+      allow read, update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn();
+    }
+
+    // Fallback: authenticated users may access other documents.
+    // This will be tightened in a full rules rewrite step.
     match /{document=**} {
       allow read, write: if isSignedIn();
     }

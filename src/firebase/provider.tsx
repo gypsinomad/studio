@@ -11,11 +11,13 @@ import React, {
   useRef,
 } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { debugLogger } from '@/lib/debug-logger';
+import type { User as CRMUser, UserRole } from '@/lib/types';
+import { useDoc } from './firestore/use-doc';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,14 @@ export interface FirebaseContextState extends UserAuthState {
   firestore: Firestore | null;
   auth: Auth | null;
   storage: FirebaseStorage | null;
+  userProfile: CRMUser | null;
+  isUserProfileLoading: boolean;
+  userProfileError: Error | null;
+  isCreatingProfile: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  role: UserRole | null;
+  canCreate: boolean;
 }
 
 export interface FirebaseServicesAndUser extends UserAuthState {
@@ -47,9 +57,26 @@ export interface FirebaseServicesAndUser extends UserAuthState {
   firestore: Firestore;
   auth: Auth;
   storage: FirebaseStorage;
+  userProfile: CRMUser | null;
+  isUserProfileLoading: boolean;
+  userProfileError: Error | null;
+  isCreatingProfile: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  role: UserRole | null;
+  canCreate: boolean;
 }
 
-export type UserHookResult = UserAuthState;
+export interface UserHookResult extends UserAuthState {
+  userProfile: CRMUser | null;
+  isUserProfileLoading: boolean;
+  userProfileError: Error | null;
+  isCreatingProfile: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  role: UserRole | null;
+  canCreate: boolean;
+}
 
 // ─── Initial States ───────────────────────────────────────────────────────────
 
@@ -79,6 +106,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   storage,
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>(INITIAL_AUTH_STATE);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -129,6 +157,69 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     return () => unsubscribe();
   }, [auth]);
 
+  // ─── User Profile Listener (single users/{uid} doc subscription) ─────────────
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !userAuthState.user) return null;
+    return doc(firestore, 'users', userAuthState.user.uid);
+  }, [firestore, userAuthState.user]);
+
+  const {
+    data: userProfile,
+    isLoading: userProfileLoading,
+    error: userProfileError,
+  } = useDoc<CRMUser>(userDocRef);
+
+  useEffect(() => {
+    const shouldCreateProfile =
+      !userAuthState.isUserLoading &&
+      !!userAuthState.user &&
+      !userProfileLoading &&
+      !userProfile &&
+      !isCreatingProfile;
+
+    if (!shouldCreateProfile || !userDocRef) return;
+
+    const createProfile = async () => {
+      setIsCreatingProfile(true);
+      try {
+        const firebaseUser = userAuthState.user!;
+        const initialRole: UserRole = 'admin';
+
+        const newUserProfileData: Omit<CRMUser, 'id'> = {
+          authUid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || 'New User',
+          role: initialRole,
+          isActive: true,
+          createdAt: serverTimestamp(),
+          avatarUrl: firebaseUser.photoURL || undefined,
+        };
+
+        await setDoc(userDocRef, newUserProfileData);
+      } catch (error) {
+        console.error('[FirebaseProvider] Failed to create user profile:', error);
+      } finally {
+        setIsCreatingProfile(false);
+      }
+    };
+
+    createProfile();
+  }, [
+    userAuthState.isUserLoading,
+    userAuthState.user,
+    userProfileLoading,
+    userProfile,
+    isCreatingProfile,
+    userDocRef,
+  ]);
+
+  const isProfileBusy = userProfileLoading || isCreatingProfile;
+  const isAuthenticated = !!userAuthState.user && !userAuthState.isUserLoading;
+  const isAdmin = isAuthenticated;
+  const role: UserRole | null = userProfile?.role ?? (isAuthenticated ? 'admin' : null);
+  const canCreate = isAuthenticated;
+
   const contextValue = useMemo((): FirebaseContextState => {
     const areServicesAvailable = !!(firebaseApp && firestore && auth && storage);
     return {
@@ -138,8 +229,30 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth: areServicesAvailable ? auth : null,
       storage: areServicesAvailable ? storage : null,
       ...userAuthState,
+      userProfile,
+      isUserProfileLoading: isProfileBusy,
+      userProfileError,
+      isCreatingProfile,
+      isAuthenticated,
+      isAdmin,
+      role,
+      canCreate,
     };
-  }, [firebaseApp, firestore, auth, storage, userAuthState]);
+  }, [
+    firebaseApp,
+    firestore,
+    auth,
+    storage,
+    userAuthState,
+    userProfile,
+    isProfileBusy,
+    userProfileError,
+    isCreatingProfile,
+    isAuthenticated,
+    isAdmin,
+    role,
+    canCreate,
+  ]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -177,6 +290,14 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     idToken: context.idToken,
     isUserLoading: context.isUserLoading,
     userError: context.userError,
+    userProfile: context.userProfile,
+    isUserProfileLoading: context.isUserProfileLoading,
+    userProfileError: context.userProfileError,
+    isCreatingProfile: context.isCreatingProfile,
+    isAuthenticated: context.isAuthenticated,
+    isAdmin: context.isAdmin,
+    role: context.role,
+    canCreate: context.canCreate,
   };
 };
 
@@ -190,8 +311,35 @@ export const useFirebaseApp = (): FirebaseApp => useFirebase().firebaseApp;
 // ─── User Hook ────────────────────────────────────────────────────────────────
 
 export const useUser = (): UserHookResult => {
-  const { user, idToken, isUserLoading, userError } = useFirebase();
-  return { user, idToken, isUserLoading, userError };
+  const {
+    user,
+    idToken,
+    isUserLoading,
+    userError,
+    userProfile,
+    isUserProfileLoading,
+    userProfileError,
+    isCreatingProfile,
+    isAuthenticated,
+    isAdmin,
+    role,
+    canCreate,
+  } = useFirebase();
+
+  return {
+    user,
+    idToken,
+    isUserLoading,
+    userError,
+    userProfile,
+    isUserProfileLoading,
+    userProfileError,
+    isCreatingProfile,
+    isAuthenticated,
+    isAdmin,
+    role,
+    canCreate,
+  };
 };
 
 // ─── useMemoFirebase ──────────────────────────────────────────────────────────
