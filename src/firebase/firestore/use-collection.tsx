@@ -47,7 +47,11 @@ export function useCollection<T = any>(
       return;
     }
 
-    const currentQueryId = '[query]';
+    const currentQueryId =
+    (queryRef as any)?._query?.path?.canonicalString?.() ??
+    queryRef?.toString() ??
+    'unknown-query';
+  
 
     // Prevent recursive crash on terminal permission denial
     if (lastFailedQueryRef.current === currentQueryId) {
