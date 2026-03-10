@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  trailingSlash: true,
   images: {
     remotePatterns: [
       {
