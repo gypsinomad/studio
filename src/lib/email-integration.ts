@@ -73,7 +73,7 @@ Please find attached our detailed proposal for {{productName}}.
 
 Key highlights:
 - Quantity: {{quantity}} {{unit}}
-- Price: ${{unitPrice}} per {{unit}}
+- Price: ${{price}} per {{unit}}
 - Delivery: {{deliveryTime}}
 - Payment Terms: {{paymentTerms}}
 
@@ -81,7 +81,7 @@ Please review and let us know if you have any questions.
 
 Best regards,
 {{senderName}}`,
-    variables: ['firstName', 'productName', 'quantity', 'unit', 'unitPrice', 'deliveryTime', 'paymentTerms', 'senderName'],
+    variables: ['firstName', 'productName', 'quantity', 'unit', 'price', 'deliveryTime', 'paymentTerms', 'senderName'],
     category: 'proposal'
   }
 ];

@@ -10,6 +10,9 @@ interface SearchResult {
   description: string;
   url: string;
   score: number;
+  email?: string;
+  companyName?: string;
+  fullName?: string;
 }
 
 export const useGlobalSearch = (data: any[]) => {
@@ -52,7 +55,10 @@ export const useGlobalSearch = (data: any[]) => {
         title: result.item.title || result.item.fullName || result.item.companyName || 'Unknown',
         description: result.item.description || result.item.email || result.item.phone || '',
         url: getResultUrl(result.item),
-        score: result.score || 0
+        score: result.score || 0,
+        email: result.item.email,
+        companyName: result.item.companyName,
+        fullName: result.item.fullName
       }));
 
       setResults(searchResults.slice(0, 10)); // Limit to 10 results

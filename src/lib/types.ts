@@ -9,7 +9,8 @@ export interface User {
   isActive: boolean;
   createdAt: any;
   avatarUrl?: string;
-  orgId?: string;
+  orgId: string;
+  uid: string;
 }
 
 export type ConversationType = 'channel' | 'shipment' | 'customer' | 'direct';

@@ -7,6 +7,7 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, DollarSign, Users, Package, ArrowUpRight } from 'lucide-react';
+import { useMemo } from 'react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF6B6B', '#8B5CF6', '#FF9500'];
 

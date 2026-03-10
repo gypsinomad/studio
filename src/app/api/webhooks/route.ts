@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeFirebase } from '@/firebase';
+import { firestore } from '@/lib/firebase-server';
 import { workflowEngine } from '@/lib/workflow-automation';
-
-const { firestore } = initializeFirebase();
 
 export async function POST(request: NextRequest) {
   try {
