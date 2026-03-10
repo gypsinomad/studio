@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,8 +33,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useUser } from '@/firebase';
 import { toast } from 'sonner';
 
 // Form validation schema
@@ -69,7 +72,23 @@ const CONTACT_TAGS = [
 ];
 
 const Contacts: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,11 +116,11 @@ const Contacts: React.FC = () => {
 
   // Fetch contacts
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'contacts'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'contacts'),
+      where('orgId', '==', orgId),
       orderBy('name', 'asc')
     );
 
@@ -120,22 +139,22 @@ const Contacts: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Form submission
   const onSubmit = async (data: ContactFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const contactData = {
         ...data,
-        orgId: user.orgId,
-        createdBy: user.uid,
+        orgId: orgId,
+        createdBy: user?.uid || '',
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'contacts'), contactData);
+      await addDoc(collection(firestore, 'contacts'), contactData);
       toast.success('Contact created successfully');
       setShowAddDialog(false);
       form.reset();
@@ -768,3 +787,12 @@ const Contacts: React.FC = () => {
 };
 
 export default Contacts;
+
+
+
+
+
+
+
+
+

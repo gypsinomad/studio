@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,8 +37,8 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { toast } from 'sonner';
 
 // Form validation schemas
@@ -153,7 +157,23 @@ const LANGUAGES = [
 ];
 
 const SettingsOrg: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -207,11 +227,11 @@ const SettingsOrg: React.FC = () => {
 
   // Fetch organization data
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchOrganization = async () => {
       try {
-        const orgDoc = await getDoc(doc(db, 'orgs', user.orgId));
+        const orgDoc = await getDoc(doc(firestore, 'orgs', user.orgId));
         if (orgDoc.exists()) {
           const orgData = orgDoc.data() as Organization;
           setOrganization(orgData);
@@ -264,15 +284,15 @@ const SettingsOrg: React.FC = () => {
     };
 
     fetchOrganization();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Save organization info
   const saveOrgInfo = async (data: OrgInfoData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'orgs', user.orgId), {
+      await updateDoc(doc(firestore, 'orgs', user.orgId), {
         ...data,
         updatedAt: new Date()
       });
@@ -287,11 +307,11 @@ const SettingsOrg: React.FC = () => {
 
   // Save preferences
   const savePreferences = async (data: PreferencesData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'orgs', user.orgId), {
+      await updateDoc(doc(firestore, 'orgs', user.orgId), {
         'settings': {
           ...organization?.settings,
           ...data
@@ -309,11 +329,11 @@ const SettingsOrg: React.FC = () => {
 
   // Save security settings
   const saveSecurity = async (data: SecurityData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'orgs', user.orgId), {
+      await updateDoc(doc(firestore, 'orgs', user.orgId), {
         'settings': {
           ...organization?.settings,
           ...data
@@ -1060,3 +1080,13 @@ const SettingsOrg: React.FC = () => {
 };
 
 export default SettingsOrg;
+
+
+
+
+
+
+
+
+
+

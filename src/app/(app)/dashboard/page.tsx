@@ -65,8 +65,8 @@ export default function DashboardPage() {
             const leadsCollection = collection(firestore, 'leads');
             const ordersCollection = collection(firestore, 'exportOrders');
 
-            let leadsQuery = query(leadsCollection);
-            let ordersQuery = query(ordersCollection);
+            const leadsQuery = query(leadsCollection);
+            const ordersQuery = query(ordersCollection);
             
             const [leadsSnapshot, ordersSnapshot] = await Promise.all([
                 getDocs(leadsQuery),

@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,8 +36,8 @@ import {
   Activity
 } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { toast } from 'sonner';
@@ -78,7 +82,23 @@ const DATE_RANGES = [
 const FORMATS = ['PDF', 'Excel', 'CSV'];
 
 const ExportReports: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [reportData, setReportData] = useState<ReportData>({
@@ -106,7 +126,7 @@ const ExportReports: React.FC = () => {
 
   // Fetch report data
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchReportData = async () => {
       try {
@@ -115,7 +135,7 @@ const ExportReports: React.FC = () => {
         
         // Fetch orders
         const ordersQuery = query(
-          collection(db, 'exportOrders'),
+          collection(firestore, 'exportOrders'),
           where('orgId', '==', user.orgId),
           where('createdAt', '>=', startDate),
           orderBy('createdAt', 'desc'),
@@ -129,7 +149,7 @@ const ExportReports: React.FC = () => {
 
         // Fetch leads
         const leadsQuery = query(
-          collection(db, 'leads'),
+          collection(firestore, 'leads'),
           where('orgId', '==', user.orgId),
           where('createdAt', '>=', startDate),
           orderBy('createdAt', 'desc'),
@@ -143,7 +163,7 @@ const ExportReports: React.FC = () => {
 
         // Fetch customers
         const customersQuery = query(
-          collection(db, 'companies'),
+          collection(firestore, 'companies'),
           where('orgId', '==', user.orgId),
           orderBy('createdAt', 'desc'),
           limit(100)
@@ -156,7 +176,7 @@ const ExportReports: React.FC = () => {
 
         // Fetch payments
         const paymentsQuery = query(
-          collection(db, 'payments'),
+          collection(firestore, 'payments'),
           where('orgId', '==', user.orgId),
           where('createdAt', '>=', startDate),
           orderBy('createdAt', 'desc'),
@@ -186,7 +206,7 @@ const ExportReports: React.FC = () => {
     };
 
     fetchReportData();
-  }, [user?.orgId, dateRange]);
+  }, [orgId, dateRange]);
 
   // Prepare chart data
   const prepareChartData = (orders: any[], leads: any[], payments: any[]) => {
@@ -728,3 +748,13 @@ const ExportReports: React.FC = () => {
 };
 
 export default ExportReports;
+
+
+
+
+
+
+
+
+
+

@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,8 +31,8 @@ import {
   X
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -86,8 +90,25 @@ const UNITS = [
   'Liters', 'Gallons', 'Meters', 'Feet', 'Square Meters', 'Cubic Meters'
 ];
 
-const ExportItems: React.FC = () => {
-  const { user } = useAuth();
+
+  const ExportItems: React.FC = () => {
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,11 +141,11 @@ const ExportItems: React.FC = () => {
 
   // Fetch items
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'items'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'items'),
+      where('orgId', '==', orgId),
       orderBy('name', 'asc')
     );
 
@@ -138,22 +159,22 @@ const ExportItems: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Form submission
   const onSubmit = async (data: ItemFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const itemData = {
         ...data,
-        orgId: user.orgId,
+        orgId: orgId,
         createdBy: user.uid,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'items'), itemData);
+      await addDoc(collection(firestore, 'items'), itemData);
       toast.success('Item created successfully');
       setShowAddDialog(false);
       form.reset();
@@ -165,10 +186,10 @@ const ExportItems: React.FC = () => {
 
   // Edit item submission
   const onEditSubmit = async (data: ItemFormData) => {
-    if (!user?.orgId || !editingItem) return;
+    if (!orgId || !editingItem) return;
 
     try {
-      await updateDoc(doc(db, 'items', editingItem.id), {
+      await updateDoc(doc(firestore, 'items', editingItem.id), {
         ...data,
         updatedAt: new Date()
       });
@@ -184,7 +205,7 @@ const ExportItems: React.FC = () => {
   // Delete item
   const deleteItem = async (itemId: string) => {
     try {
-      await deleteDoc(doc(db, 'items', itemId));
+      await deleteDoc(doc(firestore, 'items', itemId));
       toast.success('Item deleted successfully');
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -206,7 +227,7 @@ const ExportItems: React.FC = () => {
     const value = editValues[itemId + '-' + field];
     
     try {
-      await updateDoc(doc(db, 'items', itemId), {
+      await updateDoc(doc(firestore, 'items', itemId), {
         [field]: value,
         updatedAt: new Date()
       });
@@ -240,7 +261,7 @@ const ExportItems: React.FC = () => {
 
   const getMargin = (unitPrice: number, costPrice: number) => {
     if (costPrice === 0) return 0;
-    return ((unitPrice - costPrice) / costPrice * 100).toFixed(1);
+    return (unitPrice - costPrice) / costPrice * 100;
   };
 
   const getStockStatus = (stock?: number, reorder?: number) => {
@@ -744,11 +765,11 @@ const ExportItems: React.FC = () => {
                       </td>
                       <td className="p-4">
                         <span className={`font-medium ${
-                          parseFloat(getMargin(item.unitPrice, item.costPrice)) >= 20 ? 'text-green-600' :
-                          parseFloat(getMargin(item.unitPrice, item.costPrice)) >= 10 ? 'text-yellow-600' :
+                          getMargin(item.unitPrice, item.costPrice) >= 20 ? 'text-green-600' :
+                          getMargin(item.unitPrice, item.costPrice) >= 10 ? 'text-yellow-600' :
                           'text-red-600'
                         }`}>
-                          {getMargin(item.unitPrice, item.costPrice)}%
+                          {getMargin(item.unitPrice, item.costPrice).toFixed(1)}%
                         </span>
                       </td>
                       <td className="p-4">
@@ -855,3 +876,13 @@ const ExportItems: React.FC = () => {
 };
 
 export default ExportItems;
+
+
+
+
+
+
+
+
+
+

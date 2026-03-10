@@ -13,6 +13,13 @@ interface UseCurrentUserResult {
   isAdmin: boolean;
   role: UserRole | null;
   canCreate: boolean;
+  profileCreationError: Error | null;
+  // Additional granular permissions
+  canManageUsers: boolean;
+  canManageCustomers: boolean;
+  canManageLeads: boolean;
+  canManageDocuments: boolean;
+  canViewReports: boolean;
 }
 
 export function useCurrentUser(): UseCurrentUserResult {
@@ -26,12 +33,18 @@ export function useCurrentUser(): UseCurrentUserResult {
     isAdmin,
     role,
     canCreate,
+    profileCreationError,
+    canManageUsers,
+    canManageCustomers,
+    canManageLeads,
+    canManageDocuments,
+    canViewReports,
   } = useUser();
 
   const isLoading = isUserLoading || isUserProfileLoading;
 
   return {
-    user: user as FirebaseUser | null,
+    user,
     idToken,
     userProfile,
     isLoading,
@@ -39,5 +52,11 @@ export function useCurrentUser(): UseCurrentUserResult {
     isAdmin,
     role,
     canCreate,
+    profileCreationError,
+    canManageUsers,
+    canManageCustomers,
+    canManageLeads,
+    canManageDocuments,
+    canViewReports,
   };
 }

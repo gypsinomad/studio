@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,8 +27,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -85,7 +89,23 @@ interface Payment {
 }
 
 const ExportDocsOverview: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -95,13 +115,13 @@ const ExportDocsOverview: React.FC = () => {
 
   // Fetch data
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchData = async () => {
       try {
         // Fetch recent orders
         const ordersQuery = query(
-          collection(db, 'exportOrders'),
+          collection(firestore, 'exportOrders'),
           where('orgId', '==', user.orgId),
           orderBy('createdAt', 'desc'),
           limit(50)
@@ -120,7 +140,7 @@ const ExportDocsOverview: React.FC = () => {
 
         // Fetch recent documents
         const documentsQuery = query(
-          collection(db, 'documents'),
+          collection(firestore, 'documents'),
           where('orgId', '==', user.orgId),
           orderBy('createdAt', 'desc'),
           limit(20)
@@ -137,7 +157,7 @@ const ExportDocsOverview: React.FC = () => {
 
         // Fetch recent payments
         const paymentsQuery = query(
-          collection(db, 'payments'),
+          collection(firestore, 'payments'),
           where('orgId', '==', user.orgId),
           orderBy('dueDate', 'desc'),
           limit(20)
@@ -192,7 +212,7 @@ const ExportDocsOverview: React.FC = () => {
     };
 
     fetchData();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Calculate KPIs
   const totalOrders = orders.length;
@@ -520,3 +540,14 @@ const ExportDocsOverview: React.FC = () => {
 };
 
 export default ExportDocsOverview;
+
+
+
+
+
+
+
+
+
+
+

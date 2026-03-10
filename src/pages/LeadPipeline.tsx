@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { 
   DndContext, 
@@ -27,8 +31,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, GripVertical, Building, Phone, Mail, Calendar, DollarSign, User } from 'lucide-react';
 import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -353,7 +357,23 @@ const PipelineColumn: React.FC<{
 };
 
 const LeadPipeline: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -372,11 +392,11 @@ const LeadPipeline: React.FC = () => {
 
   // Fetch leads
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'leads'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'leads'),
+      where('orgId', '==', orgId),
       where('status', 'in', PIPELINE_COLUMNS)
     );
 
@@ -390,7 +410,7 @@ const LeadPipeline: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Group leads by status
   const leadsByStatus = PIPELINE_COLUMNS.reduce((acc, status) => {
@@ -410,7 +430,7 @@ const LeadPipeline: React.FC = () => {
     if (!PIPELINE_COLUMNS.includes(newStatus)) return;
 
     try {
-      await updateDoc(doc(db, 'leads', leadId), {
+      await updateDoc(doc(firestore, 'leads', leadId), {
         status: newStatus,
         updatedAt: new Date()
       });
@@ -418,8 +438,8 @@ const LeadPipeline: React.FC = () => {
       toast.success(`Lead moved to ${newStatus}`);
       
       // Log activity
-      await addDoc(collection(db, 'activity_logs'), {
-        orgId: user?.orgId,
+      await addDoc(collection(firestore, 'activity_logs'), {
+        orgId: orgId,
         type: 'lead_status_changed',
         message: `Lead status changed to ${newStatus}`,
         userId: user?.uid,
@@ -667,3 +687,13 @@ const LeadPipeline: React.FC = () => {
 };
 
 export default LeadPipeline;
+
+
+
+
+
+
+
+
+
+

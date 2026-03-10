@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,8 +39,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -140,7 +143,23 @@ interface Contact {
 }
 
 const Customers: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -169,11 +188,11 @@ const Customers: React.FC = () => {
 
   // Fetch customers
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'companies'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'companies'),
+      where('orgId', '==', orgId),
       orderBy('companyName', 'asc')
     );
 
@@ -187,18 +206,18 @@ const Customers: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Fetch customer details when selected
   useEffect(() => {
-    if (!selectedCustomer || !user?.orgId) return;
+    if (!selectedCustomer || !orgId) return;
 
     const fetchCustomerDetails = async () => {
       try {
         // Fetch orders for this customer
         const ordersQuery = query(
-          collection(db, 'exportOrders'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'exportOrders'),
+          where('orgId', '==', orgId),
           where('buyer.companyName', '==', selectedCustomer.companyName),
           orderBy('createdAt', 'desc')
         );
@@ -214,8 +233,8 @@ const Customers: React.FC = () => {
 
         // Fetch contacts for this customer
         const contactsQuery = query(
-          collection(db, 'contacts'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'contacts'),
+          where('orgId', '==', orgId),
           where('company', '==', selectedCustomer.companyName)
         );
         const contactsSnapshot = await getDocs(contactsQuery);
@@ -231,23 +250,23 @@ const Customers: React.FC = () => {
     };
 
     fetchCustomerDetails();
-  }, [selectedCustomer, user?.orgId]);
+  }, [selectedCustomer, orgId]);
 
   // Form submission
   const onSubmit = async (data: CustomerFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const customerData = {
         ...data,
         creditLimit: data.creditLimit ? parseFloat(data.creditLimit) : undefined,
-        orgId: user.orgId,
+        orgId: orgId,
         createdBy: user.uid,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'companies'), customerData);
+      await addDoc(collection(firestore, 'companies'), customerData);
       toast.success('Customer created successfully');
       setShowAddDialog(false);
       form.reset();
@@ -277,7 +296,7 @@ const Customers: React.FC = () => {
             country: values[2] || '',
             website: values[3] || '',
             industry: values[4] || '',
-            orgId: user?.orgId,
+            orgId: orgId,
             createdBy: user?.uid,
             createdAt: new Date(),
             updatedAt: new Date()
@@ -287,7 +306,7 @@ const Customers: React.FC = () => {
 
       // Batch import
       for (const customer of customersToImport) {
-        await addDoc(collection(db, 'companies'), customer);
+        await addDoc(collection(firestore, 'companies'), customer);
       }
 
       toast.success(`Successfully imported ${customersToImport.length} customers`);
@@ -926,3 +945,13 @@ const Customers: React.FC = () => {
 };
 
 export default Customers;
+
+
+
+
+
+
+
+
+
+

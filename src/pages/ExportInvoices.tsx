@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,8 +33,8 @@ import {
   Mail
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -83,7 +87,23 @@ const INVOICE_STATUSES = ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled'];
 const TAX_RATE = 0.1; // 10% tax rate
 
 const ExportInvoices: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,11 +128,11 @@ const ExportInvoices: React.FC = () => {
 
   // Fetch invoices and orders
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchInvoices = onSnapshot(
       query(
-        collection(db, 'invoices'),
+        collection(firestore, 'invoices'),
         where('orgId', '==', user.orgId),
         orderBy('createdAt', 'desc')
       ),
@@ -129,7 +149,7 @@ const ExportInvoices: React.FC = () => {
     const fetchOrders = async () => {
       try {
         const ordersQuery = query(
-          collection(db, 'exportOrders'),
+          collection(firestore, 'exportOrders'),
           where('orgId', '==', user.orgId),
           orderBy('createdAt', 'desc')
         );
@@ -151,7 +171,7 @@ const ExportInvoices: React.FC = () => {
     fetchOrders();
 
     return () => fetchInvoices();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Generate invoice number
   const generateInvoiceNumber = () => {
@@ -164,7 +184,7 @@ const ExportInvoices: React.FC = () => {
 
   // Form submission
   const onSubmit = async (data: InvoiceFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const selectedOrder = orders.find(order => order.id === data.orderId);
@@ -190,7 +210,7 @@ const ExportInvoices: React.FC = () => {
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'invoices'), invoiceData);
+      await addDoc(collection(firestore, 'invoices'), invoiceData);
       toast.success('Invoice created successfully');
       setShowCreateDialog(false);
       form.reset();
@@ -225,7 +245,7 @@ const ExportInvoices: React.FC = () => {
   // Send invoice
   const sendInvoice = async (invoiceId: string) => {
     try {
-      await updateDoc(doc(db, 'invoices', invoiceId), {
+      await updateDoc(doc(firestore, 'invoices', invoiceId), {
         status: 'Sent',
         updatedAt: new Date()
       });
@@ -239,7 +259,7 @@ const ExportInvoices: React.FC = () => {
   // Mark as paid
   const markAsPaid = async (invoiceId: string) => {
     try {
-      await updateDoc(doc(db, 'invoices', invoiceId), {
+      await updateDoc(doc(firestore, 'invoices', invoiceId), {
         status: 'Paid',
         updatedAt: new Date()
       });
@@ -740,3 +760,13 @@ const ExportInvoices: React.FC = () => {
 };
 
 export default ExportInvoices;
+
+
+
+
+
+
+
+
+
+

@@ -5,6 +5,8 @@ import { FirebaseClientProvider } from '@/firebase';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { DebugMonitor } from '@/components/debug/debug-monitor';
 import { FirestoreErrorBoundary } from '@/components/FirestoreErrorBoundary';
+import { ThemeProvider } from '@/components/theme-provider';
+import { GlobalSearch, useGlobalSearchShortcut } from '@/components/global-search';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -16,6 +18,19 @@ const playfair = Playfair_Display({
   weight: ['400', '700'],
   variable: '--font-playfair',
 });
+
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const { open, setOpen } = useGlobalSearchShortcut();
+
+  return (
+    <>
+      {children}
+      <GlobalSearch open={open} onOpenChange={setOpen} />
+      <Toaster />
+      <DebugMonitor />
+    </>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -37,9 +52,14 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background h-full overflow-hidden" suppressHydrationWarning>
         <FirestoreErrorBoundary>
           <FirebaseClientProvider>
-              {children}
-              <Toaster />
-              <DebugMonitor />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <LayoutContent>{children}</LayoutContent>
+            </ThemeProvider>
           </FirebaseClientProvider>
         </FirestoreErrorBoundary>
       </body>

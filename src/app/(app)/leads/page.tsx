@@ -31,7 +31,7 @@ export default function LeadsPage() {
   const leadsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !user) return null;
     
-    let leadsCollectionRef = collection(firestore, 'leads');
+    const leadsCollectionRef = collection(firestore, 'leads');
     
     const filters = [];
     

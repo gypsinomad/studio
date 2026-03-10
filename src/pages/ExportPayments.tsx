@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,8 +37,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format, isPast, isToday, addDays } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -84,7 +88,23 @@ const PAYMENT_METHODS = [
 const PAYMENT_STATUSES = ['Pending', 'Paid', 'Overdue', 'Partial', 'Cancelled'];
 
 const ExportPayments: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [payments, setPayments] = useState<Payment[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,12 +129,12 @@ const ExportPayments: React.FC = () => {
 
   // Fetch payments and orders
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchPayments = onSnapshot(
       query(
-        collection(db, 'payments'),
-        where('orgId', '==', user.orgId),
+        collection(firestore, 'payments'),
+        where('orgId', '==', orgId),
         orderBy('dueDate', 'asc')
       ),
       (snapshot) => {
@@ -130,8 +150,8 @@ const ExportPayments: React.FC = () => {
     const fetchOrders = async () => {
       try {
         const ordersQuery = query(
-          collection(db, 'exportOrders'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'exportOrders'),
+          where('orgId', '==', orgId),
           orderBy('createdAt', 'desc')
         );
         const ordersSnapshot = await getDocs(ordersQuery);
@@ -151,11 +171,11 @@ const ExportPayments: React.FC = () => {
     fetchOrders();
 
     return () => fetchPayments();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Form submission
   const onSubmit = async (data: PaymentFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const selectedOrder = orders.find(order => order.id === data.orderId);
@@ -168,13 +188,13 @@ const ExportPayments: React.FC = () => {
         ...data,
         orderNumber: selectedOrder.orderNumber,
         buyerCompanyName: selectedOrder.buyerCompanyName,
-        orgId: user.orgId,
-        createdBy: user.uid,
+        orgId: orgId,
+        createdBy: user?.uid || '',
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'payments'), paymentData);
+      await addDoc(collection(firestore, 'payments'), paymentData);
       toast.success('Payment recorded successfully');
       setShowAddDialog(false);
       form.reset();
@@ -187,7 +207,7 @@ const ExportPayments: React.FC = () => {
   // Mark as paid
   const markAsPaid = async (paymentId: string, amount?: number) => {
     try {
-      await updateDoc(doc(db, 'payments', paymentId), {
+      await updateDoc(doc(firestore, 'payments', paymentId), {
         status: 'Paid',
         paidAmount: amount,
         transactionId: `TXN${Date.now()}`,
@@ -203,7 +223,7 @@ const ExportPayments: React.FC = () => {
   // Delete payment
   const deletePayment = async (paymentId: string) => {
     try {
-      await deleteDoc(doc(db, 'payments', paymentId));
+      await deleteDoc(doc(firestore, 'payments', paymentId));
       toast.success('Payment deleted successfully');
     } catch (error) {
       console.error('Error deleting payment:', error);
@@ -788,3 +808,13 @@ const ExportPayments: React.FC = () => {
 };
 
 export default ExportPayments;
+
+
+
+
+
+
+
+
+
+

@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,8 +33,7 @@ import {
   Filter
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -79,7 +82,23 @@ const DOCUMENT_TAGS = [
 const LINK_TYPES = ['Lead', 'Order', 'Contact', 'Company'];
 
 const Documents: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [documents, setDocuments] = useState<Document[]>([]);
   const [linkedRecords, setLinkedRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,11 +124,11 @@ const Documents: React.FC = () => {
 
   // Fetch documents
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'documents'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'documents'),
+      where('orgId', '==', orgId),
       orderBy('createdAt', 'desc')
     );
 
@@ -123,12 +142,12 @@ const Documents: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Fetch linked records based on type
   useEffect(() => {
     const linkedType = form.watch('linkedTo');
-    if (!linkedType || !user?.orgId) {
+    if (!linkedType || !orgId) {
       setLinkedRecords([]);
       return;
     }
@@ -154,8 +173,8 @@ const Documents: React.FC = () => {
         if (!collectionName) return;
 
         const q = query(
-          collection(db, collectionName),
-          where('orgId', '==', user.orgId),
+          collection(firestore, collectionName),
+          where('orgId', '==', orgId),
           orderBy('createdAt', 'desc'),
           limit(20)
         );
@@ -172,7 +191,7 @@ const Documents: React.FC = () => {
     };
 
     fetchLinkedRecords();
-  }, [form.watch('linkedTo'), user?.orgId]);
+  }, [form.watch('linkedTo'), orgId]);
 
   // File upload simulation
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,7 +210,7 @@ const Documents: React.FC = () => {
 
   // Form submission
   const onSubmit = async (data: DocumentFormData) => {
-    if (!user?.orgId || !selectedFile) {
+    if (!orgId || !selectedFile) {
       toast.error('Please select a file to upload');
       return;
     }
@@ -225,12 +244,12 @@ const Documents: React.FC = () => {
         fileType: selectedFile.type,
         fileUrl: `https://example.com/files/${selectedFile.name}`, // Mock URL
         uploadedBy: user.displayName || user.email || 'Unknown',
-        orgId: user.orgId,
+        orgId: orgId,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'documents'), documentData);
+      await addDoc(collection(firestore, 'documents'), documentData);
       
       toast.success('Document uploaded successfully');
       setShowAddDialog(false);
@@ -257,7 +276,7 @@ const Documents: React.FC = () => {
   // Delete document
   const deleteDocument = async (documentId: string) => {
     try {
-      await deleteDoc(doc(db, 'documents', documentId));
+      await deleteDoc(doc(firestore, 'documents', documentId));
       toast.success('Document deleted successfully');
     } catch (error) {
       console.error('Error deleting document:', error);
@@ -690,3 +709,12 @@ const Documents: React.FC = () => {
 };
 
 export default Documents;
+
+
+
+
+
+
+
+
+

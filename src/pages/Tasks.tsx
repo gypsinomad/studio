@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,8 +34,8 @@ import {
   Filter
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format, isPast, isToday, isTomorrow, addDays } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -70,7 +74,23 @@ const PRIORITIES = ['High', 'Medium', 'Low'];
 const LINK_TYPES = ['Lead', 'Order', 'Contact'];
 
 const Tasks: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,11 +115,11 @@ const Tasks: React.FC = () => {
 
   // Fetch tasks
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'tasks'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'tasks'),
+      where('orgId', '==', orgId),
       orderBy('createdAt', 'desc')
     );
 
@@ -113,12 +133,12 @@ const Tasks: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Fetch linked records based on type
   useEffect(() => {
     const linkedType = form.watch('linkedTo');
-    if (!linkedType || !user?.orgId) {
+    if (!linkedType || !orgId) {
       setLinkedRecords([]);
       return;
     }
@@ -141,8 +161,8 @@ const Tasks: React.FC = () => {
         if (!collectionName) return;
 
         const q = query(
-          collection(db, collectionName),
-          where('orgId', '==', user.orgId),
+          collection(firestore, collectionName),
+          where('orgId', '==', orgId),
           orderBy('createdAt', 'desc'),
           limit(20)
         );
@@ -159,22 +179,22 @@ const Tasks: React.FC = () => {
     };
 
     fetchLinkedRecords();
-  }, [form.watch('linkedTo'), user?.orgId]);
+  }, [form.watch('linkedTo'), orgId]);
 
   // Form submission
   const onSubmit = async (data: TaskFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const taskData = {
         ...data,
-        orgId: user.orgId,
-        createdBy: user.uid,
+        orgId: orgId,
+        createdBy: user?.uid || '',
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'tasks'), taskData);
+      await addDoc(collection(firestore, 'tasks'), taskData);
       toast.success('Task created successfully');
       setShowAddDialog(false);
       form.reset();
@@ -189,7 +209,7 @@ const Tasks: React.FC = () => {
     const newStatus = currentStatus === 'Done' ? 'In Progress' : 'Done';
     
     try {
-      await updateDoc(doc(db, 'tasks', taskId), {
+      await updateDoc(doc(firestore, 'tasks', taskId), {
         status: newStatus,
         updatedAt: new Date()
       });
@@ -691,3 +711,13 @@ const Tasks: React.FC = () => {
 };
 
 export default Tasks;
+
+
+
+
+
+
+
+
+
+

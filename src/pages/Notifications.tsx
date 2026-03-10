@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,8 +36,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { collection, query, where, getDocs, updateDoc, doc, orderBy, onSnapshot, limit, startAfter } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -80,7 +84,23 @@ const NOTIFICATION_TYPES = [
 ];
 
 const Notifications: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,7 +132,7 @@ const Notifications: React.FC = () => {
     const fetchNotifications = async (loadMore = false) => {
       try {
         let q = query(
-          collection(db, 'notifications'),
+          collection(firestore, 'notifications'),
           where('userId', '==', user.uid),
           orderBy('createdAt', 'desc'),
           limit(pageSize)
@@ -120,7 +140,7 @@ const Notifications: React.FC = () => {
 
         if (loadMore && lastVisible) {
           q = query(
-            collection(db, 'notifications'),
+            collection(firestore, 'notifications'),
             where('userId', '==', user.uid),
             orderBy('createdAt', 'desc'),
             startAfter(lastVisible),
@@ -153,7 +173,7 @@ const Notifications: React.FC = () => {
 
     // Set up real-time listener
     const q = query(
-      collection(db, 'notifications'),
+      collection(firestore, 'notifications'),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(pageSize)
@@ -187,7 +207,7 @@ const Notifications: React.FC = () => {
   // Mark as read
   const markAsRead = async (notificationId: string) => {
     try {
-      await updateDoc(doc(db, 'notifications', notificationId), {
+      await updateDoc(doc(firestore, 'notifications', notificationId), {
         isRead: true,
         readAt: new Date()
       });
@@ -201,7 +221,7 @@ const Notifications: React.FC = () => {
   // Mark as unread
   const markAsUnread = async (notificationId: string) => {
     try {
-      await updateDoc(doc(db, 'notifications', notificationId), {
+      await updateDoc(doc(firestore, 'notifications', notificationId), {
         isRead: false,
         readAt: null
       });
@@ -215,7 +235,7 @@ const Notifications: React.FC = () => {
   // Delete notification
   const deleteNotification = async (notificationId: string) => {
     try {
-      await updateDoc(doc(db, 'notifications', notificationId), {
+      await updateDoc(doc(firestore, 'notifications', notificationId), {
         deleted: true,
         deletedAt: new Date()
       });
@@ -231,7 +251,7 @@ const Notifications: React.FC = () => {
     try {
       const unreadNotifications = notifications.filter(n => !n.isRead);
       for (const notification of unreadNotifications) {
-        await updateDoc(doc(db, 'notifications', notification.id), {
+        await updateDoc(doc(firestore, 'notifications', notification.id), {
           isRead: true,
           readAt: new Date()
         });
@@ -250,7 +270,7 @@ const Notifications: React.FC = () => {
       setSettings(newSettings);
       
       // In a real implementation, save to Firestore
-      await updateDoc(doc(db, 'users', user?.uid || ''), {
+      await updateDoc(doc(firestore, 'users', user?.uid || ''), {
         notificationSettings: newSettings
       });
       
@@ -688,3 +708,13 @@ const Notifications: React.FC = () => {
 };
 
 export default Notifications;
+
+
+
+
+
+
+
+
+
+

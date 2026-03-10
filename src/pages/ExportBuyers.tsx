@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,8 +38,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -124,7 +128,23 @@ interface Buyer {
 }
 
 const ExportBuyers: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,10 +175,10 @@ const ExportBuyers: React.FC = () => {
 
   // Fetch buyers
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'buyers'),
+      collection(firestore, 'buyers'),
       where('orgId', '==', user.orgId),
       orderBy('companyName', 'asc')
     );
@@ -173,11 +193,11 @@ const ExportBuyers: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Form submission
   const onSubmit = async (data: BuyerFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const buyerData = {
@@ -190,7 +210,7 @@ const ExportBuyers: React.FC = () => {
         status: 'Active'
       };
 
-      await addDoc(collection(db, 'buyers'), buyerData);
+      await addDoc(collection(firestore, 'buyers'), buyerData);
       toast.success(`${data.type} created successfully`);
       setShowAddDialog(false);
       form.reset();
@@ -205,7 +225,7 @@ const ExportBuyers: React.FC = () => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
     
     try {
-      await updateDoc(doc(db, 'buyers', buyerId), {
+      await updateDoc(doc(firestore, 'buyers', buyerId), {
         status: newStatus,
         updatedAt: new Date()
       });
@@ -219,7 +239,7 @@ const ExportBuyers: React.FC = () => {
   // Delete buyer
   const deleteBuyer = async (buyerId: string) => {
     try {
-      await deleteDoc(doc(db, 'buyers', buyerId));
+      await deleteDoc(doc(firestore, 'buyers', buyerId));
       toast.success('Buyer deleted successfully');
     } catch (error) {
       console.error('Error deleting buyer:', error);
@@ -947,3 +967,12 @@ const ExportBuyers: React.FC = () => {
 };
 
 export default ExportBuyers;
+
+
+
+
+
+
+
+
+

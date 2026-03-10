@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,8 +39,7 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, startAfter, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { debounce } from 'lodash';
 import { toast } from 'sonner';
@@ -109,7 +112,23 @@ interface ActivityLog {
 }
 
 const Leads: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -149,13 +168,13 @@ const Leads: React.FC = () => {
 
   // Fetch leads
   const fetchLeads = useCallback(async (reset = false) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     setLoading(true);
     try {
       let q = query(
-        collection(db, 'leads'),
-        where('orgId', '==', user.orgId),
+        collection(firestore, 'leads'),
+        where('orgId', '==', orgId),
         orderBy(sortBy, sortOrder),
         limit(25)
       );
@@ -184,15 +203,15 @@ const Leads: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.orgId, sortBy, sortOrder, lastDoc]);
+  }, [orgId, sortBy, sortOrder, lastDoc]);
 
   // Real-time updates
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'leads'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'leads'),
+      where('orgId', '==', orgId),
       orderBy('createdAt', 'desc')
     );
 
@@ -206,7 +225,7 @@ const Leads: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Debounced search
   const debouncedSearch = useCallback(
@@ -223,19 +242,19 @@ const Leads: React.FC = () => {
 
   // Form submission
   const onSubmit = async (data: LeadFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const leadData = {
         ...data,
         expectedValue: data.expectedValue ? parseFloat(data.expectedValue) : undefined,
-        orgId: user.orgId,
-        createdBy: user.uid,
+        orgId: orgId,
+        createdBy: user?.uid || 'unknown',
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'leads'), leadData);
+      await addDoc(collection(firestore, 'leads'), leadData);
       toast.success('Lead created successfully');
       setShowAddDialog(false);
       form.reset();
@@ -249,7 +268,7 @@ const Leads: React.FC = () => {
   // Status change
   const handleStatusChange = async (leadId: string, newStatus: string) => {
     try {
-      await updateDoc(doc(db, 'leads', leadId), {
+      await updateDoc(doc(firestore, 'leads', leadId), {
         status: newStatus,
         updatedAt: new Date()
       });
@@ -269,7 +288,7 @@ const Leads: React.FC = () => {
 
     try {
       const batch = selectedLeads.map(leadId => 
-        updateDoc(doc(db, 'leads', leadId), {
+        updateDoc(doc(firestore, 'leads', leadId), {
           status: action === 'archive' ? 'Archived' : action,
           updatedAt: new Date()
         })
@@ -923,3 +942,13 @@ const Leads: React.FC = () => {
 };
 
 export default Leads;
+
+
+
+
+
+
+
+
+
+

@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,8 +40,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -98,7 +102,23 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 };
 
 const SettingsUsers: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -125,12 +145,12 @@ const SettingsUsers: React.FC = () => {
 
   // Fetch users
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchUsers = () => {
       setRefreshing(true);
       const q = query(
-        collection(db, 'users'),
+        collection(firestore, 'users'),
         where('orgId', '==', user.orgId),
         orderBy('createdAt', 'desc')
       );
@@ -150,11 +170,11 @@ const SettingsUsers: React.FC = () => {
 
     const unsubscribe = fetchUsers();
     return () => unsubscribe();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Form submission
   const onSubmit = async (data: UserFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const userData = {
@@ -168,7 +188,7 @@ const SettingsUsers: React.FC = () => {
 
       // In a real implementation, you would create a Firebase Auth user first
       // For now, we'll just add to Firestore
-      await addDoc(collection(db, 'users'), userData);
+      await addDoc(collection(firestore, 'users'), userData);
       toast.success('User invited successfully');
       setShowAddDialog(false);
       form.reset();
@@ -180,10 +200,10 @@ const SettingsUsers: React.FC = () => {
 
   // Update user
   const updateUser = async (data: UserFormData) => {
-    if (!user?.orgId || !selectedUser) return;
+    if (!orgId || !selectedUser) return;
 
     try {
-      await updateDoc(doc(db, 'users', selectedUser.id), {
+      await updateDoc(doc(firestore, 'users', selectedUser.id), {
         ...data,
         permissions: ROLE_PERMISSIONS[data.role] || [],
         updatedAt: new Date()
@@ -202,7 +222,7 @@ const SettingsUsers: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     
     try {
-      await updateDoc(doc(db, 'users', userId), {
+      await updateDoc(doc(firestore, 'users', userId), {
         status: newStatus,
         updatedAt: new Date()
       });
@@ -216,7 +236,7 @@ const SettingsUsers: React.FC = () => {
   // Delete user
   const deleteUser = async (userId: string) => {
     try {
-      await deleteDoc(doc(db, 'users', userId));
+      await deleteDoc(doc(firestore, 'users', userId));
       toast.success('User deleted successfully');
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -867,3 +887,13 @@ const SettingsUsers: React.FC = () => {
 };
 
 export default SettingsUsers;
+
+
+
+
+
+
+
+
+
+

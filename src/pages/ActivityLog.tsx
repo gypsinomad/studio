@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,8 +27,7 @@ import {
   Download
 } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useUser } from '@/firebase';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -66,7 +69,32 @@ const ACTIVITY_ACTIONS = [
 ];
 
 const ActivityLog: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
+  
+  // Show loading state if Firebase is not ready
+  if (!user || !firestore) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,20 +110,20 @@ const ActivityLog: React.FC = () => {
 
   // Fetch activities
   const fetchActivities = async (loadMore = false) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       let q = query(
-        collection(db, 'activity_logs'),
-        where('orgId', '==', user.orgId),
+        collection(firestore, 'activity_logs'),
+        where('orgId', '==', orgId),
         orderBy('createdAt', 'desc'),
         limit(pageSize)
       );
 
       if (loadMore && lastVisible) {
         q = query(
-          collection(db, 'activity_logs'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'activity_logs'),
+          where('orgId', '==', orgId),
           orderBy('createdAt', 'desc'),
           startAfter(lastVisible),
           limit(pageSize)
@@ -127,7 +155,7 @@ const ActivityLog: React.FC = () => {
 
   useEffect(() => {
     fetchActivities();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Refresh activities
   const handleRefresh = () => {
@@ -493,3 +521,10 @@ const ActivityLog: React.FC = () => {
 };
 
 export default ActivityLog;
+
+
+
+
+
+
+

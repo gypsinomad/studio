@@ -1,11 +1,14 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format, subDays, startOfDay, isWithinInterval, parseISO } from 'date-fns';
 import { formatDistanceToNow } from 'date-fns';
 import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Users, DollarSign, Package, TrendingUp, Phone, Mail, Globe, UserPlus } from 'lucide-react';
@@ -33,7 +36,23 @@ interface ActivityLog {
 }
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [loading, setLoading] = useState(true);
   const [kpiData, setKpiData] = useState({
     totalLeads: 0,
@@ -82,14 +101,14 @@ const Dashboard: React.FC = () => {
     const fetchKPIData = async () => {
       try {
         // Total Leads
-        const leadsQuery = query(collection(db, 'leads'), where('orgId', '==', user.orgId));
+        const leadsQuery = query(collection(firestore, 'leads'), where('orgId', '==', orgId));
         const leadsSnapshot = await getDocs(leadsQuery);
         const totalLeads = leadsSnapshot.size;
 
         // Active Deals/Orders
         const ordersQuery = query(
-          collection(db, 'exportOrders'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'exportOrders'),
+          where('orgId', '==', orgId),
           where('status', 'not-in', ['Delivered', 'Cancelled'])
         );
         const ordersSnapshot = await getDocs(ordersQuery);
@@ -97,8 +116,8 @@ const Dashboard: React.FC = () => {
 
         // Revenue This Month
         const revenueQuery = query(
-          collection(db, 'exportOrders'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'exportOrders'),
+          where('orgId', '==', orgId),
           where('createdAt', '>=', startOfMonth)
         );
         const revenueSnapshot = await getDocs(revenueQuery);
@@ -108,8 +127,8 @@ const Dashboard: React.FC = () => {
 
         // Pending Orders
         const pendingQuery = query(
-          collection(db, 'exportOrders'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'exportOrders'),
+          where('orgId', '==', orgId),
           where('status', 'in', ['Pending', 'Draft'])
         );
         const pendingSnapshot = await getDocs(pendingQuery);
@@ -130,8 +149,8 @@ const Dashboard: React.FC = () => {
     const fetchLeadConversions = async () => {
       try {
         const conversionsQuery = query(
-          collection(db, 'leads'),
-          where('orgId', '==', user.orgId),
+          collection(firestore, 'leads'),
+          where('orgId', '==', orgId),
           where('createdAt', '>=', thirtyDaysAgo),
           orderBy('createdAt', 'asc')
         );
@@ -167,7 +186,7 @@ const Dashboard: React.FC = () => {
     // Leads by Source
     const fetchLeadsBySource = async () => {
       try {
-        const sourceQuery = query(collection(db, 'leads'), where('orgId', '==', user.orgId));
+        const sourceQuery = query(collection(firestore, 'leads'), where('orgId', '==', orgId));
         const sourceSnapshot = await getDocs(sourceQuery);
         
         const sourceCount: Record<string, number> = {};
@@ -191,8 +210,8 @@ const Dashboard: React.FC = () => {
 
     // Recent Activity
     const activityQuery = query(
-      collection(db, 'activity_logs'),
-      where('orgId', '==', user.orgId),
+      collection(firestore, 'activity_logs'),
+      where('orgId', '==', orgId),
       orderBy('timestamp', 'desc'),
       limit(10)
     );
@@ -211,7 +230,7 @@ const Dashboard: React.FC = () => {
     setLoading(false);
 
     return () => unsubscribeActivity();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   const KPICard: React.FC<KPICard> = ({ title, value, icon, trend, loading }) => (
     <Card>
@@ -416,3 +435,12 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
+
+
+
+
+
+
+
+

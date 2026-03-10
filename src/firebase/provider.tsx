@@ -15,7 +15,9 @@ import { Firestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { FirebaseErrorBoundary } from '@/components/firebase-error-boundary';
 import { debugLogger } from '@/lib/debug-logger';
+import { authLogger } from '@/lib/auth-logger';
 import type { User as CRMUser, UserRole } from '@/lib/types';
 import { useDoc } from './firestore/use-doc';
 
@@ -34,6 +36,7 @@ interface UserAuthState {
   idToken: string | null;
   isUserLoading: boolean;
   userError: Error | null;
+  profileCreationError: Error | null;
 }
 
 export interface FirebaseContextState extends UserAuthState {
@@ -50,6 +53,12 @@ export interface FirebaseContextState extends UserAuthState {
   isAdmin: boolean;
   role: UserRole | null;
   canCreate: boolean;
+  // Additional granular permissions
+  canManageUsers: boolean;
+  canManageCustomers: boolean;
+  canManageLeads: boolean;
+  canManageDocuments: boolean;
+  canViewReports: boolean;
 }
 
 export interface FirebaseServicesAndUser extends UserAuthState {
@@ -65,6 +74,12 @@ export interface FirebaseServicesAndUser extends UserAuthState {
   isAdmin: boolean;
   role: UserRole | null;
   canCreate: boolean;
+  // Additional granular permissions
+  canManageUsers: boolean;
+  canManageCustomers: boolean;
+  canManageLeads: boolean;
+  canManageDocuments: boolean;
+  canViewReports: boolean;
 }
 
 export interface UserHookResult extends UserAuthState {
@@ -76,6 +91,12 @@ export interface UserHookResult extends UserAuthState {
   isAdmin: boolean;
   role: UserRole | null;
   canCreate: boolean;
+  // Additional granular permissions
+  canManageUsers: boolean;
+  canManageCustomers: boolean;
+  canManageLeads: boolean;
+  canManageDocuments: boolean;
+  canViewReports: boolean;
 }
 
 // ─── Initial States ───────────────────────────────────────────────────────────
@@ -85,6 +106,7 @@ const INITIAL_AUTH_STATE: UserAuthState = {
   idToken: null,
   isUserLoading: true,
   userError: null,
+  profileCreationError: null,
 };
 
 const LOADING_FALSE_AUTH_STATE: UserAuthState = {
@@ -108,18 +130,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const [userAuthState, setUserAuthState] = useState<UserAuthState>(INITIAL_AUTH_STATE);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
+    abortControllerRef.current = new AbortController();
+    return () => { 
+      isMountedRef.current = false;
+      // Cancel any ongoing token fetch operations
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({
-        ...LOADING_FALSE_AUTH_STATE,
-        userError: new Error('Auth service not provided.'),
-      });
+        setUserAuthState({
+          ...LOADING_FALSE_AUTH_STATE,
+          userError: new Error('Auth service not provided.'),
+          profileCreationError: null,
+        });
       return;
     }
 
@@ -132,15 +164,79 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         if (!isMountedRef.current) return;
 
         if (firebaseUser) {
+          authLogger.logAuthStart(firebaseUser.email || 'unknown');
           debugLogger.log('AUTH', `User authenticated: ${firebaseUser.email}`, 'info');
+          
+          // Retry mechanism for ID token fetching with cleanup
+          const fetchTokenWithRetry = async (retries = 3, delay = 1000): Promise<string> => {
+            // Check if component is still mounted and not aborted
+            const checkCancellation = () => {
+              if (!isMountedRef.current || abortControllerRef.current?.signal.aborted) {
+                throw new Error('Component unmounted or operation cancelled');
+              }
+            };
+            
+            for (let attempt = 1; attempt <= retries; attempt++) {
+              checkCancellation();
+              try {
+                const token = await firebaseUser.getIdToken(true); // Force refresh
+                authLogger.logTokenRefresh(true);
+                debugLogger.log('AUTH', `ID token fetched successfully (attempt ${attempt})`, 'debug');
+                return token;
+              } catch (err) {
+                checkCancellation();
+                const error = err as Error;
+                authLogger.logTokenRefresh(false, error);
+                debugLogger.log('AUTH', `Token fetch attempt ${attempt} failed: ${error.message}`, 'warn');
+                
+                if (attempt === retries) {
+                  throw error;
+                }
+                
+                // Exponential backoff with cancellation check
+                await new Promise((resolve, reject) => {
+                  const timeout = setTimeout(resolve, delay * attempt);
+                  
+                  // Handle cancellation during backoff
+                  const handleAbort = () => {
+                    clearTimeout(timeout);
+                    reject(new Error('Operation cancelled during backoff'));
+                  };
+                  
+                  abortControllerRef.current?.signal.addEventListener('abort', handleAbort);
+                  
+                  // Clean up event listener
+                  setTimeout(() => {
+                    abortControllerRef.current?.signal.removeEventListener('abort', handleAbort);
+                  }, delay * attempt);
+                });
+              }
+            }
+            throw new Error('Failed to fetch ID token after retries');
+          };
+
           try {
-            const token = await firebaseUser.getIdToken();
+            const token = await fetchTokenWithRetry();
             if (!isMountedRef.current) return;
-            setUserAuthState({ user: firebaseUser, idToken: token, isUserLoading: false, userError: null });
+            authLogger.logAuthSuccess(firebaseUser);
+            setUserAuthState({ 
+              user: firebaseUser, 
+              idToken: token, 
+              isUserLoading: false, 
+              userError: null,
+              profileCreationError: null,
+            });
           } catch (err) {
-            debugLogger.log('AUTH', `Failed to fetch ID token: ${(err as Error).message}`, 'error');
+            authLogger.logAuthError(err, 'token_fetch');
+            debugLogger.log('AUTH', `Failed to fetch ID token after retries: ${(err as Error).message}`, 'error');
             if (!isMountedRef.current) return;
-            setUserAuthState({ user: firebaseUser, idToken: null, isUserLoading: false, userError: err as Error });
+            setUserAuthState({ 
+              user: firebaseUser, 
+              idToken: null, 
+              isUserLoading: false, 
+              userError: err as Error,
+              profileCreationError: null,
+            });
           }
         } else {
           debugLogger.log('AUTH', 'User signed out', 'info');
@@ -150,7 +246,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       (error) => {
         if (!isMountedRef.current) return;
         debugLogger.log('AUTH', `Auth listener error: ${error.message}`, 'error');
-        setUserAuthState({ ...LOADING_FALSE_AUTH_STATE, userError: error });
+        setUserAuthState({ 
+          ...LOADING_FALSE_AUTH_STATE, 
+          userError: error,
+          profileCreationError: null,
+        });
       }
     );
 
@@ -162,7 +262,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !userAuthState.user) return null;
     return doc(firestore, 'users', userAuthState.user.uid);
-  }, [firestore, userAuthState.user]);
+  }, [firestore, userAuthState.user?.uid]); // More specific dependency
 
   const {
     data: userProfile,
@@ -176,7 +276,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       !!userAuthState.user &&
       !userProfileLoading &&
       !userProfile &&
-      !isCreatingProfile;
+      !isCreatingProfile &&
+      !userProfileError &&
+      !userAuthState.profileCreationError; // Also check for profile creation errors
 
     if (!shouldCreateProfile || !userDocRef) return;
 
@@ -184,7 +286,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       setIsCreatingProfile(true);
       try {
         const firebaseUser = userAuthState.user!;
-        const initialRole: UserRole = 'admin';
+        
+        // Determine initial role based on business logic
+        // For now, default to 'viewer' for new users
+        // Admin can upgrade roles later
+        const initialRole: UserRole = 'viewer';
 
         const newUserProfileData: Omit<CRMUser, 'id'> = {
           authUid: firebaseUser.uid,
@@ -197,8 +303,20 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         };
 
         await setDoc(userDocRef, newUserProfileData);
+        authLogger.logProfileCreation(firebaseUser.email || 'unknown', true);
+        debugLogger.log('AUTH', `User profile created for ${firebaseUser.email}`, 'info');
       } catch (error) {
+        const userEmail = userAuthState.user?.email || 'unknown';
+        authLogger.logProfileCreation(userEmail, false, error);
+        debugLogger.log('AUTH', `Failed to create user profile: ${(error as Error).message}`, 'error');
         console.error('[FirebaseProvider] Failed to create user profile:', error);
+        
+        // Set profile creation error state
+        if (!isMountedRef.current) return;
+        setUserAuthState(prev => ({
+          ...prev,
+          profileCreationError: error as Error,
+        }));
       } finally {
         setIsCreatingProfile(false);
       }
@@ -210,15 +328,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userAuthState.user,
     userProfileLoading,
     userProfile,
+    userProfileError,
+    userAuthState.profileCreationError, // Add profile creation error to dependencies
     isCreatingProfile,
     userDocRef,
   ]);
 
   const isProfileBusy = userProfileLoading || isCreatingProfile;
   const isAuthenticated = !!userAuthState.user && !userAuthState.isUserLoading;
-  const isAdmin = isAuthenticated;
-  const role: UserRole | null = userProfile?.role ?? (isAuthenticated ? 'admin' : null);
-  const canCreate = isAuthenticated;
+  const isAdmin = isAuthenticated && userProfile?.role === 'admin';
+  const role: UserRole | null = userProfile?.role ?? null;
+  const canCreate = isAuthenticated && (role === 'admin' || role === 'salesExecutive' || role === 'viewer');
+  
+  // Helper function to check if user can perform specific operations
+  const canPerformAction = (requiredRoles: UserRole[]) => {
+    return isAuthenticated && role !== null && requiredRoles.includes(role);
+  };
+  
+  const canManageUsers = canPerformAction(['admin']);
+  const canManageCustomers = canPerformAction(['admin', 'salesExecutive']);
+  const canManageLeads = canPerformAction(['admin', 'salesExecutive', 'viewer']);
+  const canManageDocuments = canPerformAction(['admin', 'salesExecutive', 'viewer']);
+  const canViewReports = canPerformAction(['admin', 'salesExecutive']);
 
   const contextValue = useMemo((): FirebaseContextState => {
     const areServicesAvailable = !!(firebaseApp && firestore && auth && storage);
@@ -237,6 +368,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isAdmin,
       role,
       canCreate,
+      // Additional granular permissions
+      canManageUsers,
+      canManageCustomers,
+      canManageLeads,
+      canManageDocuments,
+      canViewReports,
     };
   }, [
     firebaseApp,
@@ -252,13 +389,20 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isAdmin,
     role,
     canCreate,
+    canManageUsers,
+    canManageCustomers,
+    canManageLeads,
+    canManageDocuments,
+    canViewReports,
   ]);
 
   return (
-    <FirebaseContext.Provider value={contextValue}>
-      <FirebaseErrorListener />
-      {children}
-    </FirebaseContext.Provider>
+    <FirebaseErrorBoundary>
+      <FirebaseContext.Provider value={contextValue}>
+        <FirebaseErrorListener />
+        {children}
+      </FirebaseContext.Provider>
+    </FirebaseErrorBoundary>
   );
 };
 
@@ -290,6 +434,7 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     idToken: context.idToken,
     isUserLoading: context.isUserLoading,
     userError: context.userError,
+    profileCreationError: context.profileCreationError,
     userProfile: context.userProfile,
     isUserProfileLoading: context.isUserProfileLoading,
     userProfileError: context.userProfileError,
@@ -298,6 +443,11 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     isAdmin: context.isAdmin,
     role: context.role,
     canCreate: context.canCreate,
+    canManageUsers: context.canManageUsers,
+    canManageCustomers: context.canManageCustomers,
+    canManageLeads: context.canManageLeads,
+    canManageDocuments: context.canManageDocuments,
+    canViewReports: context.canViewReports,
   };
 };
 
@@ -316,6 +466,7 @@ export const useUser = (): UserHookResult => {
     idToken,
     isUserLoading,
     userError,
+    profileCreationError,
     userProfile,
     isUserProfileLoading,
     userProfileError,
@@ -324,6 +475,11 @@ export const useUser = (): UserHookResult => {
     isAdmin,
     role,
     canCreate,
+    canManageUsers,
+    canManageCustomers,
+    canManageLeads,
+    canManageDocuments,
+    canViewReports,
   } = useFirebase();
 
   return {
@@ -331,6 +487,7 @@ export const useUser = (): UserHookResult => {
     idToken,
     isUserLoading,
     userError,
+    profileCreationError,
     userProfile,
     isUserProfileLoading,
     userProfileError,
@@ -339,6 +496,11 @@ export const useUser = (): UserHookResult => {
     isAdmin,
     role,
     canCreate,
+    canManageUsers,
+    canManageCustomers,
+    canManageLeads,
+    canManageDocuments,
+    canViewReports,
   };
 };
 

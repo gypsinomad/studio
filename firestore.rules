@@ -1,22 +1,262 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Scoped notifications access:
-    // - Users may read and update only their own notifications (matched by userId)
-    // - Any authenticated user may create a notification document
-    match /notifications/{notifId} {
-      allow read, update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow create: if isSignedIn();
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      // Safe admin check without recursion - only use in non-user collections
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function hasRole(role) {
+      // Safe role check - only use in non-user collections
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    function arrayContains(array, value) {
+      return array != null && value in array;
     }
 
-    // Fallback: authenticated users may access other documents.
-    // This will be tightened in a full rules rewrite step.
+    // Users collection - strict access control (no role checks to avoid recursion)
+    match /users/{userId} {
+      allow read, create: if isSignedIn() && request.auth.uid == userId;
+      allow update, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Usage Stats - admin only access
+    match /usageStats/{docId} {
+      allow read, write: if isSignedIn() && isAdmin();
+    }
+
+    // Notifications - scoped access with ownership
+    match /notifications {
+      allow list: if isSignedIn();
+    }
+    
+    match /notifications/{notifId} {
+      allow read, update, delete: if isSignedIn() && 
+                                     resource.data != null && 
+                                     isOwner(resource.data.userId);
+      allow create: if isSignedIn() && 
+                    request.resource.data != null && 
+                    isOwner(request.resource.data.userId);
+    }
+
+    // Tasks - role-based access
+    match /tasks {
+      allow list: if isSignedIn();
+    }
+    
+    match /tasks/{taskId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.assigneeId) || 
+                   isOwner(resource.data.createdBy));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.assigneeId) || 
+                     isOwner(resource.data.createdBy));
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Meetings - participant-based access
+    match /meetings/{meetingId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  resource.data.participants != null && 
+                  (isAdmin() || arrayContains(resource.data.participants, request.auth.uid));
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                            resource.data != null && 
+                            (isAdmin() || isOwner(resource.data.organizerId));
+    }
+
+    // Messages - conversation-based access
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  resource.data.participants != null && 
+                  (isAdmin() || arrayContains(resource.data.participants, request.auth.uid));
+      allow create: if isSignedIn() && 
+                    request.resource.data != null && 
+                    request.resource.data.participants != null && 
+                    (isAdmin() || arrayContains(request.resource.data.participants, request.auth.uid));
+      allow update, delete: if isSignedIn() && 
+                            resource.data != null && 
+                            (isAdmin() || isOwner(resource.data.senderId));
+    }
+
+    // Conversations - participant-based access
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  resource.data.participants != null && 
+                  (isAdmin() || arrayContains(resource.data.participants, request.auth.uid));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    resource.data.participants != null && 
+                    (isAdmin() || arrayContains(resource.data.participants, request.auth.uid));
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Leads - sales team access control
+    match /leads {
+      allow list: if isSignedIn();
+    }
+    
+    match /leads/{leadId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || isOwner(resource.data.assignedUserId));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.assignedUserId));
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.assignedUserId));
+    }
+
+    // Customers - role-based access
+    match /companies {
+      allow list: if isSignedIn();
+    }
+    
+    match /customers/{customerId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (isAdmin() || hasRole('salesExecutive'));
+      allow update, delete: if isSignedIn() && (isAdmin() || hasRole('salesExecutive'));
+    }
+
+    // Documents - owner-based access
+    match /documents {
+      allow list: if isSignedIn();
+    }
+    
+    match /documents/{documentId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.createdBy) || 
+                   isOwner(resource.data.assignedTo));
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                            resource.data != null && 
+                            (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Reminders - personal access only
+    match /reminders/{reminderId} {
+      allow read, update, delete: if isSignedIn() && 
+                                   resource.data != null && 
+                                   isOwner(resource.data.userId);
+      allow create: if isSignedIn() && 
+                    request.resource.data != null && 
+                    isOwner(request.resource.data.userId);
+    }
+
+    // Settings - admin only for organization settings
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn() && isAdmin();
+    }
+
+    // Export Orders - organization-based access
+    match /exportOrders {
+      allow list: if isSignedIn();
+    }
+    
+    match /exportOrders/{orderId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Items - organization-based access
+    match /items {
+      allow list: if isSignedIn();
+    }
+    
+    match /items/{itemId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Payments - organization-based access
+    match /payments {
+      allow list: if isSignedIn();
+    }
+    
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Invoices - organization-based access
+    match /invoices {
+      allow list: if isSignedIn();
+    }
+    
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Activity logs - read-only for authenticated users
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); // System can create logs
+      allow update, delete: if false; // Logs are immutable
+    }
+
+    // Deny all other access
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if false;
     }
   }
 }

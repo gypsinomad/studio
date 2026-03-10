@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,8 +38,8 @@ import {
   XCircle
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -136,7 +140,23 @@ interface ExportOrder {
 }
 
 const ExportOrders: React.FC = () => {
-  const { user } = useAuth();
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-muted-foreground'>Loading...</div>
+      </div>
+    );
+  }
+  
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
+  
+  // For now, use user.uid as orgId if userProfile.orgId is not available
+  // TODO: Fix orgId assignment in user profile creation
+  const orgId = userProfile?.orgId || user?.uid;
   const [orders, setOrders] = useState<ExportOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -183,10 +203,10 @@ const ExportOrders: React.FC = () => {
 
   // Fetch orders
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const q = query(
-      collection(db, 'exportOrders'),
+      collection(firestore, 'exportOrders'),
       where('orgId', '==', user.orgId),
       orderBy('createdAt', 'desc')
     );
@@ -201,16 +221,16 @@ const ExportOrders: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Fetch available products
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchProducts = async () => {
       try {
         const q = query(
-          collection(db, 'items'),
+          collection(firestore, 'items'),
           where('orgId', '==', user.orgId)
         );
         const querySnapshot = await getDocs(q);
@@ -225,16 +245,16 @@ const ExportOrders: React.FC = () => {
     };
 
     fetchProducts();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Fetch existing customers
   useEffect(() => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     const fetchCustomers = async () => {
       try {
         const q = query(
-          collection(db, 'companies'),
+          collection(firestore, 'companies'),
           where('orgId', '==', user.orgId)
         );
         const querySnapshot = await getDocs(q);
@@ -249,7 +269,7 @@ const ExportOrders: React.FC = () => {
     };
 
     fetchCustomers();
-  }, [user?.orgId]);
+  }, [orgId]);
 
   // Generate order number
   const generateOrderNumber = () => {
@@ -303,7 +323,7 @@ const ExportOrders: React.FC = () => {
 
   // Form submission
   const onSubmit = async (data: OrderFormData) => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
 
     try {
       const orderData = {
@@ -320,7 +340,7 @@ const ExportOrders: React.FC = () => {
         updatedAt: new Date()
       };
 
-      await addDoc(collection(db, 'exportOrders'), orderData);
+      await addDoc(collection(firestore, 'exportOrders'), orderData);
       toast.success('Order created successfully');
       setShowAddDialog(false);
       form.reset();
@@ -334,7 +354,7 @@ const ExportOrders: React.FC = () => {
   // Status change
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      await updateDoc(doc(db, 'exportOrders', orderId), {
+      await updateDoc(doc(firestore, 'exportOrders', orderId), {
         status: newStatus,
         updatedAt: new Date()
       });
@@ -1236,3 +1256,14 @@ const ExportOrders: React.FC = () => {
 };
 
 export default ExportOrders;
+
+
+
+
+
+
+
+
+
+
+
