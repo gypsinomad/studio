@@ -1,6 +1,7 @@
 import type {NextConfig} from 'next';
 import withPWA from '@ducanh2912/next-pwa';
 
+// Configure Next.js with PWA and webpack alias for @ path resolution
 const pwaConfig = withPWA({
   dest: 'public',
   register: true,
