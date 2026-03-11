@@ -12,6 +12,7 @@ import { LeadsByStatusChart } from './components/leads-by-status-chart';
 import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { collection, getDocs, query } from 'firebase/firestore';
+import { backfillActivityLog } from '@/utils/backfillActivityLog';
 
 const defaultDashboardStats: Omit<DashboardStats, 'id' | 'lastUpdatedAt'> = {
     totalLeads: 0,
@@ -49,6 +50,18 @@ export default function DashboardPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // One-time backfill for existing data
+  useEffect(() => {
+    const hasBackfilled = localStorage.getItem('activityBackfilled');
+    if (!hasBackfilled && user?.role === 'admin') {
+      backfillActivityLog().then(() => {
+        localStorage.setItem('activityBackfilled', 'true');
+      }).catch(error => {
+        console.error('Backfill failed:', error);
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!firestore || !user) {
