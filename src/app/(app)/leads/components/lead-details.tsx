@@ -130,7 +130,7 @@ function FollowUpManager({ lead }: { lead: Lead }) {
                         <PopoverTrigger asChild>
                            <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
                                <Calendar className="mr-2 h-4 w-4" />
-                               {nextFollowUp ? format(nextFollowUp, "PPP") : <span>Set a date</span>}
+                               {nextFollowUp ? format(nextFollowUp, "PPP") : <span className="text-muted-foreground italic">Set a date</span>}
                            </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">

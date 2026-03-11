@@ -532,7 +532,10 @@ const LeadPipeline: React.FC = () => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-7 gap-4 min-w-[1400px]">
+        <div className="grid grid-cols-7 gap-4 min-w-[1400px] overflow-x-auto">
+          <div className="absolute top-2 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+            Scroll horizontally →
+          </div>
           {PIPELINE_COLUMNS.map((status) => (
             <div
               key={status}

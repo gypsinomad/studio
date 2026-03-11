@@ -36,7 +36,11 @@ import {
   Edit,
   Trash2,
   Eye,
-  CheckSquare
+  CheckSquare,
+  MessageCircle,
+  PhoneCall,
+  Facebook,
+  Globe2
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, startAfter, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
@@ -372,6 +376,18 @@ const Leads: React.FC = () => {
       'Archived': 'bg-gray-100 text-gray-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getSourceIcon = (source: string) => {
+    const icons: Record<string, React.ReactElement> = {
+      'WhatsApp': <PhoneCall className="h-4 w-4" />,
+      'Email': <Mail className="h-4 w-4" />,
+      'Direct': <MessageCircle className="h-4 w-4" />,
+      'Web': <Globe className="h-4 w-4" />,
+      'Referral': <UserPlus className="h-4 w-4" />,
+      'Other': <Globe2 className="h-4 w-4" />
+    };
+    return icons[source] || <MessageCircle className="h-4 w-4" />;
   };
 
   const getSourceColor = (source: string) => {
@@ -795,9 +811,12 @@ const Leads: React.FC = () => {
                     <TableCell>{lead.company || '-'}</TableCell>
                     <TableCell>{lead.country}</TableCell>
                     <TableCell>
-                      <Badge className={getSourceColor(lead.source)}>
-                        {lead.source}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {getSourceIcon(lead.source)}
+                        <Badge className={getSourceColor(lead.source)}>
+                          {lead.source}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Select
@@ -901,9 +920,12 @@ const Leads: React.FC = () => {
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Source</Label>
                     <div className="mt-2">
-                      <Badge className={getSourceColor(selectedLead.source)}>
-                        {selectedLead.source}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {getSourceIcon(selectedLead.source)}
+                        <Badge className={getSourceColor(selectedLead.source)}>
+                          {selectedLead.source}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                   <div>

@@ -91,7 +91,9 @@ export default function ChatPage() {
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1">
+            {conversations && conversations.length > 0 && (
             <p className="px-3 pb-2 text-[10px] uppercase font-bold tracking-widest text-slate-400">Channels</p>
+            )}
             {convsLoading ? (
               <div className="p-4 space-y-4"><div className="h-8 bg-slate-100 rounded-lg animate-pulse" /></div>
             ) : conversations?.map(conv => (
