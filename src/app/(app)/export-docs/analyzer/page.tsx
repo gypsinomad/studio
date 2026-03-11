@@ -21,6 +21,30 @@ export default function OrderAnalyzerPage() {
   const [selectedItems, setSelectedItems] = useState<{ id: number, name: string, qty: number, unitCbm: number, weight: number }[]>([]);
   const [freightRate, setFreightRate] = useState(0);
 
+  const addItem = (itemId: number) => {
+    const item = items.find(i => i.id === itemId);
+    if (item && !selectedItems.find(si => si.id === itemId)) {
+      setSelectedItems([...selectedItems, { ...item, qty: 1 }]);
+    }
+  };
+
+  const removeItem = (itemId: number) => {
+    setSelectedItems(selectedItems.filter(i => i.id !== itemId));
+  };
+
+  const updateQty = (itemId: number, delta: number) => {
+    setSelectedItems(selectedItems.map(item => 
+      item.id === itemId 
+        ? { ...item, qty: Math.max(1, item.qty + delta) }
+        : item
+    ));
+  };
+
+  const getQty = (itemId: number) => {
+    const item = selectedItems.find(i => i.id === itemId);
+    return item?.qty || 0;
+  };
+
   const stats = useMemo(() => {
     const totalCbm = selectedItems.reduce((acc, item) => acc + (item.unitCbm * item.qty), 0);
     const totalWeight = selectedItems.reduce((acc, item) => acc + (item.weight * item.qty), 0);
@@ -66,9 +90,17 @@ export default function OrderAnalyzerPage() {
                         <p className="text-sm font-medium">{item.name}</p>
                         <p className="text-xs text-muted-foreground">{item.unitCbm} m³ / unit</p>
                       </div>
-                      <Button size="icon" variant="ghost" onClick={() => setSelectedItems([...selectedItems, { ...item, qty: 1 }])}>
-                        <Plus className="size-4" />
-                      </Button>
+                      {selectedItems.find(si => si.id === item.id) ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-300 font-bold">−</button>
+                          <span className="w-8 text-center font-semibold text-gray-900 dark:text-white text-sm">{getQty(item.id)}</span>
+                          <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 rounded-full bg-indigo-500 hover:bg-indigo-600 flex items-center justify-center text-white font-bold">+</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => addItem(item.id)} className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center justify-center text-gray-500 hover:text-indigo-600 transition-all">
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -76,11 +108,11 @@ export default function OrderAnalyzerPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-primary text-white">
+          <Card className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 my-4">
             <CardContent className="pt-6">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Running Total CBM</span>
-                <span className="text-2xl font-bold">{stats.totalCbm.toFixed(3)} m³</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Running Total CBM</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{stats.totalCbm.toFixed(3)} m³</span>
               </div>
             </CardContent>
           </Card>
@@ -112,7 +144,17 @@ export default function OrderAnalyzerPage() {
                       <span>{c.name} ({c.capacity} m³)</span>
                       <span>{percent.toFixed(1)}%</span>
                     </div>
-                    <Progress value={percent} className="h-3" />
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
+                      <div
+                        className={`h-2.5 rounded-full transition-all duration-700 ease-out ${
+                          percent >= 80 ? 'bg-green-500' :
+                          percent >= 50 ? 'bg-yellow-400' :
+                          percent > 0  ? 'bg-indigo-500' :
+                          'bg-gray-400'
+                        }`}
+                        style={{ width: `${Math.min(percent, 100)}%` }}
+                      />
+                    </div>
                   </div>
                 );
               })}

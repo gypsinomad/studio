@@ -162,9 +162,22 @@ const Customers: React.FC = () => {
   const orgId = userProfile?.orgId || user?.uid;
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('');
+
+  // 5-second timeout fallback
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError(new Error('Permission denied or connection timeout'));
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -196,14 +209,26 @@ const Customers: React.FC = () => {
       orderBy('companyName', 'asc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const customersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Customer));
-      setCustomers(customersData);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        try {
+          const customersData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Customer));
+          setCustomers(customersData);
+          setLoading(false);
+          setError(null);
+        } catch (err) {
+          setError(err as Error);
+          setLoading(false);
+        }
+      },
+      (err) => {
+        setError(err as Error);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [orgId]);
@@ -430,6 +455,31 @@ const Customers: React.FC = () => {
       </CardContent>
     </Card>
   );
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+          <span className="text-sm">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center text-gray-400">
+          <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-400" />
+          <p className="font-medium text-gray-300">Could not load data</p>
+          <p className="text-sm mt-1">Check your permissions or try refreshing.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -93,11 +93,24 @@ const Tasks: React.FC = () => {
   const orgId = userProfile?.orgId || user?.uid;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'my' | 'overdue' | 'today'>('all');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [linkedRecords, setLinkedRecords] = useState<any[]>([]);
+
+  // 5-second timeout fallback
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError(new Error('Permission denied or connection timeout'));
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
@@ -123,14 +136,26 @@ const Tasks: React.FC = () => {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tasksData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Task));
-      setTasks(tasksData);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        try {
+          const tasksData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Task));
+          setTasks(tasksData);
+          setLoading(false);
+          setError(null);
+        } catch (err) {
+          setError(err as Error);
+          setLoading(false);
+        }
+      },
+      (err) => {
+        setError(err as Error);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [orgId]);
@@ -665,7 +690,22 @@ const Tasks: React.FC = () => {
       </div>
 
       {/* Tasks Display */}
-      {viewMode === 'kanban' ? (
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-3 text-gray-400">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+            <span className="text-sm">Loading...</span>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center text-gray-400">
+            <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-400" />
+            <p className="font-medium text-gray-300">Could not load data</p>
+            <p className="text-sm mt-1">Check your permissions or try refreshing.</p>
+          </div>
+        </div>
+      ) : viewMode === 'kanban' ? (
         <div className="grid grid-cols-3 gap-6">
           {TASK_COLUMNS.map((status) => (
             <Card key={status}>
@@ -704,7 +744,7 @@ const Tasks: React.FC = () => {
                   <p className="text-muted-foreground mb-6 max-w-md">
                     Stay organized by creating tasks for follow-ups, deadlines, and important activities.
                   </p>
-                  <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
+                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="mr-2" />
@@ -715,7 +755,7 @@ const Tasks: React.FC = () => {
                       <DialogHeader>
                         <DialogTitle>Create New Task</DialogTitle>
                       </DialogHeader>
-                      <NewTaskForm onSuccess={() => setShowNewTaskDialog(false)} />
+                      <TaskForm onSuccess={() => setShowAddDialog(false)} />
                     </DialogContent>
                   </Dialog>
                 </div>

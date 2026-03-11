@@ -7,13 +7,23 @@ import { Button } from '@/components/ui/button';
 import { FileDown, TrendingUp, DollarSign, Ship, Users } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip, Line, LineChart } from 'recharts';
 
+// Currency formatter helper
+const formatCurrency = (value: number, currency: 'USD' | 'INR' = 'USD') => {
+  if (currency === 'INR' && value >= 10000000) {
+    return `₹${(value / 10000000).toFixed(1)} Cr`;
+  }
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', currency, maximumFractionDigits: 0 
+  }).format(value);
+};
+
 const mockSalesData = [
   { month: 'Jun', value: 45000 },
   { month: 'Jul', value: 52000 },
   { month: 'Aug', value: 48000 },
   { month: 'Sep', value: 61000 },
   { month: 'Oct', value: 55000 },
-  { month: 'Nov', value: 67000 },
+  { month: 'Nov', value: 58000 },
   { month: 'Dec', value: 72000 },
 ];
 
@@ -46,7 +56,7 @@ export default function ExportReportsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-emerald-50 rounded-full"><DollarSign className="size-5 text-emerald-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Total Export Value</p><p className="text-xl font-bold">$4.2 Cr</p></div>
+                  <div><p className="text-xs text-muted-foreground">Total Export Value</p><p className="text-xl font-bold">{formatCurrency(4200000, 'USD')}</p></div>
                 </div>
               </CardContent>
             </Card>
@@ -62,7 +72,7 @@ export default function ExportReportsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-amber-50 rounded-full"><TrendingUp className="size-5 text-amber-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Pending Receivables</p><p className="text-xl font-bold">$18,400</p></div>
+                  <div><p className="text-xs text-muted-foreground">Pending Receivables</p><p className="text-xl font-bold">{formatCurrency(18400, 'USD')}</p></div>
                 </div>
               </CardContent>
             </Card>
