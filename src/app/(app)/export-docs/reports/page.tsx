@@ -93,9 +93,9 @@ export default function ExportReportsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={mockSalesData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={(value) => `$${(value/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
                     <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>

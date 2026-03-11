@@ -146,13 +146,13 @@ export default function OrderAnalyzerPage() {
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
                       <div
-                        className={`h-2.5 rounded-full transition-all duration-700 ease-out ${
+                        className={`h-2.5 rounded-full transition-all duration-700 ease-out min-w-[4px] ${
                           percent >= 80 ? 'bg-green-500' :
                           percent >= 50 ? 'bg-yellow-400' :
                           percent > 0  ? 'bg-indigo-500' :
                           'bg-gray-400'
                         }`}
-                        style={{ width: `${Math.min(percent, 100)}%` }}
+                        style={{ width: `${Math.max(percent, 0.5)}%` }}
                       />
                     </div>
                   </div>

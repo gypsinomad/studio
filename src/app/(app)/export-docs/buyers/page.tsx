@@ -77,7 +77,11 @@ export default function BuyersAndAgentsPage() {
                         <div className="text-xs text-stone-500 font-medium">Last order: {buyer.lastOrder}</div>
                       </TableCell>
                       <TableCell>{buyer.country}</TableCell>
-                      <TableCell><Badge variant="outline">{buyer.currency}</Badge></TableCell>
+                      <TableCell>
+                        <span className="text-sm font-mono text-gray-300 bg-gray-700/50 px-2 py-0.5 rounded">
+                          {buyer.currency || 'USD'}
+                        </span>
+                      </TableCell>
                       <TableCell className="font-medium">{buyer.totalOrders}</TableCell>
                       <TableCell className="font-bold text-spice-600">${buyer.totalValue.toLocaleString()}</TableCell>
                       <TableCell>

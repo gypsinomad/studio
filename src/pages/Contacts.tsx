@@ -713,7 +713,7 @@ const Contacts: React.FC = () => {
           <p className="text-muted-foreground mb-6 max-w-md">
             Build your contact database by adding people you work with. Track communication history and manage relationships.
           </p>
-          <Dialog open={showNewContactDialog} onOpenChange={setShowNewContactDialog}>
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
               <Button disabled={!user}>
                 <Plus className="mr-2" />
@@ -724,7 +724,7 @@ const Contacts: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Add New Contact</DialogTitle>
               </DialogHeader>
-              <NewContactForm onSuccess={() => setShowNewContactDialog(false)} />
+              <ContactForm onSuccess={() => setShowAddDialog(false)} />
             </DialogContent>
           </Dialog>
         </div>

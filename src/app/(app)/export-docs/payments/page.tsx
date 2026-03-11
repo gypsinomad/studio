@@ -8,6 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
+// Currency formatter helper
+const formatCurrency = (value: number, currency: string = 'USD') => {
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', currency, maximumFractionDigits: 0 
+  }).format(value);
+};
+
 const mockPayments = [
   { id: "PAY-001", invoiceNo: "CI-2026-0012", buyer: "Gulf Foods LLC", amount: 12500, currency: "USD", method: "TT", date: "2026-02-12", status: "Paid" },
   { id: "PAY-002", invoiceNo: "CI-2026-0010", buyer: "Nairobi Traders", amount: 5800, currency: "USD", method: "LC", date: "2026-02-11", status: "Paid" },
@@ -72,13 +79,13 @@ export default function ExportPaymentsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-stone-50/50 hover:bg-transparent">
-                <TableHead className="pl-6">Invoice No</TableHead>
-                <TableHead>Buyer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Due/Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
+                <TableHead className="pl-6 whitespace-nowrap">Invoice No</TableHead>
+                <TableHead className="whitespace-nowrap">Buyer</TableHead>
+                <TableHead className="whitespace-nowrap">Amount</TableHead>
+                <TableHead className="whitespace-nowrap">Method</TableHead>
+                <TableHead className="whitespace-nowrap">Due/Date</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="pr-6 text-right whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,7 +94,7 @@ export default function ExportPaymentsPage() {
                   <TableCell className="pl-6 font-bold text-spice-600">{p.invoiceNo}</TableCell>
                   <TableCell className="font-medium text-stone-900">{p.buyer}</TableCell>
                   <TableCell className="font-bold">
-                    {p.currency} {p.amount.toLocaleString()}
+                    {formatCurrency(p.amount, p.currency)}
                   </TableCell>
                   <TableCell><Badge variant="secondary" className="bg-stone-100 text-stone-700 border-none">{p.method}</Badge></TableCell>
                   <TableCell className="text-sm text-stone-500 font-medium">{p.date}</TableCell>
