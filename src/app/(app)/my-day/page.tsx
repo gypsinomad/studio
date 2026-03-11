@@ -136,14 +136,33 @@ export default function MyDayPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex gap-3 text-sm">
-                  <div className="size-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                  <p className="text-slate-600">New mentions in <span className="font-bold text-slate-900">#Operations</span></p>
-                </div>
-                <div className="flex gap-3 text-sm">
-                  <div className="size-2 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <p className="text-slate-600">Task assigned by <span className="font-bold text-slate-900">Admin</span></p>
-                </div>
+                {tasks && tasks.length > 0 ? (
+                  tasks.slice(0, 2).map(task => (
+                    <div key={task.id} className="flex gap-3 text-sm">
+                      <div className="size-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                      <p className="text-slate-600">
+                        Task: <span className="font-bold text-slate-900">{task.title}</span>
+                        {task.dueDate && ` due ${format(toDate(task.dueDate), 'MMM dd')}`}
+                      </p>
+                    </div>
+                  ))
+                ) : meetings && meetings.length > 0 ? (
+                  meetings.slice(0, 2).map(meeting => (
+                    <div key={meeting.id} className="flex gap-3 text-sm">
+                      <div className="size-2 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                      <p className="text-slate-600">
+                        Meeting: <span className="font-bold text-slate-900">{meeting.title}</span>
+                        {meeting.startAt && ` at ${format(toDate(meeting.startAt), 'h:mm a')}`}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-slate-400">
+                    <Clock className="mx-auto size-8 opacity-20 mb-3" />
+                    <p className="text-sm">No recent activity</p>
+                    <p className="text-xs mt-1">Your tasks and meetings will appear here</p>
+                  </div>
+                )}
               </div>
               <Button variant="outline" className="w-full mt-6 rounded-xl border-slate-200" asChild>
                 <Link href="/chat">Open Workspace</Link>

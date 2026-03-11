@@ -14,13 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-const stats = [
-  { title: "Total Export Value (MTD)", value: "$142,500", icon: TrendingUp, description: "+12% from last month", color: "text-primary" },
-  { title: "Active Invoices", value: "12", icon: FileText, description: "4 awaiting confirmation", color: "text-blue-600" },
-  { title: "Pending Payments", value: "8", icon: ArrowRight, description: "3 are overdue", color: "text-accent" },
-  { title: "Items in Register", value: "154", icon: Box, description: "12 added this week", color: "text-slate-600" },
-];
-
 const pendingPayments = [
   { id: "CI-2026-0008", buyer: "Apex Imports", amount: 4200, due: "2026-02-01", overdue: true },
   { id: "CI-2026-0005", buyer: "Gulf Foods LLC", amount: 9000, due: "2026-02-15", overdue: false },
@@ -187,6 +180,26 @@ function MissingCriticalDocs() {
 }
 
 export default function ExportDocsOverview() {
+  const firestore = useFirestore();
+  
+  // Fetch real item count
+  const itemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'items'),
+      limit(1000)
+    );
+  }, [firestore]);
+
+  const { data: items, isLoading: itemsLoading } = useCollection(itemsQuery);
+  
+  const stats = [
+    { title: "Total Export Value (MTD)", value: "$142,500", icon: TrendingUp, description: "+12% from last month", color: "text-primary" },
+    { title: "Active Invoices", value: "12", icon: FileText, description: "4 awaiting confirmation", color: "text-blue-600" },
+    { title: "Pending Payments", value: "8", icon: ArrowRight, description: "3 are overdue", color: "text-accent" },
+    { title: "Items in Register", value: itemsLoading ? "..." : (items?.length || 0).toString(), icon: Box, description: itemsLoading ? "Loading..." : `${items?.length || 0} total items`, color: "text-slate-600" },
+  ];
+
   return (
     <div className="space-y-10">
       <PageHeader title="Export Documentation" description="Manage items, analyze containers, and generate shipping docs with high-precision tools.">

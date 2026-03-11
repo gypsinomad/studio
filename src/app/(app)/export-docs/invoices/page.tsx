@@ -47,7 +47,18 @@ export default function ExportInvoicesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Invoices & Docs" description="Access all confirmed export invoices, packing lists, and certificates.">
-        <Button asChild className="rounded-xl"><Link href="/export-orders"><PlusCircle className="mr-2 size-4" /> Go to Orders</Link></Button>
+        <div className="flex gap-2">
+          <Button asChild className="rounded-xl">
+            <Link href="/export-orders/new">
+              <PlusCircle className="mr-2 size-4" /> Create Order
+            </Link>
+          </Button>
+          <Button variant="outline" asChild className="rounded-xl">
+            <Link href="/export-orders">
+              <Search className="mr-2 size-4" /> View Orders
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="flex items-center justify-between gap-4 bg-white/50 p-4 rounded-2xl border border-stone-200/60 shadow-sm backdrop-blur-sm">
