@@ -194,9 +194,9 @@ export default function ExportDocsOverview() {
   const { data: items, isLoading: itemsLoading } = useCollection(itemsQuery);
   
   const stats = [
-    { title: "Total Export Value (MTD)", value: "$142,500", icon: TrendingUp, description: "+12% from last month", color: "text-primary" },
-    { title: "Active Invoices", value: "12", icon: FileText, description: "4 awaiting confirmation", color: "text-blue-600" },
-    { title: "Pending Payments", value: "8", icon: ArrowRight, description: "3 are overdue", color: "text-accent" },
+    { title: "Total Export Value (MTD)", value: itemsLoading ? "..." : `$${(items?.reduce((sum, item) => sum + (item.totalValue || 0), 0) || 0).toLocaleString()}`, icon: TrendingUp, description: "From all confirmed orders", color: "text-primary" },
+    { title: "Active Invoices", value: documentsLoading ? "..." : (documents?.length || 0).toString(), icon: FileText, description: documentsLoading ? "Loading..." : `${documents?.length || 0} documents`, color: "text-blue-600" },
+    { title: "Pending Payments", value: pendingPayments.length.toString(), icon: ArrowRight, description: `${pendingPayments.filter(p => p.overdue).length} are overdue`, color: "text-accent" },
     { title: "Items in Register", value: itemsLoading ? "..." : (items?.length || 0).toString(), icon: Box, description: itemsLoading ? "Loading..." : `${items?.length || 0} total items`, color: "text-slate-600" },
   ];
 

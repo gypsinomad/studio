@@ -438,10 +438,15 @@ const Customers: React.FC = () => {
               <h3 className="font-semibold">{customer.companyName}</h3>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>{getCountryFlag(customer.country)}</span>
-                <span>{customer.country}</span>
+                <span>{customer.country || 'N/A'}</span>
                 {customer.industry && (
                   <Badge variant="outline" className="text-xs">
                     {customer.industry}
+                  </Badge>
+                )}
+                {!customer.industry && (
+                  <Badge variant="outline" className="text-xs">
+                    N/A
                   </Badge>
                 )}
               </div>
@@ -819,11 +824,16 @@ const Customers: React.FC = () => {
                   <h2 className="text-2xl font-bold">{selectedCustomer.companyName}</h2>
                   <div className="flex items-center space-x-2 text-muted-foreground">
                     <span>{getCountryFlag(selectedCustomer.country)}</span>
-                    <span>{selectedCustomer.country}</span>
+                    <span>{selectedCustomer.country || 'N/A'}</span>
                   </div>
                   {selectedCustomer.industry && (
                     <Badge variant="outline" className="mt-2">
                       {selectedCustomer.industry}
+                    </Badge>
+                  )}
+                  {!selectedCustomer.industry && (
+                    <Badge variant="outline" className="mt-2">
+                      N/A
                     </Badge>
                   )}
                 </div>
