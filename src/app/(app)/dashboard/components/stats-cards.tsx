@@ -6,6 +6,8 @@ interface StatsCardsProps {
   totalLeads?: number;
   activeExportOrders?: number;
   isLoading: boolean;
+  totalRevenue?: number;
+  tasksDue?: number;
 }
 
 function StatCard({ title, value, icon: Icon, description, isLoading }: { title: string, value: string | number, icon: React.ElementType, description: string, isLoading: boolean }) {
@@ -28,7 +30,15 @@ function StatCard({ title, value, icon: Icon, description, isLoading }: { title:
     )
 }
 
-export function StatsCards({ totalLeads, activeExportOrders, isLoading }: StatsCardsProps) {
+export function StatsCards({ totalLeads, activeExportOrders, isLoading, totalRevenue, tasksDue }: StatsCardsProps) {
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'USD', 
+      maximumFractionDigits: 0 
+    }).format(value);
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -48,32 +58,16 @@ export function StatsCards({ totalLeads, activeExportOrders, isLoading }: StatsC
       />
        <StatCard 
         title="Revenue (MTD)"
-        value="..."
+        value={isLoading ? "..." : totalRevenue ? formatCurrency(totalRevenue) : "$0"}
         icon={DollarSign}
-        description={
-          <span className="inline-flex items-center">
-            <span className="relative flex h-2 w-2 mr-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-            Coming soon
-          </span>
-        }
+        description="Month-to-date revenue from all orders"
         isLoading={isLoading}
       />
        <StatCard 
         title="Tasks Due"
-        value="..."
+        value={isLoading ? "..." : tasksDue ?? 0}
         icon={ListChecks}
-        description={
-          <span className="inline-flex items-center">
-            <span className="relative flex h-2 w-2 mr-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Coming soon
-          </span>
-        }
+        description="Tasks requiring attention today"
         isLoading={isLoading}
       />
     </div>

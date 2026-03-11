@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/page-header';
 import { StatsCards } from './components/stats-cards';
 import { RecentActivity } from './components/recent-activity';
 import { useFirestore } from '@/firebase';
-import type { DashboardStats, Lead, ExportOrder, LeadStatus, ExportOrderStage } from '@/lib/types';
+import type { DashboardStats, Lead, ExportOrder, LeadStatus, ExportOrderStage, Task } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
@@ -13,10 +13,13 @@ import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { backfillActivityLog } from '@/utils/backfillActivityLog';
+import { fixAkhilRole } from '@/utils/fixUserRole';
 
 const defaultDashboardStats: Omit<DashboardStats, 'id' | 'lastUpdatedAt'> = {
     totalLeads: 0,
     activeExportOrders: 0,
+    totalRevenue: 0,
+    tasksDue: 0,
     leadsByStatus: {
         new: 0,
         contacted: 0,
@@ -63,6 +66,20 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  // One-time role fix for akhil venugopal
+  useEffect(() => {
+    const hasFixedRole = localStorage.getItem('akhilRoleFixed');
+    if (!hasFixedRole && user?.email === 'akhil venugopal') {
+      fixAkhilRole().then(() => {
+        localStorage.setItem('akhilRoleFixed', 'true');
+        // Force page reload to pick up new role
+        window.location.reload();
+      }).catch(error => {
+        console.error('Role fix failed:', error);
+      });
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!firestore || !user) {
         if (!isUserLoading) setIsLoading(false);
@@ -77,22 +94,37 @@ export default function DashboardPage() {
         try {
             const leadsCollection = collection(firestore, 'leads');
             const ordersCollection = collection(firestore, 'exportOrders');
+            const tasksCollection = collection(firestore, 'tasks');
 
             const leadsQuery = query(leadsCollection);
             const ordersQuery = query(ordersCollection);
+            const tasksQuery = query(tasksCollection);
             
-            const [leadsSnapshot, ordersSnapshot] = await Promise.all([
+            const [leadsSnapshot, ordersSnapshot, tasksSnapshot] = await Promise.all([
                 getDocs(leadsQuery),
                 getDocs(ordersQuery),
+                getDocs(tasksQuery),
             ]);
 
             if (!mounted) return;
 
             const leads = leadsSnapshot.docs.map(doc => doc.data() as Lead);
             const orders = ordersSnapshot.docs.map(doc => doc.data() as ExportOrder);
+            const tasks = tasksSnapshot.docs.map(doc => doc.data() as Task);
 
             const totalLeads = leads.length;
             const activeExportOrders = orders.filter(o => o.stage !== 'shippedDelivered' && o.stage !== 'cancelled').length;
+            
+            // Calculate total revenue from orders
+            const totalRevenue = orders.reduce((sum, order) => sum + (order.totalValue || 0), 0);
+            
+            // Calculate tasks due (tasks not completed)
+            const today = new Date();
+            today.setHours(23, 59, 59, 999); // End of day
+            const tasksDue = tasks.filter(task => {
+                const dueDate = task.dueDate?.toDate();
+                return dueDate && dueDate <= today && task.status !== 'done';
+            }).length;
 
             const leadsByStatus = { ...defaultDashboardStats.leadsByStatus };
             for (const lead of leads) {
@@ -112,7 +144,9 @@ export default function DashboardPage() {
                 totalLeads,
                 activeExportOrders,
                 leadsByStatus,
-                exportOrdersByStage
+                exportOrdersByStage,
+                totalRevenue,
+                tasksDue
             });
 
         } catch (err: any) {
@@ -149,7 +183,9 @@ export default function DashboardPage() {
         <StatsCards 
             isLoading={isLoading}
             totalLeads={dashboardData?.totalLeads} 
-            activeExportOrders={dashboardData?.activeExportOrders} 
+            activeExportOrders={dashboardData?.activeExportOrders}
+            totalRevenue={dashboardData?.totalRevenue || 0}
+            tasksDue={dashboardData?.tasksDue || 0}
         />
         
         <div className="grid gap-8 md:grid-cols-2">

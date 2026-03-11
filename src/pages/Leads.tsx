@@ -773,7 +773,7 @@ const Leads: React.FC = () => {
                   <TableHead>Assigned To</TableHead>
                   <TableHead>Last Contact</TableHead>
                   <TableHead>Created Date</TableHead>
-                  <TableHead className="w-12">Actions</TableHead>
+                  <TableHead className="w-12 whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -821,7 +821,7 @@ const Leads: React.FC = () => {
                       </Select>
                     </TableCell>
                     <TableCell>{lead.assignedTo || '-'}</TableCell>
-                    <TableCell>-</TableCell>
+                    <TableCell>{lead.lastContactDate ? format(lead.lastContactDate?.toDate() || new Date(), 'MMM dd, yyyy') : '-'}</TableCell>
                     <TableCell>
                       {format(lead.createdAt?.toDate() || new Date(), 'MMM dd, yyyy')}
                     </TableCell>

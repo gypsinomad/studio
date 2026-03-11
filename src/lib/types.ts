@@ -227,6 +227,33 @@ export interface ActivityLog {
   timestamp: any;
 }
 
+export interface DashboardStats {
+  id?: string;
+  totalLeads: number;
+  activeExportOrders: number;
+  totalRevenue: number;
+  tasksDue: number;
+  leadsByStatus: {
+    new: number;
+    contacted: number;
+    qualified: number;
+    quoted: number;
+    converted: number;
+    lost: number;
+  };
+  exportOrdersByStage: {
+    leadReceived: number;
+    quotationSent: number;
+    orderConfirmed: number;
+    exportDocumentation: number;
+    shipmentReady: number;
+    shippedDelivered: number;
+    cancelled: number;
+    lostNoResponse: number;
+  };
+  lastUpdatedAt?: any;
+}
+
 // Debug Suite Types
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
