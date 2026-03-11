@@ -220,6 +220,19 @@ const Tasks: React.FC = () => {
       };
 
       await addDoc(collection(firestore, 'tasks'), taskData);
+      
+      // Log activity
+      await addDoc(collection(firestore, 'activity_logs'), {
+        orgId: orgId,
+        type: 'task_created',
+        message: `Task "${data.title}" was created`,
+        action: 'create',
+        collectionName: 'tasks',
+        docId: 'new',
+        userId: user?.uid || '',
+        timestamp: new Date()
+      });
+      
       toast.success('Task created successfully');
       setShowAddDialog(false);
       form.reset();

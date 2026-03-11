@@ -255,6 +255,19 @@ const Leads: React.FC = () => {
       };
 
       await addDoc(collection(firestore, 'leads'), leadData);
+      
+      // Log activity
+      await addDoc(collection(firestore, 'activity_logs'), {
+        orgId: orgId,
+        type: 'lead_created',
+        message: `Lead "${data.companyName}" was created`,
+        action: 'create',
+        collectionName: 'leads',
+        docId: 'new',
+        userId: user?.uid || '',
+        timestamp: new Date()
+      });
+      
       toast.success('Lead created successfully');
       setShowAddDialog(false);
       form.reset();
