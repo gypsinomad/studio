@@ -86,7 +86,23 @@ export default function ExportOrdersPage() {
         </div>
       )}
 
-      {!isLoading && orders && <ExportOrdersTable data={orders} onDelete={handleDeleteRequest} onEdit={handleEditRequest} />}
+      {!isLoading && orders && orders.length > 0 && <ExportOrdersTable data={orders} onDelete={handleDeleteRequest} onEdit={handleEditRequest} />}
+
+      {!isLoading && (!orders || orders.length === 0) && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <PlusCircle className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No export orders yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Start managing your export operations by creating your first export order. Track shipments, documents, and payments all in one place.
+          </p>
+          <Button onClick={() => router.push('/export-orders/new')} disabled={!isAuthenticated}>
+            <PlusCircle className="mr-2" />
+            Create Your First Export Order
+          </Button>
+        </div>
+      )}
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>

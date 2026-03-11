@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 import type { Lead, Task } from '@/lib/types';
@@ -31,6 +32,9 @@ const formSchema = z.object({
   phone: z.string().min(10, 'Please enter a valid phone number.'),
   productInterest: z.string().min(2, 'Product interest is required.'),
   destinationCountry: z.string().min(2, 'Destination country is required.'),
+  status: z.string().default('new'),
+  source: z.string().default('manual'),
+  priority: z.string().default('medium'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,6 +58,9 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
       phone: '',
       productInterest: '',
       destinationCountry: '',
+      status: 'new',
+      source: 'manual',
+      priority: 'medium',
     },
   });
 
@@ -204,6 +211,78 @@ export function NewLeadForm({ onSuccess }: NewLeadFormProps) {
               <FormControl>
                 <Input placeholder="e.g., USA, Germany" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="contacted">Contacted</SelectItem>
+                  <SelectItem value="qualified">Qualified</SelectItem>
+                  <SelectItem value="quoted">Quoted</SelectItem>
+                  <SelectItem value="converted">Converted</SelectItem>
+                  <SelectItem value="lost">Lost</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="source"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Source</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="website">Website</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="facebookLeadAds">Facebook Lead Ads</SelectItem>
+                  <SelectItem value="tradeShow">Trade Show</SelectItem>
+                  <SelectItem value="referral">Referral</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="priority"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Priority</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="hot">Hot</SelectItem>
+                  <SelectItem value="warm">Warm</SelectItem>
+                  <SelectItem value="cold">Cold</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

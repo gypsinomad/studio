@@ -708,18 +708,46 @@ const Customers: React.FC = () => {
       </div>
 
       {/* Customers Display */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => (
-            <CustomerCard key={customer.id} customer={customer} />
-          ))}
+      {filteredCustomers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Building className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No customers yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Start building your customer database by adding your first customer. Track contacts, orders, and communication history.
+          </p>
+          <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
+            <DialogTrigger asChild>
+              <Button disabled={!user}>
+                <Plus className="mr-2" />
+                Add Your First Customer
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Customer</DialogTitle>
+              </DialogHeader>
+              <NewCustomerForm onSuccess={() => setShowNewCustomerDialog(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredCustomers.map((customer) => (
-            <CustomerListItem key={customer.id} customer={customer} />
-          ))}
-        </div>
+        <>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCustomers.map((customer) => (
+                <CustomerCard key={customer.id} customer={customer} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredCustomers.map((customer) => (
+                <CustomerListItem key={customer.id} customer={customer} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Customer Detail Sheet */}
