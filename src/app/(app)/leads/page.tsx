@@ -25,7 +25,7 @@ export default function LeadsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const firestore = useFirestore();
-  const { user, userProfile, isAuthenticated, isLoading: isUserLoading, idToken } = useCurrentUser();
+  const { user, userProfile, isAuthenticated, isLoading: isUserLoading, idToken, isAdmin } = useCurrentUser();
   const { toast } = useToast();
 
   const leadsQuery = useMemoFirebase(() => {
@@ -98,9 +98,12 @@ export default function LeadsPage() {
                 onClick={() => toggleFilter('facebookLeadAds')}>
                 Facebook
             </Button>
-             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!isAuthenticated || isLoading}>
+             <Button onClick={() => setIsNewLeadOpen(true)} disabled={!isAuthenticated || isLoading || !isAdmin}>
                 <PlusCircle className="mr-2" />
                 New Lead
+                {!isAdmin && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Admin only)</span>
+                )}
             </Button>
         </div>
       </PageHeader>

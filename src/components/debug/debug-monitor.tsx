@@ -26,6 +26,11 @@ import { format } from 'date-fns';
 type Tab = 'logs' | 'permissions' | 'ai';
 
 export function DebugMonitor() {
+  // Hide in production
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('logs');
