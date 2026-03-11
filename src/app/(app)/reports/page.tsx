@@ -2,7 +2,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ export default function ReportsPage() {
   const firestore = useFirestore();
   
   // Fetch data for reports
-  const leadsQuery = useMemoFirebase(() => {
+  const leadsQuery = useMemo(() => {
     if (!firestore) return null;
     const thirtyDaysAgo = subDays(new Date(), 30);
     return query(
@@ -25,7 +25,7 @@ export default function ReportsPage() {
     );
   }, [firestore]);
 
-  const ordersQuery = useMemoFirebase(() => {
+  const ordersQuery = useMemo(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'exportOrders'),
@@ -38,7 +38,7 @@ export default function ReportsPage() {
 
   // Process data for charts
   const leadsBySource = useMemo(() => {
-    if (!leads) return [];
+    if (!leads || leads.length === 0) return [];
     const sourceCounts = leads.reduce((acc, lead) => {
       const source = lead.source || 'Other';
       acc[source] = (acc[source] || 0) + 1;
@@ -47,13 +47,13 @@ export default function ReportsPage() {
     
     return Object.entries(sourceCounts).map(([source, count]) => ({
       name: source,
-      value: count,
+      value: count as number,
       percentage: ((count / leads.length) * 100).toFixed(1)
     }));
   }, [leads]);
 
   const ordersByStage = useMemo(() => {
-    if (!orders) return [];
+    if (!orders || orders.length === 0) return [];
     const stageCounts = orders.reduce((acc, order) => {
       const stage = order.stage || 'unknown';
       acc[stage] = (acc[stage] || 0) + 1;
@@ -62,7 +62,7 @@ export default function ReportsPage() {
     
     return Object.entries(stageCounts).map(([stage, count]) => ({
       name: stage,
-      value: count,
+      value: count as number,
       percentage: ((count / orders.length) * 100).toFixed(1)
     }));
   }, [orders]);
@@ -98,8 +98,9 @@ export default function ReportsPage() {
   }, [orders]);
 
   const conversionRate = useMemo(() => {
-    const convertedLeads = leads?.filter(lead => lead.status === 'converted').length || 0;
-    return leads?.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : '0';
+    if (!leads || leads.length === 0) return '0';
+    const convertedLeads = leads.filter(lead => lead.status === 'converted').length || 0;
+    return ((convertedLeads / leads.length) * 100).toFixed(1);
   }, [leads]);
 
   return (
