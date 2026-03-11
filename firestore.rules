@@ -74,6 +74,10 @@ service cloud.firestore {
     }
 
     // Meetings - participant-based access
+    match /meetings {
+      allow list: if isSignedIn();
+    }
+    
     match /meetings/{meetingId} {
       allow read: if isSignedIn() && 
                   resource.data != null && 
@@ -252,6 +256,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn(); // System can create logs
       allow update, delete: if false; // Logs are immutable
+    }
+
+    // Settings - AI configuration for authenticated users
+    match /settings/ai {
+      allow get: if isSignedIn();
+      allow update: if isAdmin(); // Only admins can update AI settings
     }
 
     // Deny all other access

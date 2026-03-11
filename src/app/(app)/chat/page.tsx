@@ -22,7 +22,8 @@ import {
   Paperclip,
   Calendar,
   CheckCircle2,
-  Bell
+  Bell,
+  MessageSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Conversation, Message, User as UserType } from '@/lib/types';

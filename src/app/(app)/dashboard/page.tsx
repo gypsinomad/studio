@@ -104,7 +104,7 @@ export default function DashboardPage() {
 
         } catch (err: any) {
             console.error("Dashboard fetch error:", err);
-            setError(err.message || "An unexpected error occurred.");
+            setError("Unable to load dashboard statistics. Please check your permissions or contact your administrator.");
         } finally {
             if (mounted) {
                 setIsLoading(false);

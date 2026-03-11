@@ -107,7 +107,23 @@ export default function LeadsPage() {
       
       {isLoading && <TableSkeleton />}
 
-      {!isLoading && leads && <LeadsTable data={leads} onRowClick={handleRowClick} onDelete={handleDeleteRequest} />}
+      {!isLoading && leads && leads.length > 0 && <LeadsTable data={leads} onRowClick={handleRowClick} onDelete={handleDeleteRequest} />}
+
+      {!isLoading && (!leads || leads.length === 0) && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <PlusCircle className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No leads yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Get started by adding your first lead. Click the "New Lead" button to begin building your sales pipeline.
+          </p>
+          <Button onClick={() => setIsNewLeadOpen(true)} disabled={!isAuthenticated}>
+            <PlusCircle className="mr-2" />
+            Add Your First Lead
+          </Button>
+        </div>
+      )}
 
       <Dialog open={isNewLeadOpen} onOpenChange={setIsNewLeadOpen}>
         <DialogContent>
