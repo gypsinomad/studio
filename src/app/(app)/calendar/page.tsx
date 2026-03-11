@@ -56,6 +56,7 @@ export default function TeamCalendarPage() {
   const { user } = useCurrentUser();
   const firestore = useFirestore();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedEventTypes, setSelectedEventTypes] = useState<EventType[]>(['meeting', 'task', 'milestone', 'reminder']);
 
   // Public/Shared Queries
   const meetingsQuery = useMemoFirebase(() => {
@@ -126,8 +127,11 @@ export default function TeamCalendarPage() {
       href: '/chat',
     }));
 
-    return events.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [meetings, tasks, orders, reminders]);
+    // Filter by selected event types
+    return events
+      .filter(event => selectedEventTypes.includes(event.type))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [meetings, tasks, orders, reminders, selectedEventTypes]);
 
   const monthDays = useMemo(() => {
     const start = startOfMonth(currentDate);
@@ -138,6 +142,14 @@ export default function TeamCalendarPage() {
   const upcomingEvents = useMemo(() => {
     return allEvents.filter(e => !isPast(e.date) || isToday(e.date)).slice(0, 8);
   }, [allEvents]);
+
+  const toggleEventType = (type: EventType) => {
+    setSelectedEventTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
 
   return (
     <div className="space-y-8 pb-20">
@@ -164,10 +176,17 @@ export default function TeamCalendarPage() {
               <CardTitle className="text-lg font-bold text-slate-900">{format(currentDate, 'MMMM yyyy')}</CardTitle>
               <div className="flex gap-4">
                 {Object.entries(eventColors).map(([type, color]) => (
-                  <div key={type} className="flex items-center gap-1.5">
+                  <button
+                    key={type}
+                    onClick={() => toggleEventType(type as EventType)}
+                    className={cn(
+                      "flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95",
+                      selectedEventTypes.includes(type as EventType) ? "opacity-100" : "opacity-40"
+                    )}
+                  >
                     <div className={cn("size-2 rounded-full", color.split(' ')[0].replace('bg-', 'bg-'))} />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{type}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </CardHeader>

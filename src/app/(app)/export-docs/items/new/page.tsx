@@ -69,11 +69,16 @@ export default function NewItemPage() {
                 <div className="grid gap-2">
                   <Label>Subcategory</Label>
                   <Select disabled={!category}>
-                    <SelectTrigger><SelectValue placeholder="Select Subcategory" /></SelectTrigger>
+                    <SelectTrigger className={!category ? "opacity-50" : ""}>
+                      <SelectValue placeholder={!category ? "Select a category first" : "Select Subcategory"} />
+                    </SelectTrigger>
                     <SelectContent>
                       {category && SUBCATEGORIES[category]?.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {!category && (
+                    <p className="text-xs text-muted-foreground">Please select a category first to enable subcategory selection</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label>HSN Code</Label>
