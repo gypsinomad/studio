@@ -46,7 +46,7 @@ export default function ExportReportsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-emerald-50 rounded-full"><DollarSign className="size-5 text-emerald-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Total Export Value</p><p className="text-xl font-bold">₹4.2 Cr</p></div>
+                  <div><p className="text-xs text-muted-foreground">Total Export Value</p><p className="text-xl font-bold">$4.2 Cr</p></div>
                 </div>
               </CardContent>
             </Card>

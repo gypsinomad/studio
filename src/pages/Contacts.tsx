@@ -654,18 +654,46 @@ const Contacts: React.FC = () => {
       </Card>
 
       {/* Contacts Display */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredContacts.map((contact) => (
-            <ContactCard key={contact.id} contact={contact} />
-          ))}
+      {filteredContacts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <MessageCircle className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No contacts yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Build your contact database by adding people you work with. Track communication history and manage relationships.
+          </p>
+          <Dialog open={showNewContactDialog} onOpenChange={setShowNewContactDialog}>
+            <DialogTrigger asChild>
+              <Button disabled={!user}>
+                <Plus className="mr-2" />
+                Add Your First Contact
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Contact</DialogTitle>
+              </DialogHeader>
+              <NewContactForm onSuccess={() => setShowNewContactDialog(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredContacts.map((contact) => (
-            <ContactListItem key={contact.id} contact={contact} />
-          ))}
-        </div>
+        <>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredContacts.map((contact) => (
+                <ContactCard key={contact.id} contact={contact} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredContacts.map((contact) => (
+                <ContactListItem key={contact.id} contact={contact} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Contact Detail Sheet */}

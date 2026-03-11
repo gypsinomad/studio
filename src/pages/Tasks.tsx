@@ -695,8 +695,30 @@ const Tasks: React.FC = () => {
         <div className="space-y-4">
           {filteredTasks.length === 0 ? (
             <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                No tasks found
+              <CardContent className="p-8 text-center">
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="rounded-full bg-muted p-4 mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md">
+                    Stay organized by creating tasks for follow-ups, deadlines, and important activities.
+                  </p>
+                  <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="mr-2" />
+                        Create Your First Task
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Task</DialogTitle>
+                      </DialogHeader>
+                      <NewTaskForm onSuccess={() => setShowNewTaskDialog(false)} />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardContent>
             </Card>
           ) : (
