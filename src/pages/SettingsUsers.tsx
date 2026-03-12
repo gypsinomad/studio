@@ -75,11 +75,12 @@ interface AppUser {
 }
 
 const ROLES = [
+  { value: 'superadmin', label: 'Super Admin', icon: <Crown className="h-4 w-4 text-yellow-500" /> },
   { value: 'admin', label: 'Administrator', icon: <Crown className="h-4 w-4" /> },
   { value: 'manager', label: 'Manager', icon: <UserCheck className="h-4 w-4" /> },
   { value: 'sales', label: 'Sales', icon: <Users className="h-4 w-4" /> },
   { value: 'support', label: 'Support', icon: <UserCheck className="h-4 w-4" /> },
-  { value: 'viewer', label: 'Viewer', icon: <User className="h-4 w-4" /> }
+  { value: 'viewer', label: 'Viewer', icon: <Lock className="h-4 w-4" /> }
 ];
 
 const DEPARTMENTS = [
@@ -94,6 +95,7 @@ const PERMISSIONS = [
 ];
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
+  superadmin: PERMISSIONS,
   admin: PERMISSIONS,
   manager: ['dashboard_view', 'leads_read', 'leads_write', 'orders_read', 'orders_write', 'customers_read', 'customers_write', 'contacts_read', 'contacts_write', 'tasks_read', 'tasks_write', 'documents_read', 'documents_write', 'reports_view', 'reports_export', 'users_read'],
   sales: ['dashboard_view', 'leads_read', 'leads_write', 'orders_read', 'orders_write', 'customers_read', 'customers_write', 'contacts_read', 'contacts_write', 'tasks_read', 'tasks_write', 'documents_read', 'documents_write', 'reports_view'],
@@ -102,7 +104,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 };
 
 // Handle role change specifically
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'manager' | 'sales' | 'support' | 'viewer') => {
+  const handleRoleChange = async (userId: string, newRole: 'superadmin' | 'admin' | 'manager' | 'sales' | 'support' | 'viewer') => {
     try {
       const result = await updateUserRole(userId, newRole);
       if (result.success) {

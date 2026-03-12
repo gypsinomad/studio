@@ -7,7 +7,7 @@ import type { User } from '@/lib/types';
  * @param userId - The user ID to update
  * @param newRole - The new role to assign ('admin' | 'manager' | 'viewer')
  */
-export async function updateUserRole(userId: string, newRole: 'admin' | 'manager' | 'viewer') {
+export async function updateUserRole(userId: string, newRole: 'superadmin' | 'admin' | 'manager' | 'viewer') {
   try {
     const firestore = getFirestore();
     if (!firestore) {
