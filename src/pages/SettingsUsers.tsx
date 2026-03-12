@@ -101,6 +101,23 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   viewer: ['dashboard_view', 'leads_read', 'orders_read', 'customers_read', 'contacts_read', 'tasks_read', 'documents_read', 'reports_view']
 };
 
+// Handle role change specifically
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'manager' | 'sales' | 'support' | 'viewer') => {
+    try {
+      const result = await updateUserRole(userId, newRole);
+      if (result.success) {
+        toast.success(`User role updated to ${ROLES.find(r => r.value === newRole)?.label}`);
+        // Refresh users list to reflect the change
+        fetchUsers();
+      } else {
+        toast.error(`Failed to update role: ${result.error}`);
+      }
+    } catch (error: any) {
+      console.error('Error updating user role:', error);
+      toast.error('Failed to update user role');
+    }
+  };
+
 const SettingsUsers: React.FC = () => {
   // Check if we're in a browser environment
   const isBrowser = typeof window !== 'undefined';
@@ -289,47 +306,66 @@ const SettingsUsers: React.FC = () => {
       <CardContent className="p-6">
         <div className="flex items-start space-x-4">
           <Avatar className="h-12 w-12">
-            <AvatarFallback className="bg-blue-100 text-blue-800">
+            <AvatarFallback className={getAvatarColor(user.displayName)}>
               {getInitials(user.displayName)}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-lg truncate">{user.displayName}</h3>
-              <Badge className={getStatusColor(user.status)}>
-                {user.status}
-              </Badge>
+          
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">{user.displayName}</h3>
+                <p className="text-muted-foreground">{user.email}</p>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {isAdmin ? (
+                  <Select
+                    value={user.role}
+                    onValueChange={(newRole) => handleRoleChange(user.id, newRole as any)}
+                  >
+                    <SelectTrigger className="w-32 h-8">
+                      <SelectValue>
+                        <div className="flex items-center space-x-2">
+                          {getRoleIcon(user.role)}
+                          <Badge variant="outline" className="text-xs">
+                            {ROLES.find(r => r.value === user.role)?.label}
+                          </Badge>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map(role => (
+                        <SelectItem key={role.value} value={role.value}>
+                          <div className="flex items-center space-x-2">
+                            {role.icon}
+                            <span>{role.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <>
+                    {getRoleIcon(user.role)}
+                    <Badge variant="outline" className="text-xs">
+                      {ROLES.find(r => r.value === user.role)?.label}
+                    </Badge>
+                  </>
+                )}
+              </div>
             </div>
             
             <div className="space-y-1 text-sm">
-              <div className="flex items-center space-x-2">
-                <Mail className="h-3 w-3 text-muted-foreground" />
-                <span className="text-blue-600">{user.email}</span>
-              </div>
-              
               {user.department && (
                 <div className="flex items-center space-x-2">
                   <Users className="h-3 w-3 text-muted-foreground" />
                   <span>{user.department}</span>
                 </div>
               )}
-              
-              {user.phone && (
-                <div className="flex items-center space-x-2">
-                  <Settings className="h-3 w-3 text-muted-foreground" />
-                  <span>{user.phone}</span>
-                </div>
-              )}
             </div>
             
             <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center space-x-2">
-                {getRoleIcon(user.role)}
-                <Badge variant="outline" className="text-xs">
-                  {ROLES.find(r => r.value === user.role)?.label}
-                </Badge>
-              </div>
-              
               <div className="flex items-center space-x-2">
                 {user.lastLogin && (
                   <span className="text-xs text-muted-foreground">
@@ -337,39 +373,57 @@ const SettingsUsers: React.FC = () => {
                   </span>
                 )}
               </div>
+              
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    form.reset({
+                      email: user.email,
+                      displayName: user.displayName,
+                      role: user.role,
+                      department: user.department || '',
+                      phone: user.phone || '',
+                      status: user.status,
+                      permissions: user.permissions
+                    });
+                    setShowEditDialog(true);
+                  }}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setShowPermissionsDialog(true);
+                  }}
+                >
+                  <Key className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleUserStatus(user.id, user.status)}
+                >
+                  {user.status === 'active' ? (
+                    <Lock className="h-4 w-4" />
+                  ) : (
+                    <Unlock className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => deleteUser(user.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedUser(user);
-                form.reset({
-                  email: user.email,
-                  displayName: user.displayName,
-                  role: user.role,
-                  department: user.department || '',
-                  phone: user.phone || '',
-                  status: user.status,
-                  permissions: user.permissions
-                });
-                setShowEditDialog(true);
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedUser(user);
-                setShowPermissionsDialog(true);
-              }}
-            >
               <Key className="h-4 w-4" />
             </Button>
             <Button
