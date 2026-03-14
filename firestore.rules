@@ -25,18 +25,20 @@ service cloud.firestore {
     function arrayContains(array, value) {
       return array != null && value in array;
     }
-
-    // Users collection - strict access control (no role checks to avoid recursion)
+ 
+    // Users collection - ALLOW SELF-ROLE UPDATES
     match /users/{userId} {
-      allow read, create: if isSignedIn() && request.auth.uid == userId;
-      allow update, delete: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin() || hasRole('admin') || hasRole('editor'));
+      allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
     }
-
+ 
     // Usage Stats - admin only access
     match /usageStats/{docId} {
       allow read, write: if isSignedIn() && isAdmin();
     }
-
+ 
     // Notifications - scoped access with ownership
     match /notifications {
       allow list: if isSignedIn();
@@ -50,7 +52,7 @@ service cloud.firestore {
                     request.resource.data != null && 
                     isOwner(request.resource.data.userId);
     }
-
+ 
     // Tasks - role-based access
     match /tasks {
       allow list: if isSignedIn();
@@ -72,7 +74,7 @@ service cloud.firestore {
                     resource.data != null && 
                     (isAdmin() || isOwner(resource.data.createdBy));
     }
-
+ 
     // Meetings - participant-based access
     match /meetings {
       allow list: if isSignedIn();
@@ -88,7 +90,7 @@ service cloud.firestore {
                             resource.data != null && 
                             (isAdmin() || isOwner(resource.data.organizerId));
     }
-
+ 
     // Messages - conversation-based access
     match /messages/{messageId} {
       allow read: if isSignedIn() && 
@@ -103,7 +105,7 @@ service cloud.firestore {
                             resource.data != null && 
                             (isAdmin() || isOwner(resource.data.senderId));
     }
-
+ 
     // Conversations - participant-based access
     match /conversations/{conversationId} {
       allow read: if isSignedIn() && 
@@ -117,7 +119,7 @@ service cloud.firestore {
                     (isAdmin() || arrayContains(resource.data.participants, request.auth.uid));
       allow delete: if isSignedIn() && isAdmin();
     }
-
+ 
     // Leads - sales team access control
     match /leads {
       allow list: if isSignedIn();
@@ -135,7 +137,7 @@ service cloud.firestore {
                     resource.data != null && 
                     (isAdmin() || isOwner(resource.data.assignedUserId));
     }
-
+ 
     // Customers - role-based access
     match /companies {
       allow list: if isSignedIn();
@@ -146,7 +148,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && (isAdmin() || hasRole('salesExecutive'));
       allow update, delete: if isSignedIn() && (isAdmin() || hasRole('salesExecutive'));
     }
-
+ 
     // Documents - owner-based access
     match /documents {
       allow list: if isSignedIn();
@@ -163,7 +165,7 @@ service cloud.firestore {
                             resource.data != null && 
                             (isAdmin() || isOwner(resource.data.createdBy));
     }
-
+ 
     // Reminders - personal access only
     match /reminders/{reminderId} {
       allow read, update, delete: if isSignedIn() && 
@@ -173,12 +175,12 @@ service cloud.firestore {
                     request.resource.data != null && 
                     isOwner(request.resource.data.userId);
     }
-
+ 
     // Settings - admin only for organization settings
     match /settings/{settingId} {
       allow read, write: if isSignedIn() && isAdmin();
     }
-
+ 
     // Export Orders - organization-based access
     match /exportOrders {
       allow list: if isSignedIn();
@@ -189,14 +191,11 @@ service cloud.firestore {
                   resource.data != null && 
                   (isAdmin() || isOwner(resource.data.createdBy));
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
-      allow delete: if isSignedIn() && 
+      allow update, delete: if isSignedIn() && 
                     resource.data != null && 
                     (isAdmin() || isOwner(resource.data.createdBy));
     }
-
+ 
     // Items - organization-based access
     match /items {
       allow list: if isSignedIn();
@@ -207,14 +206,11 @@ service cloud.firestore {
                   resource.data != null && 
                   (isAdmin() || isOwner(resource.data.createdBy));
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
-      allow delete: if isSignedIn() && 
+      allow update, delete: if isSignedIn() && 
                     resource.data != null && 
                     (isAdmin() || isOwner(resource.data.createdBy));
     }
-
+ 
     // Payments - organization-based access
     match /payments {
       allow list: if isSignedIn();
@@ -225,14 +221,11 @@ service cloud.firestore {
                   resource.data != null && 
                   (isAdmin() || isOwner(resource.data.createdBy));
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
-      allow delete: if isSignedIn() && 
+      allow update, delete: if isSignedIn() && 
                     resource.data != null && 
                     (isAdmin() || isOwner(resource.data.createdBy));
     }
-
+ 
     // Invoices - organization-based access
     match /invoices {
       allow list: if isSignedIn();
@@ -243,62 +236,24 @@ service cloud.firestore {
                   resource.data != null && 
                   (isAdmin() || isOwner(resource.data.createdBy));
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
-      allow delete: if isSignedIn() && 
+      allow update, delete: if isSignedIn() && 
                     resource.data != null && 
                     (isAdmin() || isOwner(resource.data.createdBy));
     }
-
+ 
     // Activity logs - read-only for authenticated users
     match /activityLogs/{logId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn(); // System can create logs
       allow update, delete: if false; // Logs are immutable
     }
-
-    // Leads - role-based access
-    match /leads/{docId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin','editor'];
-      allow delete: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Export Orders - role-based access
-    match /exportOrders/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin','editor'];
-    }
-
-    // Tasks - full access for authenticated users
-    match /tasks/{docId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Contacts - role-based access
-    match /contacts/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin','editor'];
-    }
-
-    // Companies - role-based access
-    match /companies/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin','editor'];
-    }
-
+ 
     // Settings - AI configuration for authenticated users
     match /settings/ai {
       allow get: if isSignedIn();
       allow update: if isAdmin(); // Only admins can update AI settings
     }
-
+ 
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;
