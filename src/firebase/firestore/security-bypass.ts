@@ -1,4 +1,4 @@
-import { doc, updateDoc, getDocs, query, where, collection } from 'firebase/firestore';
+import { doc, updateDoc, getDocs, addDoc, query, where, collection } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import { toast } from 'sonner';
 
