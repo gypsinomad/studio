@@ -1,4 +1,4 @@
-import { doc, updateDoc, getDocs, query, where } from 'firebase/firestore';
+import { doc, updateDoc, getDocs, query, where, collection } from 'firebase/firestore';
 import { getFirestore } from '@/firebase';
 import { toast } from 'sonner';
 
@@ -13,20 +13,31 @@ export async function makeAkhilSuperAdmin() {
       throw new Error('Firestore not initialized');
     }
 
-    // Find akhilvenugopal user
-    const usersQuery = query(
-      collection(firestore, 'users'),
-      where('email', '==', 'akhil venugopal')
-    );
+    // Try multiple ways to find akhilvenugopal user
+    const searchQueries = [
+      query(collection(firestore, 'users'), where('email', '==', 'akhilvenugopal@gmail.com')),
+      query(collection(firestore, 'users'), where('displayName', '==', 'akhil venugopal')),
+      query(collection(firestore, 'users'), where('email', '==', 'akhil venugopal'))
+    ];
 
-    const querySnapshot = await getDocs(usersQuery);
+    let userDoc = null;
     
-    if (querySnapshot.empty) {
-      console.log('User akhilvenugopal not found');
+    for (const usersQuery of searchQueries) {
+      const querySnapshot = await getDocs(usersQuery);
+      if (!querySnapshot.empty) {
+        userDoc = querySnapshot.docs[0];
+        console.log('Found user:', userDoc.data());
+        break;
+      }
+    }
+    
+    if (!userDoc) {
+      console.log('User akhilvenugopal not found with any search method');
       return { success: false, error: 'User not found' };
     }
 
-    const userDoc = querySnapshot.docs[0];
+    const currentRole = userDoc.data()?.role;
+    console.log('Current role:', currentRole);
     
     // Update to superadmin role
     await updateDoc(doc(firestore, 'users', userDoc.id), {
@@ -34,8 +45,9 @@ export async function makeAkhilSuperAdmin() {
       updatedAt: new Date()
     });
 
+    console.log('Successfully updated akhilvenugopal to superadmin');
     toast.success('akhilvenugopal has been promoted to Super Admin');
-    return { success: true };
+    return { success: true, userId: userDoc.id, previousRole: currentRole };
     
   } catch (error: any) {
     console.error('Error making akhilvenugopal superadmin:', error);
