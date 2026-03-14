@@ -54,3 +54,9 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+
+// Export individual Firebase functions
+export { initializeApp, getApp, getApps } from 'firebase/app';
+export { getAuth } from 'firebase/auth';
+export { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+export { getStorage } from 'firebase/storage';

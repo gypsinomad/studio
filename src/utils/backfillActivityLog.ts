@@ -1,15 +1,15 @@
 import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getFirestore } from '@/firebase';
+import { initializeFirebase } from '@/firebase';
 
 export async function backfillActivityLog() {
   try {
-    const db = getFirestore();
+    const { firestore } = initializeFirebase();
     
     // Backfill leads
-    const leadsSnap = await getDocs(collection(db, 'leads'));
+    const leadsSnap = await getDocs(collection(firestore, 'leads'));
     for (const doc of leadsSnap.docs) {
       const data = doc.data();
-      await addDoc(collection(db, 'activity_logs'), {
+      await addDoc(collection(firestore, 'activity_logs'), {
         orgId: data.orgId || 'default',
         type: 'lead_created',
         message: `Lead created: ${data.companyName || data.fullName || 'Unknown'}`,
@@ -23,10 +23,10 @@ export async function backfillActivityLog() {
     }
 
     // Backfill tasks
-    const tasksSnap = await getDocs(collection(db, 'tasks'));
+    const tasksSnap = await getDocs(collection(firestore, 'tasks'));
     for (const doc of tasksSnap.docs) {
       const data = doc.data();
-      await addDoc(collection(db, 'activity_logs'), {
+      await addDoc(collection(firestore, 'activity_logs'), {
         orgId: data.orgId || 'default',
         type: 'task_created',
         message: `Task created: ${data.title || 'Unknown'}`,

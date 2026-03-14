@@ -1,5 +1,5 @@
 import { doc, updateDoc, getDocs, query, where, collection } from 'firebase/firestore';
-import { getFirestore } from '@/firebase';
+import { initializeFirebase } from '@/firebase';
 import { toast } from 'sonner';
 
 /**
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
  */
 export async function makeAkhilSuperAdmin() {
   try {
-    const firestore = getFirestore();
+    const { firestore } = initializeFirebase();
     if (!firestore) {
       throw new Error('Firestore not initialized');
     }
