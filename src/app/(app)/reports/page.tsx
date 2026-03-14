@@ -38,7 +38,7 @@ export default function ReportsPage() {
       const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // Calculate metrics
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalValue || 0), 0);
+      const totalRevenue = orders.reduce((sum, order: any) => sum + (order.totalValue || 0), 0);
       const conversionRate = leads.length > 0 ? (orders.length / leads.length) * 100 : 0;
       const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 

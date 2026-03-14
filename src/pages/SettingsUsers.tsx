@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
 
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, updateUserRole } from '@/firebase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -104,21 +104,20 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 };
 
 // Handle role change specifically
-  const handleRoleChange = async (userId: string, newRole: 'superadmin' | 'admin' | 'manager' | 'sales' | 'support' | 'viewer') => {
-    try {
-      const result = await updateUserRole(userId, newRole);
-      if (result.success) {
-        toast.success(`User role updated to ${ROLES.find(r => r.value === newRole)?.label}`);
-        // Refresh users list to reflect the change
-        fetchUsers();
-      } else {
-        toast.error(`Failed to update role: ${result.error}`);
-      }
-    } catch (error: any) {
-      console.error('Error updating user role:', error);
-      toast.error('Failed to update user role');
+const handleRoleChange = async (userId: string, newRole: 'superadmin' | 'admin' | 'manager' | 'sales' | 'support' | 'viewer') => {
+  try {
+    const result = await updateUserRole(userId, newRole);
+    if (result.success) {
+      toast.success(`User role updated to ${ROLES.find(r => r.value === newRole)?.label}`);
+      // Note: fetchUsers will be called automatically through the onSnapshot listener
+    } else {
+      toast.error(`Failed to update role: ${result.error}`);
     }
-  };
+  } catch (error: any) {
+    console.error('Error updating user role:', error);
+    toast.error('Failed to update user role');
+  }
+};
 
 const SettingsUsers: React.FC = () => {
   // Check if we're in a browser environment
@@ -132,7 +131,7 @@ const SettingsUsers: React.FC = () => {
     );
   }
   
-  const { user, userProfile } = useUser();
+  const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   
   // For now, use user.uid as orgId if userProfile.orgId is not available
@@ -170,7 +169,7 @@ const SettingsUsers: React.FC = () => {
       setRefreshing(true);
       const q = query(
         collection(firestore, 'users'),
-        where('orgId', '==', user.orgId),
+        where('orgId', '==', user?.orgId || orgId),
         orderBy('createdAt', 'desc')
       );
 
@@ -199,10 +198,10 @@ const SettingsUsers: React.FC = () => {
       const userData = {
         ...data,
         permissions: ROLE_PERMISSIONS[data.role] || [],
-        createdBy: user.uid,
+        createdBy: user?.uid || 'system',
         createdAt: new Date(),
         updatedAt: new Date(),
-        orgId: user.orgId
+        orgId: user?.orgId || orgId
       };
 
       // In a real implementation, you would create a Firebase Auth user first
@@ -303,7 +302,31 @@ const SettingsUsers: React.FC = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const UserCard: React.FC<{ user: AppUser }> = ({ user }) => (
+  const getAvatarColor = (name: string) => {
+    // Simple hash function for consistent colors
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      'bg-red-500',
+      'bg-orange-500',
+      'bg-yellow-500',
+      'bg-green-500',
+      'bg-blue-500',
+      'bg-indigo-500',
+      'bg-purple-500',
+      'bg-pink-500',
+      'bg-teal-500',
+      'bg-cyan-500'
+    ];
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const UserCard: React.FC<{ user: AppUser }> = ({ user }) => {
+    const { isAdmin } = useUser();
+    
+    return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
         <div className="flex items-start space-x-4">
@@ -426,31 +449,11 @@ const SettingsUsers: React.FC = () => {
                 </Button>
               </div>
             </div>
-              <Key className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toggleUserStatus(user.id, user.status)}
-            >
-              {user.status === 'active' ? (
-                <Lock className="h-4 w-4" />
-              ) : (
-                <Unlock className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => deleteUser(user.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   if (loading) {
     return (
