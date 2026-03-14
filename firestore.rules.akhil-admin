@@ -1,0 +1,314 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function hasRole(role) {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    function arrayContains(array, value) {
+      return array != null && value in array;
+    }
+
+    // AKHILVENUGOPAL ADMIN PROMOTION RULE
+    match /users/{userId} {
+      // Special rule for akhilvenugopal - make him admin immediately
+      allow read, update: if isSignedIn() && (
+        isOwner(userId) || 
+        isAdmin() || 
+        hasRole('admin') || 
+        hasRole('editor') ||
+        request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1' // akhilvenugopal's UID - ADMIN ACCESS
+      );
+      allow create: if isSignedIn();
+      allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    // Usage Stats - allow akhilvenugopal access
+    match /usageStats/{docId} {
+      allow read, write: if isSignedIn() && (
+        isAdmin() || 
+        request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1' // akhilvenugopal can access
+      );
+    }
+
+    // Notifications - allow akhilvenugopal access
+    match /notifications {
+      allow list: if isSignedIn() || request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1';
+    }
+    
+    match /notifications/{notifId} {
+      allow read, update, delete: if isSignedIn() && 
+                                     (resource.data != null && 
+                                     isOwner(resource.data.userId)) ||
+                                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1';
+      allow create: if isSignedIn() && 
+                    (request.resource.data != null && 
+                    isOwner(request.resource.data.userId)) ||
+                    request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1';
+    }
+
+    // Tasks - allow akhilvenugopal access
+    match /tasks {
+      allow list: if isSignedIn();
+    }
+    
+    match /tasks/{taskId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.assigneeId) || 
+                   isOwner(resource.data.createdBy) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.assigneeId) || 
+                     isOwner(resource.data.createdBy) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || isOwner(resource.data.createdBy));
+    }
+
+    // Meetings - allow akhilvenugopal access
+    match /meetings {
+      allow list: if isSignedIn();
+    }
+    
+    match /meetings/{meetingId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  resource.data.participants != null && 
+                  (isAdmin() || 
+                   arrayContains(resource.data.participants, request.auth.uid) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                            resource.data != null && 
+                            (isAdmin() || 
+                             isOwner(resource.data.organizerId) ||
+                             request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Messages - allow akhilvenugopal access
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  resource.data.participants != null && 
+                  (isAdmin() || 
+                   arrayContains(resource.data.participants, request.auth.uid) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn() && 
+                    request.resource.data != null && 
+                    request.resource.data.participants != null && 
+                    (isAdmin() || 
+                     arrayContains(resource.data.participants, request.auth.uid) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow update, delete: if isSignedIn() && 
+                            resource.data != null && 
+                            (isAdmin() || 
+                             isOwner(resource.data.senderId) ||
+                             request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Conversations - allow akhilvenugopal access
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  resource.data.participants != null && 
+                  (isAdmin() || 
+                   arrayContains(resource.data.participants, request.auth.uid) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    resource.data.participants != null && 
+                    (isAdmin() || 
+                     arrayContains(resource.data.participants, request.auth.uid) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow delete: if isSignedIn() && (isAdmin() || request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Leads - allow akhilvenugopal access
+    match /leads {
+      allow list: if isSignedIn();
+    }
+    
+    match /leads/{leadId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.assignedUserId) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.assignedUserId) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.assignedUserId) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Customers - allow akhilvenugopal access
+    match /companies {
+      allow list: if isSignedIn();
+    }
+    
+    match /customers/{customerId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (isAdmin() || hasRole('salesExecutive') || request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow update, delete: if isSignedIn() && (isAdmin() || hasRole('salesExecutive') || request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Documents - allow akhilvenugopal access
+    match /documents {
+      allow list: if isSignedIn();
+    }
+    
+    match /documents/{documentId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.createdBy) || 
+                   isOwner(resource.data.assignedTo) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                            resource.data != null && 
+                            (isAdmin() || 
+                             isOwner(resource.data.createdBy) ||
+                             request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Reminders - allow akhilvenugopal access
+    match /reminders/{reminderId} {
+      allow read, update, delete: if isSignedIn() && 
+                                   resource.data != null && 
+                                   (isOwner(resource.data.userId) ||
+                                    request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn() && 
+                    request.resource.data != null && 
+                    (isOwner(request.resource.data.userId) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Settings - allow akhilvenugopal access
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn() && (isAdmin() || request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Export Orders - allow akhilvenugopal access
+    match /exportOrders {
+      allow list: if isSignedIn();
+    }
+    
+    match /exportOrders/{orderId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.createdBy) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.createdBy) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Items - allow akhilvenugopal access
+    match /items {
+      allow list: if isSignedIn();
+    }
+    
+    match /items/{itemId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.createdBy) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.createdBy) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Payments - allow akhilvenugopal access
+    match /payments {
+      allow list: if isSignedIn();
+    }
+    
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.createdBy) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.createdBy) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Invoices - allow akhilvenugopal access
+    match /invoices {
+      allow list: if isSignedIn();
+    }
+    
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn() && 
+                  resource.data != null && 
+                  (isAdmin() || 
+                   isOwner(resource.data.createdBy) ||
+                   request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+                    resource.data != null && 
+                    (isAdmin() || 
+                     isOwner(resource.data.createdBy) ||
+                     request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1');
+    }
+
+    // Activity logs - allow akhilvenugopal access
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); // System can create logs
+      allow update, delete: if false; // Logs are immutable
+    }
+
+    // Settings - AI configuration - allow akhilvenugopal access
+    match /settings/ai {
+      allow get: if isSignedIn();
+      allow update: if isAdmin() || request.auth.uid == 'mKMhPu9euBMDtEvoVYa6Y61QWVu1'; // akhil can update AI settings
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
