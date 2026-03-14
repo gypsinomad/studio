@@ -449,6 +449,7 @@ const SettingsUsers: React.FC = () => {
                 </Button>
               </div>
             </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -941,7 +942,6 @@ const SettingsUsers: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
     </>
   );
 };

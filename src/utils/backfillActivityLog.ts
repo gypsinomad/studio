@@ -1,8 +1,10 @@
 import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirestore } from '@/firebase';
 
 export async function backfillActivityLog() {
   try {
+    const db = getFirestore();
+    
     // Backfill leads
     const leadsSnap = await getDocs(collection(db, 'leads'));
     for (const doc of leadsSnap.docs) {
