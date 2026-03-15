@@ -1,4 +1,4 @@
-'use client';
+r'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -158,7 +158,7 @@ export default function ElevateAkhilPage() {
               <li>Click "Elevate to Admin Role" to fix permission errors</li>
               <li>After elevation, all create operations should work</li>
               <li>Test by creating a lead or export order</li>
-              <li>Verify the role change in user management</li>
+              <li>Verify role change in user management</li>
             </ol>
             <p className="text-xs text-blue-600 mt-2">
               <strong>Note:</strong> This directly updates akhilvenugopal's role in Firestore to resolve all permission issues.

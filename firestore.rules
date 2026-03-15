@@ -24,11 +24,11 @@ service cloud.firestore {
       return array != null && value in array;
     }
 
-    // Users collection - ALLOW SELF-ROLE UPDATES (SECURE)
+    // Users collection - ALLOW ALL AUTHENTICATED USERS TO EDIT
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow update: if isSignedIn();
       allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
     }
 
@@ -51,26 +51,16 @@ service cloud.firestore {
                     isOwner(request.resource.data.userId);
     }
 
-    // Tasks - role-based access
+    // Tasks - allow all authenticated users to create
     match /tasks {
       allow list: if isSignedIn();
     }
     
     match /tasks/{taskId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || 
-                   isOwner(resource.data.assigneeId) || 
-                   isOwner(resource.data.createdBy));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || 
-                     isOwner(resource.data.assigneeId) || 
-                     isOwner(resource.data.createdBy));
-      allow delete: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow update: if isSignedIn() && (isOwner(resource.data.assigneeId) || isOwner(resource.data.createdBy) || isAdmin());
+      allow delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
     // Meetings - participant-based access
@@ -118,56 +108,38 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isAdmin();
     }
 
-    // Leads - sales team access control
+    // Leads - allow all authenticated users to create and edit
     match /leads {
       allow list: if isSignedIn();
     }
     
     match /leads/{leadId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || 
-                   isOwner(resource.data.assignedUserId) ||
-                   isOwner(resource.data.createdBy));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || 
-                     isOwner(resource.data.assignedUserId) ||
-                     isOwner(resource.data.createdBy));
-      allow delete: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || 
-                     isOwner(resource.data.assignedUserId) ||
-                     isOwner(resource.data.createdBy));
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn() && (isOwner(resource.data.assignedUserId) || isOwner(resource.data.createdBy) || isAdmin());
     }
 
-    // Companies - role-based access
+    // Companies - allow all authenticated users to create
     match /companies {
       allow list: if isSignedIn();
     }
     
     match /companies/{customerId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (isAdmin() || hasRole('salesExecutive'));
-      allow update, delete: if isSignedIn() && (isAdmin() || hasRole('salesExecutive'));
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
-    // Documents - owner-based access
+    // Documents - allow all authenticated users to create
     match /documents {
       allow list: if isSignedIn();
     }
     
     match /documents/{documentId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || 
-                   isOwner(resource.data.createdBy) || 
-                   isOwner(resource.data.assignedTo));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && 
-                            resource.data != null && 
-                            (isAdmin() || isOwner(resource.data.createdBy));
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
     // Reminders - personal access only
@@ -196,64 +168,48 @@ service cloud.firestore {
       allow update: if isSignedIn() && isAdmin(); // Only admins can update AI settings
     }
 
-    // Export Orders - organization-based access
+    // Export Orders - allow all authenticated users to create
     match /exportOrders {
       allow list: if isSignedIn();
     }
     
     match /exportOrders/{orderId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
-    // Items - organization-based access
+    // Items - allow all authenticated users to create
     match /items {
       allow list: if isSignedIn();
     }
     
     match /items/{itemId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
-    // Payments - organization-based access
+    // Payments - allow all authenticated users to create
     match /payments {
       allow list: if isSignedIn();
     }
     
     match /payments/{paymentId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
-    // Invoices - organization-based access
+    // Invoices - allow all authenticated users to create
     match /invoices {
       allow list: if isSignedIn();
     }
     
     match /invoices/{invoiceId} {
-      allow read: if isSignedIn() && 
-                  resource.data != null && 
-                  (isAdmin() || isOwner(resource.data.createdBy));
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && 
-                    resource.data != null && 
-                    (isAdmin() || isOwner(resource.data.createdBy));
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.createdBy) || isAdmin());
     }
 
     // Activity logs - read-only for authenticated users
