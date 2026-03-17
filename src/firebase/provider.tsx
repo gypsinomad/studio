@@ -288,12 +288,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         const firebaseUser = userAuthState.user!;
         
         // Determine initial role based on business logic
-        // For now, default to 'viewer' for new users
-        // Admin can upgrade roles later
-        const initialRole: UserRole = 'viewer';
+        // For new users, default to 'viewer' 
+        // For existing users with elevated roles, preserve them
+        const initialRole: UserRole = 'viewer'; // Only for truly new users
 
         const newUserProfileData: Omit<CRMUser, 'id'> = {
           authUid: firebaseUser.uid,
+          uid: firebaseUser.uid, // Add missing uid property
+          orgId: '', // Add missing orgId property
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || 'New User',
           role: initialRole,
@@ -302,7 +304,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           avatarUrl: firebaseUser.photoURL || undefined,
         };
 
-        await setDoc(userDocRef, newUserProfileData);
+        // Only create profile if user doesn't exist - preserve existing role if updating
+        await setDoc(userDocRef, newUserProfileData, { merge: true });
         authLogger.logProfileCreation(firebaseUser.email || 'unknown', true);
         debugLogger.log('AUTH', `User profile created for ${firebaseUser.email}`, 'info');
       } catch (error) {
