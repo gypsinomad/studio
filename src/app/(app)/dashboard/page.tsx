@@ -42,7 +42,7 @@ const defaultDashboardStats: Omit<DashboardStats, 'id' | 'lastUpdatedAt'> = {
 
 export default function DashboardPage() {
   const firestore = useFirestore();
-  const { user, isAdmin, isLoading: isUserLoading } = useCurrentUser();
+  const { user, userProfile, isAdmin, isLoading: isUserLoading, canCreate } = useCurrentUser();
   
   const [dashboardData, setDashboardData] = useState<Omit<DashboardStats, 'id' | 'lastUpdatedAt'>>(defaultDashboardStats);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,14 +57,14 @@ export default function DashboardPage() {
   // One-time backfill for existing data
   useEffect(() => {
     const hasBackfilled = localStorage.getItem('activityBackfilled');
-    if (!hasBackfilled && user?.role === 'admin') {
+    if (!hasBackfilled && userProfile?.role === 'admin') {
       backfillActivityLog().then(() => {
         localStorage.setItem('activityBackfilled', 'true');
       }).catch(error => {
         console.error('Backfill failed:', error);
       });
     }
-  }, [user]);
+  }, [userProfile]);
 
   // One-time role fix for akhil venugopal
   useEffect(() => {
@@ -83,6 +83,13 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!firestore || !user) {
         if (!isUserLoading) setIsLoading(false);
+        return;
+    }
+
+    // Check if user can access dashboard data
+    if (!canCreate && !isAdmin) {
+        setError("You don't have permission to view dashboard statistics. Please contact your administrator for access.");
+        setIsLoading(false);
         return;
     }
 

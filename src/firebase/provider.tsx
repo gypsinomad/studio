@@ -341,7 +341,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const isAuthenticated = !!userAuthState.user && !userAuthState.isUserLoading;
   const isAdmin = isAuthenticated && userProfile?.role === 'admin';
   const role: UserRole | null = userProfile?.role ?? null;
-  const canCreate = isAuthenticated && (role === 'admin' || role === 'salesExecutive' || role === 'viewer');
+  const canCreate = isAuthenticated && (role === 'admin' || role === 'salesExecutive');
   
   // Helper function to check if user can perform specific operations
   const canPerformAction = (requiredRoles: UserRole[]) => {
@@ -350,8 +350,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   const canManageUsers = canPerformAction(['admin']);
   const canManageCustomers = canPerformAction(['admin', 'salesExecutive']);
-  const canManageLeads = canPerformAction(['admin', 'salesExecutive', 'viewer']);
-  const canManageDocuments = canPerformAction(['admin', 'salesExecutive', 'viewer']);
+  const canManageLeads = canPerformAction(['admin', 'salesExecutive']);
+  const canManageDocuments = canPerformAction(['admin', 'salesExecutive']);
   const canViewReports = canPerformAction(['admin', 'salesExecutive']);
 
   const contextValue = useMemo((): FirebaseContextState => {
