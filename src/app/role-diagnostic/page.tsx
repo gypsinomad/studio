@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, AlertTriangle, Shield, CheckCircle, LoaderCircle, Bug, Wrench } from 'lucide-react';
-import { diagnoseRoleIssue, makeRoleSticky } from '@/firebase/firestore/role-diagnostic';
 import { toast } from 'sonner';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +12,26 @@ export default function RoleDiagnosticPage() {
   const [status, setStatus] = useState<'idle' | 'diagnosing' | 'fixing' | 'success' | 'error'>('idle');
   const [diagnosis, setDiagnosis] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
+
+  // Clear service worker cache on mount
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+        }
+      });
+      
+      // Clear all caches
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.map(function(cacheName) {
+            return caches.delete(cacheName);
+          })
+        );
+      });
+    }
+  }, []);
 
   const runDiagnosis = async () => {
     setStatus('diagnosing');
