@@ -7,6 +7,8 @@ import { Search, AlertTriangle, Shield, CheckCircle, LoaderCircle, Bug, Wrench }
 import { diagnoseRoleIssue, makeRoleSticky } from '@/firebase/firestore/role-diagnostic';
 import { toast } from 'sonner';
 
+export const dynamic = 'force-dynamic';
+
 export default function RoleDiagnosticPage() {
   const [status, setStatus] = useState<'idle' | 'diagnosing' | 'fixing' | 'success' | 'error'>('idle');
   const [diagnosis, setDiagnosis] = useState<any>(null);
@@ -15,7 +17,15 @@ export default function RoleDiagnosticPage() {
   const runDiagnosis = async () => {
     setStatus('diagnosing');
     try {
-      const diagnosticResult = await diagnoseRoleIssue();
+      const response = await fetch('/api/role-diagnostic?action=diagnose&email=akhilvenugopal@gmail.com', {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const diagnosticResult = await response.json();
       setDiagnosis(diagnosticResult);
       setStatus('idle');
       toast.success('Role diagnosis completed');
@@ -30,14 +40,30 @@ export default function RoleDiagnosticPage() {
   const applyStickyFix = async () => {
     setStatus('fixing');
     try {
-      const fixResult = await makeRoleSticky();
+      const response = await fetch('/api/role-diagnostic?action=fix&email=akhilvenugopal@gmail.com', {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const fixResult = await response.json();
       setResult(fixResult);
       setStatus('success');
       
       // Re-run diagnosis after fix
       setTimeout(async () => {
-        const postFixDiagnosis = await diagnoseRoleIssue();
-        setDiagnosis(postFixDiagnosis);
+        const postFixDiagnosis = await fetch('/api/role-diagnostic?action=diagnose&email=akhilvenugopal@gmail.com', {
+          method: 'GET',
+        });
+        
+        if (!postFixDiagnosis.ok) {
+          throw new Error(`HTTP ${postFixDiagnosis.status}: ${postFixDiagnosis.statusText}`);
+        }
+        
+        const postFixResult = await postFixDiagnosis.json();
+        setDiagnosis(postFixResult);
       }, 2000);
       
       toast.success('Role made sticky - Admin privileges permanent');
