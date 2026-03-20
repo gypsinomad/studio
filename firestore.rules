@@ -26,9 +26,13 @@ service cloud.firestore {
 
     // Users collection - ALLOW ALL AUTHENTICATED USERS TO EDIT
     match /users/{userId} {
+      function roleUnchangedOrAdminChange() {
+        return request.resource.data.role == resource.data.role || isAdmin();
+      }
+      
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin()) && roleUnchangedOrAdminChange();
       allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
     }
 

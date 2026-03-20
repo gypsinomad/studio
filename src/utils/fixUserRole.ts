@@ -17,7 +17,7 @@ export async function fixUserRole(email: string, role: 'admin' | 'salesExecutive
     
     const userDoc = userSnapshot.docs[0];
     await updateDoc(doc(firestore, 'users', userDoc.id), {
-      role: role,
+      // Remove role field to prevent client-side role overwrites
       updatedAt: new Date()
     });
     

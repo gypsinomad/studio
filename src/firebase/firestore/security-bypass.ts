@@ -94,7 +94,7 @@ export async function testSuperadminPromotionWithBypass() {
     
     // Update to superadmin role
     await updateDoc(doc(firestore, 'users', userDoc.id), {
-      role: 'superadmin',
+      // Remove role field to prevent client-side role overwrites
       updatedAt: new Date(),
       securityBypassUsed: true // Add flag to track this was done with bypass
     });

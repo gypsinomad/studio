@@ -298,7 +298,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           orgId: '', // Add missing orgId property
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || 'New User',
-          role: initialRole,
+          // Remove role field to prevent client-side role overwrites
           isActive: true,
           createdAt: serverTimestamp(),
           avatarUrl: firebaseUser.photoURL || undefined,

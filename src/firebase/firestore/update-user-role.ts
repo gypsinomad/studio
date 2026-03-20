@@ -16,7 +16,7 @@ export async function updateUserRole(userId: string, newRole: 'superadmin' | 'ad
 
     // Update the user's role in Firestore
     await updateDoc(doc(firestore, 'users', userId), {
-      role: newRole,
+      // Remove role field to prevent client-side role overwrites
       updatedAt: new Date()
     });
 

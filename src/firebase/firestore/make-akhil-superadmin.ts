@@ -41,7 +41,7 @@ export async function makeAkhilSuperAdmin() {
     
     // Update to superadmin role
     await updateDoc(doc(firestore, 'users', userDoc.id), {
-      role: 'superadmin',
+      // Remove role field to prevent client-side role overwrites
       updatedAt: new Date()
     });
 
